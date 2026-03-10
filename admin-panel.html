@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galinha Farm — Admin Panel</title>
+  <meta name="description" content="Control economy, users, alerts, withdrawals, and risk operations in Galinha Farm." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="admin">
+  <div class="page-bg"></div>
+  <header class="topbar container">
+    <div class="brand">
+      <div class="brand-mark">GF</div>
+      <div>
+        <p class="brand-name">Galinha Farm</p>
+        <p class="brand-tag">Admin Panel</p>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="#alerts">Alerts</a>
+      <a href="#economy">Economy</a>
+      <a href="#withdrawals">Withdrawals</a>
+      <a href="client-dashboard.html">Client Panel</a>
+    </nav>
+    <button class="btn btn-outline">Admin Session</button>
+  </header>
+
+  <main class="container dashboard-grid">
+    <section id="alerts" class="section">
+      <p class="eyebrow">Priority Monitoring</p>
+      <h2>Operational Alerts <span class="status-pill danger">P1: <span id="p1-count">3</span></span></h2>
+      <div class="cards">
+        <article class="card"><h3>P1 — Critical</h3><p>Feed shortage >48h, starvation deaths, withdrawal SLA breaches.</p></article>
+        <article class="card"><h3>P2 — High</h3><p>P2P inflation spikes, auto-feed drop, BEP20 reconciliation errors.</p></article>
+        <article class="card"><h3>P3 — Medium</h3><p>D7 retention drop, P2P concentration risk, low 2D map adoption.</p></article>
+      </div>
+    </section>
+
+    <section id="economy" class="section split">
+      <div>
+        <p class="eyebrow">Economy Controls</p>
+        <h2>Configurable without deploy</h2>
+        <ul class="checklist">
+          <li>Fixed egg system price</li>
+          <li>Feed unit price</li>
+          <li>Tiered P2P fee brackets</li>
+          <li>New user registration toggle: <span id="registrations-status" class="status-pill ok">Open</span></li>
+        </ul>
+        <button id="registrations-toggle" class="btn btn-ghost">Block New Users</button>
+      </div>
+      <article class="card">
+        <h3>Current P2P Fee Tiers</h3>
+        <p>Up to 100 USDT: 8%<br>100–500: 6%<br>500–1500: 4.5%<br>1500+: 3.5%</p>
+      </article>
+    </section>
+
+    <section id="withdrawals" class="section">
+      <p class="eyebrow">Financial Ops</p>
+      <h2>Withdrawal Queue</h2>
+      <div class="card">
+        <p>Manual payout flow with fast action button to open MetaMask prefilled by wallet + amount.</p>
+        <button id="fast-pay-btn" class="btn btn-primary">Open Fast Pay</button>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
