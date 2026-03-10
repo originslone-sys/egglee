@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galinha Farm — Client Dashboard</title>
+  <meta name="description" content="Manage your chickens, feed stock, eggs, and wallet inside the Galinha Farm client panel." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="client">
+  <div class="page-bg"></div>
+  <header class="topbar container">
+    <div class="brand">
+      <div class="brand-mark">GF</div>
+      <div>
+        <p class="brand-name">Galinha Farm</p>
+        <p class="brand-tag">Client Panel</p>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="#farm">My Farm</a>
+      <a href="#wallet">Wallet</a>
+      <a href="#market">P2P Market</a>
+      <a href="admin-panel.html">Admin Panel</a>
+    </nav>
+    <button class="btn btn-outline">Connect MetaMask</button>
+  </header>
+
+  <main class="container dashboard-grid">
+    <section class="section">
+      <p class="eyebrow">Farm Overview</p>
+      <h2>Welcome back, Farmer.</h2>
+      <div class="cards two-cols">
+        <article class="card"><h3>Active Chickens</h3><p id="metric-chickens" class="metric">24</p></article>
+        <article class="card"><h3>Eggs Ready</h3><p id="metric-eggs" class="metric">112</p></article>
+        <article class="card"><h3>Feed Stock</h3><p id="metric-feed" class="metric">31.4 units</p></article>
+        <article class="card"><h3>Wallet Balance</h3><p id="metric-wallet" class="metric">84.20 USDT</p></article>
+      </div>
+    </section>
+
+    <section id="farm" class="section">
+      <p class="eyebrow">2D Farm Actions</p>
+      <h2>Quick controls</h2>
+      <div class="cards two-cols">
+        <article class="card">
+          <h3>Collect All Eggs</h3>
+          <p>Instantly collect all available eggs from your active chickens.</p>
+          <button id="collect-btn" class="btn btn-primary">Collect</button>
+        </article>
+        <article class="card">
+          <h3>Feed Manually</h3>
+          <p>Buy +10 feed units now for 1.20 USDT from your wallet.</p>
+          <button id="feed-btn" class="btn btn-ghost">Feed Now</button>
+        </article>
+        <article class="card">
+          <h3>Auto Feed</h3>
+          <p>Enable automatic feed consumption while stock or balance is available.</p>
+          <button id="auto-feed-btn" class="btn btn-ghost">Enable</button>
+        </article>
+        <article class="card">
+          <h3>Farm Status</h3>
+          <p id="farm-status">Farm is stable. Production is running normally.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="wallet" class="section split">
+      <div>
+        <p class="eyebrow">Wallet & Operations</p>
+        <h2>USDT / BEP20</h2>
+        <ul class="checklist">
+          <li>Deposit confirmations: 12 blocks</li>
+          <li>Withdrawals: manual review (up to 72h)</li>
+          <li>Limit: 1 withdrawal request per day</li>
+        </ul>
+      </div>
+      <article class="card">
+        <h3>Today Progress</h3>
+        <p>Eggs collected today: <strong id="collected-today">0</strong></p>
+      </article>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
