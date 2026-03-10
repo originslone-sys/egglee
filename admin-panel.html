@@ -25,15 +25,22 @@
       <a href="#alerts">Alerts</a>
       <a href="#economy">Economy</a>
       <a href="#withdrawals">Withdrawals</a>
+      <a href="#users">Users</a>
       <a href="client-dashboard.html">Client Panel</a>
     </nav>
-    <button class="btn btn-outline">Admin Session</button>
+    <div class="auth-bar">
+      <button id="connect-btn" class="btn btn-outline">Connect MetaMask</button>
+      <div id="auth-info" class="auth-info" style="display:none">
+        <span id="wallet-label" class="status-pill ok"></span>
+        <button id="logout-btn" class="btn btn-ghost btn-sm">Logout</button>
+      </div>
+    </div>
   </header>
 
   <main class="container dashboard-grid">
     <section id="alerts" class="section">
       <p class="eyebrow">Priority Monitoring</p>
-      <h2>Operational Alerts <span class="status-pill danger">P1: <span id="p1-count">3</span></span></h2>
+      <h2>Operational Alerts <span class="status-pill danger">P1: <span id="p1-count">—</span></span></h2>
       <div class="cards">
         <article class="card"><h3>P1 — Critical</h3><p>Feed shortage >48h, starvation deaths, withdrawal SLA breaches.</p></article>
         <article class="card"><h3>P2 — High</h3><p>P2P inflation spikes, auto-feed drop, BEP20 reconciliation errors.</p></article>
@@ -41,33 +48,41 @@
       </div>
     </section>
 
-    <section id="economy" class="section split">
-      <div>
-        <p class="eyebrow">Economy Controls</p>
-        <h2>Configurable without deploy</h2>
-        <ul class="checklist">
-          <li>Fixed egg system price</li>
-          <li>Feed unit price</li>
-          <li>Tiered P2P fee brackets</li>
-          <li>New user registration toggle: <span id="registrations-status" class="status-pill ok">Open</span></li>
-        </ul>
-        <button id="registrations-toggle" class="btn btn-ghost">Block New Users</button>
+    <section id="economy" class="section">
+      <p class="eyebrow">Economy Controls</p>
+      <h2>Configurable without deploy</h2>
+      <div id="economy-form" class="economy-grid">
+        <p class="text-soft">Connect as admin to manage economy configs.</p>
       </div>
-      <article class="card">
-        <h3>Current P2P Fee Tiers</h3>
-        <p>Up to 100 USDT: 8%<br>100–500: 6%<br>500–1500: 4.5%<br>1500+: 3.5%</p>
-      </article>
     </section>
 
     <section id="withdrawals" class="section">
       <p class="eyebrow">Financial Ops</p>
       <h2>Withdrawal Queue</h2>
-      <div class="card">
-        <p>Manual payout flow with fast action button to open MetaMask prefilled by wallet + amount.</p>
-        <button id="fast-pay-btn" class="btn btn-primary">Open Fast Pay</button>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>ID</th><th>Wallet</th><th>Net Amount</th><th>Requested</th><th>Actions</th></tr></thead>
+          <tbody id="withdrawal-body">
+            <tr><td colspan="5" class="text-soft">Connect as admin to view queue.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="users" class="section">
+      <p class="eyebrow">User Management</p>
+      <h2>Registered Users</h2>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Wallet</th><th>Balance</th><th>Feed</th><th>Last Login</th><th>Actions</th></tr></thead>
+          <tbody id="user-body">
+            <tr><td colspan="5" class="text-soft">Connect as admin to view users.</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
   </main>
+  <script src="api.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

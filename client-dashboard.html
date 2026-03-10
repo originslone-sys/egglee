@@ -27,7 +27,13 @@
       <a href="#market">P2P Market</a>
       <a href="admin-panel.html">Admin Panel</a>
     </nav>
-    <button class="btn btn-outline">Connect MetaMask</button>
+    <div class="auth-bar">
+      <button id="connect-btn" class="btn btn-outline">Connect MetaMask</button>
+      <div id="auth-info" class="auth-info" style="display:none">
+        <span id="wallet-label" class="status-pill ok"></span>
+        <button id="logout-btn" class="btn btn-ghost btn-sm">Logout</button>
+      </div>
+    </div>
   </header>
 
   <main class="container dashboard-grid">
@@ -35,10 +41,10 @@
       <p class="eyebrow">Farm Overview</p>
       <h2>Welcome back, Farmer.</h2>
       <div class="cards two-cols">
-        <article class="card"><h3>Active Chickens</h3><p id="metric-chickens" class="metric">24</p></article>
-        <article class="card"><h3>Eggs Ready</h3><p id="metric-eggs" class="metric">112</p></article>
-        <article class="card"><h3>Feed Stock</h3><p id="metric-feed" class="metric">31.4 units</p></article>
-        <article class="card"><h3>Wallet Balance</h3><p id="metric-wallet" class="metric">84.20 USDT</p></article>
+        <article class="card"><h3>Active Chickens</h3><p id="metric-chickens" class="metric">—</p></article>
+        <article class="card"><h3>Eggs Ready</h3><p id="metric-eggs" class="metric">—</p></article>
+        <article class="card"><h3>Feed Stock</h3><p id="metric-feed" class="metric">—</p></article>
+        <article class="card"><h3>Wallet Balance</h3><p id="metric-wallet" class="metric">—</p></article>
       </div>
     </section>
 
@@ -48,42 +54,72 @@
       <div class="cards two-cols">
         <article class="card">
           <h3>Collect All Eggs</h3>
-          <p>Instantly collect all available eggs from your active chickens.</p>
-          <button id="collect-btn" class="btn btn-primary">Collect</button>
+          <p>Instantly collect and sell all available eggs to the system.</p>
+          <button id="collect-btn" class="btn btn-primary">Collect & Sell</button>
         </article>
         <article class="card">
           <h3>Feed Manually</h3>
-          <p>Buy +10 feed units now for 1.20 USDT from your wallet.</p>
-          <button id="feed-btn" class="btn btn-ghost">Feed Now</button>
+          <p>Buy +10 feed units from your USDT wallet balance.</p>
+          <button id="feed-btn" class="btn btn-ghost">Buy 10 Feed</button>
         </article>
         <article class="card">
           <h3>Auto Feed</h3>
-          <p>Enable automatic feed consumption while stock or balance is available.</p>
+          <p>Enable automatic feed consumption from your stock.</p>
           <button id="auto-feed-btn" class="btn btn-ghost">Enable</button>
         </article>
         <article class="card">
           <h3>Farm Status</h3>
-          <p id="farm-status">Farm is stable. Production is running normally.</p>
+          <p id="farm-status">Connect MetaMask to see your farm status.</p>
         </article>
       </div>
     </section>
 
-    <section id="wallet" class="section split">
-      <div>
-        <p class="eyebrow">Wallet & Operations</p>
-        <h2>USDT / BEP20</h2>
-        <ul class="checklist">
-          <li>Deposit confirmations: 12 blocks</li>
-          <li>Withdrawals: manual review (up to 72h)</li>
-          <li>Limit: 1 withdrawal request per day</li>
-        </ul>
+    <section class="section">
+      <p class="eyebrow">Buy Chickens</p>
+      <h2>Expand your farm</h2>
+      <div class="card" style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap">
+        <select id="species-select" class="input"></select>
+        <button id="buy-chicken-btn" class="btn btn-primary">Buy Chicken</button>
       </div>
-      <article class="card">
-        <h3>Today Progress</h3>
-        <p>Eggs collected today: <strong id="collected-today">0</strong></p>
-      </article>
+    </section>
+
+    <section class="section">
+      <p class="eyebrow">My Chickens</p>
+      <div id="chicken-list" class="card">
+        <p class="text-soft">Connect MetaMask to see your chickens.</p>
+      </div>
+    </section>
+
+    <section id="wallet" class="section">
+      <p class="eyebrow">Wallet & Withdrawals</p>
+      <h2>USDT / BEP20</h2>
+      <div class="cards two-cols">
+        <div>
+          <ul class="checklist">
+            <li>Deposit confirmations: 12 blocks</li>
+            <li>Withdrawals: manual review (up to 72h)</li>
+            <li>Limit: 1 withdrawal request per day</li>
+          </ul>
+          <div class="withdraw-form">
+            <input id="withdraw-amount" type="number" step="0.01" min="0" class="input" placeholder="Amount in USDT" />
+            <button id="withdraw-btn" class="btn btn-primary">Request Withdrawal</button>
+          </div>
+        </div>
+        <article class="card">
+          <h3>Recent Transactions</h3>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th></tr></thead>
+              <tbody id="ledger-body">
+                <tr><td colspan="4" class="text-soft">Connect to view transactions.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
     </section>
   </main>
+  <script src="api.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
