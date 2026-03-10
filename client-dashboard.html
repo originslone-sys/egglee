@@ -177,7 +177,16 @@
       <h2>USDT / BEP20</h2>
       <div class="cards two-cols">
         <div>
-          <ul class="checklist">
+          <article class="card deposit-card">
+            <h3>Deposit USDT (BEP20)</h3>
+            <p>Send USDT on BSC (BEP20) network to your wallet address below. Deposits are credited automatically after 12 block confirmations.</p>
+            <div class="deposit-address-box">
+              <code id="deposit-addr" class="deposit-addr">Connect to see address</code>
+              <button id="copy-addr-btn" class="btn btn-ghost btn-sm">Copy</button>
+            </div>
+            <span class="status-pill ok">Network: BEP20 (BSC)</span>
+          </article>
+          <ul class="checklist" style="margin-top:1rem">
             <li>Deposit confirmations: 12 blocks</li>
             <li>Withdrawals: manual review (up to 72h)</li>
             <li>Limit: 1 withdrawal request per day</li>
@@ -187,17 +196,30 @@
             <button id="withdraw-btn" class="btn btn-primary">Request Withdrawal</button>
           </div>
         </div>
-        <article class="card">
-          <h3>Recent Transactions</h3>
-          <div class="table-wrap">
-            <table class="table">
-              <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th></tr></thead>
-              <tbody id="ledger-body">
-                <tr><td colspan="4" class="text-soft">Connect to view transactions.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </article>
+        <div>
+          <article class="card">
+            <h3>Deposit History</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>Date</th><th>Amount</th><th>Status</th><th>TX</th></tr></thead>
+                <tbody id="deposits-body">
+                  <tr><td colspan="4" class="text-soft">Connect to view deposits.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+          <article class="card" style="margin-top:1rem">
+            <h3>Recent Transactions</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th></tr></thead>
+                <tbody id="ledger-body">
+                  <tr><td colspan="4" class="text-soft">Connect to view transactions.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
   </main>

@@ -120,6 +120,8 @@
         renderFarm();
         loadSpecies();
         loadLedger();
+        loadDepositAddress();
+        loadDeposits();
       } catch (e) {
         toast(e.message, true);
       }
@@ -208,6 +210,47 @@
       } catch (e) { toast(e.message, true); }
       el.withdrawBtn.disabled = false;
     });
+
+    // ── Deposits ─────────────────────────────────────
+    const depositAddr = $('deposit-addr');
+    const copyAddrBtn = $('copy-addr-btn');
+    const depositsBody = $('deposits-body');
+
+    async function loadDepositAddress() {
+      if (!depositAddr || !API.isLoggedIn()) return;
+      try {
+        const data = await API.client.depositAddress();
+        depositAddr.textContent = data.wallet_address;
+      } catch (_) { /* ignore */ }
+    }
+
+    copyAddrBtn?.addEventListener('click', () => {
+      const addr = depositAddr?.textContent;
+      if (addr && addr !== 'Connect to see address') {
+        navigator.clipboard.writeText(addr).then(() => toast('Address copied!'));
+      }
+    });
+
+    async function loadDeposits() {
+      if (!depositsBody || !API.isLoggedIn()) return;
+      try {
+        const { deposits } = await API.client.deposits(1);
+        if (deposits.length === 0) {
+          depositsBody.innerHTML = '<tr><td colspan="4" class="text-soft">No deposits yet.</td></tr>';
+        } else {
+          depositsBody.innerHTML = deposits.slice(0, 10).map(d => {
+            const statusClass = d.status === 'confirmed' ? 'ok' : d.status === 'failed' ? 'danger' : 'warn';
+            const txShort = d.tx_hash ? d.tx_hash.slice(0, 10) + '...' : '—';
+            return `<tr>
+              <td>${new Date(d.created_at).toLocaleString()}</td>
+              <td>${parseFloat(d.amount).toFixed(2)} USDT</td>
+              <td><span class="status-pill ${statusClass}">${d.status} (${d.confirmations} conf)</span></td>
+              <td title="${d.tx_hash || ''}">${txShort}</td>
+            </tr>`;
+          }).join('');
+        }
+      } catch (_) { /* ignore */ }
+    }
 
     // ── P2P Marketplace ──────────────────────────────
     const tabs = {

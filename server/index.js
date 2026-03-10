@@ -12,6 +12,7 @@ const clientRoutes = require('./routes/client');
 const adminRoutes = require('./routes/admin');
 const marketplaceRoutes = require('./routes/marketplace');
 const { runProductionCycle } = require('./jobs/production');
+const { scanDeposits } = require('./jobs/depositMonitor');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,6 +61,18 @@ cron.schedule('*/10 * * * *', async () => {
     console.log(`[CRON] Production cycle:`, result);
   } catch (err) {
     console.error('[CRON] Production cycle error:', err.message);
+  }
+});
+
+// Deposit monitor cron — every 2 minutes
+cron.schedule('*/2 * * * *', async () => {
+  try {
+    const result = await scanDeposits();
+    if (result.found > 0 || result.credited > 0) {
+      console.log(`[CRON] Deposit scan:`, result);
+    }
+  } catch (err) {
+    console.error('[CRON] Deposit scan error:', err.message);
   }
 });
 

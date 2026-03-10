@@ -214,4 +214,31 @@ router.get('/ledger', async (req, res) => {
   res.json({ page, limit, entries });
 });
 
+// GET /api/client/deposit-address — get user's deposit wallet address
+router.get('/deposit-address', async (req, res) => {
+  const user = await db('users').where({ id: req.user.id }).first('wallet_address');
+  res.json({
+    wallet_address: user.wallet_address,
+    network: 'BEP20 (BSC)',
+    token: 'USDT',
+    note: 'Send USDT (BEP20) to your wallet address. Deposits are credited automatically after 12 block confirmations.',
+  });
+});
+
+// GET /api/client/deposits — deposit history
+router.get('/deposits', async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page || '1', 10);
+  const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+  const offset = (page - 1) * limit;
+
+  const deposits = await db('deposits')
+    .where({ user_id: userId })
+    .orderBy('created_at', 'desc')
+    .limit(limit)
+    .offset(offset);
+
+  res.json({ page, limit, deposits });
+});
+
 module.exports = router;
