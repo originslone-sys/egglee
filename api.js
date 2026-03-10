@@ -91,5 +91,17 @@ const API = (() => {
     getAlerts:        () => request('GET', '/admin/alerts'),
   };
 
-  return { connectMetaMask, logout, isLoggedIn, getUser, isAdmin, client, admin };
+  // ── Marketplace API ────────────────────────────────
+
+  const marketplace = {
+    listings:     (type, page, sort) => request('GET', `/marketplace/listings?type=${type || 'egg'}&page=${page || 1}&sort=${sort || 'price_asc'}`),
+    myOrders:     (status) => request('GET', `/marketplace/my-orders${status ? '?status=' + status : ''}`),
+    myFee:        () => request('GET', '/marketplace/my-fee'),
+    listEgg:      (price, qty) => request('POST', '/marketplace/list-egg', { price, quantity: qty }),
+    listChicken:  (chickenId, price) => request('POST', '/marketplace/list-chicken', { chicken_id: chickenId, price }),
+    buy:          (orderId) => request('POST', `/marketplace/buy/${orderId}`),
+    cancel:       (orderId) => request('POST', `/marketplace/cancel/${orderId}`),
+  };
+
+  return { connectMetaMask, logout, isLoggedIn, getUser, isAdmin, client, admin, marketplace };
 })();

@@ -10,6 +10,7 @@ const cron = require('node-cron');
 const authRoutes = require('./routes/auth');
 const clientRoutes = require('./routes/client');
 const adminRoutes = require('./routes/admin');
+const marketplaceRoutes = require('./routes/marketplace');
 const { runProductionCycle } = require('./jobs/production');
 
 const app = express();
@@ -33,6 +34,7 @@ app.use('/api/', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/marketplace', marketplaceRoutes);
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '..')));

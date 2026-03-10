@@ -431,8 +431,46 @@ select.input {
   cursor: not-allowed;
 }
 
+/* ── Marketplace ───────────────────────────────── */
+.market-tabs {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.market-filters {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  margin-bottom: .8rem;
+  flex-wrap: wrap;
+}
+
+.market-panel {
+  margin-top: .5rem;
+}
+
+.sell-form {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  margin-top: .8rem;
+  flex-wrap: wrap;
+}
+
+.pagination {
+  display: flex;
+  gap: .3rem;
+  margin-top: .6rem;
+  justify-content: center;
+}
+
 @media (max-width: 900px) {
   .two-cols { grid-template-columns: 1fr; }
   .withdraw-form { flex-direction: column; align-items: stretch; }
   .config-row { flex-wrap: wrap; }
+  .sell-form { flex-direction: column; align-items: stretch; }
+  .market-filters { flex-direction: column; }
 }
