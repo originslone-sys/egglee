@@ -209,9 +209,199 @@
       el.withdrawBtn.disabled = false;
     });
 
+    // ── P2P Marketplace ──────────────────────────────
+    const tabs = {
+      browse: { btn: $('tab-browse'), panel: $('panel-browse') },
+      sell: { btn: $('tab-sell'), panel: $('panel-sell') },
+      myOrders: { btn: $('tab-my-orders'), panel: $('panel-my-orders') },
+    };
+    const myFeeLabel = $('my-fee');
+    const listingsBody = $('listings-body');
+    const listingsPag = $('listings-pagination');
+    const marketType = $('market-type');
+    const marketSort = $('market-sort');
+    const marketRefresh = $('market-refresh');
+    const sellEggBtn = $('sell-egg-btn');
+    const sellChickenBtn = $('sell-chicken-btn');
+    const sellChickenSelect = $('sell-chicken-select');
+    const mySellingBody = $('my-selling-body');
+    const myBoughtBody = $('my-bought-body');
+
+    let marketPage = 1;
+
+    function switchTab(name) {
+      Object.entries(tabs).forEach(([key, { btn, panel }]) => {
+        if (key === name) {
+          btn.className = 'btn btn-primary btn-sm tab-active';
+          if (panel) panel.style.display = '';
+        } else {
+          btn.className = 'btn btn-ghost btn-sm';
+          if (panel) panel.style.display = 'none';
+        }
+      });
+      if (name === 'browse') loadListings();
+      if (name === 'sell') populateSellChickens();
+      if (name === 'myOrders') loadMyOrders();
+    }
+
+    tabs.browse.btn?.addEventListener('click', () => switchTab('browse'));
+    tabs.sell.btn?.addEventListener('click', () => switchTab('sell'));
+    tabs.myOrders.btn?.addEventListener('click', () => switchTab('myOrders'));
+
+    marketType?.addEventListener('change', () => { marketPage = 1; loadListings(); });
+    marketSort?.addEventListener('change', () => { marketPage = 1; loadListings(); });
+    marketRefresh?.addEventListener('click', () => loadListings());
+
+    async function loadMyFee() {
+      if (!myFeeLabel) return;
+      try {
+        const { fee_percent } = await API.marketplace.myFee();
+        myFeeLabel.textContent = `Your fee: ${fee_percent}`;
+      } catch (_) { /* ignore */ }
+    }
+
+    async function loadListings() {
+      if (!listingsBody || !API.isLoggedIn()) return;
+      try {
+        const type = marketType?.value || 'egg';
+        const sort = marketSort?.value || 'price_asc';
+        const data = await API.marketplace.listings(type, marketPage, sort);
+
+        if (data.listings.length === 0) {
+          listingsBody.innerHTML = `<tr><td colspan="5" class="text-soft">No ${type} listings available.</td></tr>`;
+        } else {
+          listingsBody.innerHTML = data.listings.map(l => {
+            const itemLabel = l.item_type === 'chicken' && l.species_name
+              ? `${l.species_name} Chicken` : 'Egg';
+            return `<tr>
+              <td>${itemLabel}</td>
+              <td title="${l.seller_wallet}">${shortWallet(l.seller_wallet)}</td>
+              <td>${parseFloat(l.price).toFixed(2)} USDT</td>
+              <td>${new Date(l.created_at).toLocaleDateString()}</td>
+              <td><button class="btn btn-primary btn-sm p2p-buy" data-id="${l.id}">Buy</button></td>
+            </tr>`;
+          }).join('');
+
+          listingsBody.querySelectorAll('.p2p-buy').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              btn.disabled = true;
+              try {
+                const r = await API.marketplace.buy(btn.dataset.id);
+                toast(`Bought ${r.item_type} for ${r.price.toFixed(2)} USDT (fee ${r.fee.toFixed(2)})`);
+                loadListings();
+                loadFarm();
+              } catch (e) { toast(e.message, true); }
+              btn.disabled = false;
+            });
+          });
+        }
+
+        // Simple pagination
+        if (listingsPag) {
+          const totalPages = Math.ceil(data.total / data.limit);
+          listingsPag.innerHTML = totalPages > 1
+            ? Array.from({ length: totalPages }, (_, i) =>
+                `<button class="btn ${i + 1 === marketPage ? 'btn-primary' : 'btn-ghost'} btn-sm pag-btn" data-p="${i + 1}">${i + 1}</button>`
+              ).join('')
+            : '';
+          listingsPag.querySelectorAll('.pag-btn').forEach(btn => {
+            btn.addEventListener('click', () => { marketPage = parseInt(btn.dataset.p, 10); loadListings(); });
+          });
+        }
+      } catch (e) { toast(e.message, true); }
+    }
+
+    function populateSellChickens() {
+      if (!sellChickenSelect || !farmData) return;
+      sellChickenSelect.innerHTML = farmData.chickens.map(c =>
+        `<option value="${c.id}">${c.species} #${c.id}</option>`
+      ).join('');
+      if (farmData.chickens.length === 0) {
+        sellChickenSelect.innerHTML = '<option disabled>No chickens available</option>';
+      }
+    }
+
+    sellEggBtn?.addEventListener('click', async () => {
+      const price = parseFloat($('sell-egg-price')?.value);
+      const qty = parseInt($('sell-egg-qty')?.value || '1', 10);
+      if (!price || price <= 0) { toast('Enter a valid price', true); return; }
+      sellEggBtn.disabled = true;
+      try {
+        const r = await API.marketplace.listEgg(price, qty);
+        toast(`Listed ${r.listed} egg(s) at ${price.toFixed(2)} USDT each (fee ${(r.fee_rate * 100).toFixed(1)}%)`);
+        $('sell-egg-price').value = '';
+        loadFarm();
+      } catch (e) { toast(e.message, true); }
+      sellEggBtn.disabled = false;
+    });
+
+    sellChickenBtn?.addEventListener('click', async () => {
+      const chickenId = parseInt(sellChickenSelect?.value, 10);
+      const price = parseFloat($('sell-chicken-price')?.value);
+      if (!chickenId || !price || price <= 0) { toast('Select a chicken and enter a valid price', true); return; }
+      sellChickenBtn.disabled = true;
+      try {
+        const r = await API.marketplace.listChicken(chickenId, price);
+        toast(`Chicken listed for ${price.toFixed(2)} USDT (fee ${(r.fee_rate * 100).toFixed(1)}%)`);
+        $('sell-chicken-price').value = '';
+        loadFarm();
+      } catch (e) { toast(e.message, true); }
+      sellChickenBtn.disabled = false;
+    });
+
+    async function loadMyOrders() {
+      if (!mySellingBody || !API.isLoggedIn()) return;
+      try {
+        const data = await API.marketplace.myOrders();
+
+        // Active listings
+        const active = data.selling.filter(o => o.status === 'listed');
+        if (active.length === 0) {
+          mySellingBody.innerHTML = '<tr><td colspan="5" class="text-soft">No active listings.</td></tr>';
+        } else {
+          mySellingBody.innerHTML = active.map(o => `
+            <tr>
+              <td>#${o.id}</td>
+              <td>${o.item_type}</td>
+              <td>${parseFloat(o.price).toFixed(2)} USDT</td>
+              <td><span class="status-pill ok">Listed</span></td>
+              <td><button class="btn btn-ghost btn-sm p2p-cancel" data-id="${o.id}">Cancel</button></td>
+            </tr>
+          `).join('');
+
+          mySellingBody.querySelectorAll('.p2p-cancel').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              try {
+                await API.marketplace.cancel(btn.dataset.id);
+                toast('Listing cancelled');
+                loadMyOrders();
+                loadFarm();
+              } catch (e) { toast(e.message, true); }
+            });
+          });
+        }
+
+        // Purchase history
+        if (data.bought.length === 0) {
+          myBoughtBody.innerHTML = '<tr><td colspan="4" class="text-soft">No purchases yet.</td></tr>';
+        } else {
+          myBoughtBody.innerHTML = data.bought.map(o => `
+            <tr>
+              <td>#${o.id}</td>
+              <td>${o.item_type}</td>
+              <td>${parseFloat(o.price).toFixed(2)} USDT</td>
+              <td>${new Date(o.sold_at).toLocaleDateString()}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) { toast(e.message, true); }
+    }
+
     // Auto-refresh every 30s
     if (API.isLoggedIn()) {
       loadFarm();
+      loadMyFee();
+      loadListings();
       setInterval(loadFarm, 30000);
     }
   }
