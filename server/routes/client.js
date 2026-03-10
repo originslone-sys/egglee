@@ -1,0 +1,217 @@
+const { Router } = require('express');
+const db = require('../config/database');
+const { authenticate } = require('../middleware/auth');
+const { adjustBalance, adjustFeed } = require('../utils/wallet');
+const EconomyConfig = require('../models/EconomyConfig');
+
+const router = Router();
+router.use(authenticate);
+
+// GET /api/client/farm — full farm status
+router.get('/farm', async (req, res) => {
+  const userId = req.user.id;
+
+  const [user, chickens, eggCount, chicks] = await Promise.all([
+    db('users').where({ id: userId }).first('balance_usdt', 'feed_balance', 'auto_feed_enabled'),
+    db('chickens')
+      .where({ user_id: userId, status: 'alive' })
+      .join('chicken_species', 'chickens.species_id', 'chicken_species.id')
+      .select(
+        'chickens.id',
+        'chicken_species.name as species',
+        'chickens.born_at',
+        'chickens.dies_at',
+        'chickens.starvation_started_at'
+      ),
+    db('eggs').where({ user_id: userId, status: 'available' }).count('id as count').first(),
+    db('chicks')
+      .where({ user_id: userId, status: 'growing' })
+      .join('chicken_species', 'chicks.target_species_id', 'chicken_species.id')
+      .select('chicks.id', 'chicken_species.name as target_species', 'chicks.hatched_at', 'chicks.feed_consumed'),
+  ]);
+
+  res.json({
+    balance_usdt: parseFloat(user.balance_usdt),
+    feed_balance: parseFloat(user.feed_balance),
+    auto_feed_enabled: user.auto_feed_enabled,
+    chickens,
+    eggs_available: parseInt(eggCount.count, 10),
+    chicks,
+  });
+});
+
+// POST /api/client/collect-eggs — collect all available eggs and sell to system
+router.post('/collect-eggs', async (req, res) => {
+  const userId = req.user.id;
+
+  const result = await db.transaction(async (trx) => {
+    const eggs = await trx('eggs')
+      .where({ user_id: userId, status: 'available' })
+      .select('id');
+
+    if (eggs.length === 0) {
+      return { collected: 0, earned: 0 };
+    }
+
+    const eggPrice = await EconomyConfig.getNumber('egg_system_price');
+    const earned = parseFloat((eggs.length * eggPrice).toFixed(2));
+
+    await trx('eggs')
+      .whereIn('id', eggs.map((e) => e.id))
+      .update({ status: 'sold_system', collected_at: trx.fn.now() });
+
+    const newBalance = await adjustBalance(
+      trx, userId, earned, 'egg_sale_system',
+      `Sold ${eggs.length} eggs at ${eggPrice} USDT each`,
+      `eggs:${eggs.length}`
+    );
+
+    return { collected: eggs.length, earned, new_balance: newBalance };
+  });
+
+  res.json(result);
+});
+
+// POST /api/client/buy-feed — buy feed with USDT
+router.post('/buy-feed', async (req, res) => {
+  const userId = req.user.id;
+  const { quantity } = req.body;
+
+  if (!quantity || quantity <= 0 || !Number.isFinite(quantity)) {
+    return res.status(400).json({ error: 'Valid quantity required' });
+  }
+
+  const feedPrice = await EconomyConfig.getNumber('feed_unit_price');
+  const cost = parseFloat((quantity * feedPrice).toFixed(2));
+
+  const result = await db.transaction(async (trx) => {
+    const newBalance = await adjustBalance(
+      trx, userId, -cost, 'feed_purchase',
+      `Bought ${quantity} feed units at ${feedPrice} USDT each`
+    );
+    const newFeed = await adjustFeed(trx, userId, quantity);
+
+    return { cost, new_balance: newBalance, new_feed: newFeed };
+  });
+
+  res.json(result);
+});
+
+// POST /api/client/toggle-auto-feed
+router.post('/toggle-auto-feed', async (req, res) => {
+  const userId = req.user.id;
+  const user = await db('users').where({ id: userId }).first('auto_feed_enabled');
+  const newState = !user.auto_feed_enabled;
+  await db('users').where({ id: userId }).update({ auto_feed_enabled: newState });
+  res.json({ auto_feed_enabled: newState });
+});
+
+// POST /api/client/buy-chicken — buy a chicken by species
+router.post('/buy-chicken', async (req, res) => {
+  const userId = req.user.id;
+  const { species_id } = req.body;
+
+  if (!species_id) {
+    return res.status(400).json({ error: 'species_id required' });
+  }
+
+  const species = await db('chicken_species').where({ id: species_id, is_active: true }).first();
+  if (!species) {
+    return res.status(404).json({ error: 'Species not found or inactive' });
+  }
+
+  const result = await db.transaction(async (trx) => {
+    const newBalance = await adjustBalance(
+      trx, userId, -species.purchase_price, 'chicken_purchase',
+      `Bought 1 ${species.name} chicken`
+    );
+
+    const now = new Date();
+    const diesAt = new Date(now.getTime() + species.lifespan_days * 86400000);
+    const [chickenId] = await trx('chickens').insert({
+      user_id: userId,
+      species_id: species.id,
+      born_at: now,
+      dies_at: diesAt,
+    });
+
+    return { chicken_id: chickenId, species: species.name, new_balance: newBalance };
+  });
+
+  res.json(result);
+});
+
+// POST /api/client/withdraw — request USDT withdrawal
+router.post('/withdraw', async (req, res) => {
+  const userId = req.user.id;
+  const { amount } = req.body;
+
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ error: 'Valid amount required' });
+  }
+
+  const minAmount = await EconomyConfig.getNumber('withdrawal_min_amount');
+  if (amount < minAmount) {
+    return res.status(400).json({ error: `Minimum withdrawal: ${minAmount} USDT` });
+  }
+
+  const maxPerDay = await EconomyConfig.getNumber('max_withdrawals_per_day');
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todayCount = await db('withdrawals')
+    .where({ user_id: userId })
+    .where('created_at', '>=', todayStart)
+    .count('id as count')
+    .first();
+
+  if (parseInt(todayCount.count, 10) >= maxPerDay) {
+    return res.status(429).json({ error: `Max ${maxPerDay} withdrawal(s) per day` });
+  }
+
+  const feeRate = await EconomyConfig.getNumber('withdrawal_fee_rate');
+  const feeAmount = parseFloat((amount * feeRate).toFixed(2));
+  const netAmount = parseFloat((amount - feeAmount).toFixed(2));
+
+  const user = await db('users').where({ id: userId }).first('wallet_address');
+
+  const result = await db.transaction(async (trx) => {
+    await adjustBalance(trx, userId, -amount, 'withdrawal', `Withdrawal request: ${amount} USDT (fee: ${feeAmount})`);
+
+    const [withdrawalId] = await trx('withdrawals').insert({
+      user_id: userId,
+      amount,
+      fee_amount: feeAmount,
+      net_amount: netAmount,
+      wallet_address: user.wallet_address,
+    });
+
+    return { withdrawal_id: withdrawalId, amount, fee: feeAmount, net: netAmount, status: 'pending' };
+  });
+
+  res.json(result);
+});
+
+// GET /api/client/species — list available chicken species
+router.get('/species', async (req, res) => {
+  const species = await db('chicken_species').where({ is_active: true }).select('*');
+  res.json(species);
+});
+
+// GET /api/client/ledger — wallet transaction history
+router.get('/ledger', async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page || '1', 10);
+  const limit = Math.min(parseInt(req.query.limit || '20', 10), 100);
+  const offset = (page - 1) * limit;
+
+  const entries = await db('wallet_ledger')
+    .where({ user_id: userId })
+    .orderBy('created_at', 'desc')
+    .limit(limit)
+    .offset(offset);
+
+  res.json({ page, limit, entries });
+});
+
+module.exports = router;
