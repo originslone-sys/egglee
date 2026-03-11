@@ -248,4 +248,81 @@ router.get('/alerts', async (req, res) => {
   });
 });
 
+// ── Chicken Species Management ──────────────────
+
+// GET /api/admin/species — list all species
+router.get('/species', async (req, res) => {
+  const species = await db('chicken_species').select('*').orderBy('id', 'asc');
+  res.json(species);
+});
+
+// POST /api/admin/species — create a new species
+router.post('/species', async (req, res) => {
+  const { name, purchase_price, eggs_per_day, feed_per_day, lifespan_days, hatch_probability } = req.body;
+
+  if (!name || !purchase_price || !eggs_per_day || !feed_per_day || !lifespan_days) {
+    return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+  }
+
+  const existing = await db('chicken_species').where({ name }).first();
+  if (existing) {
+    return res.status(409).json({ error: `Espécie "${name}" já existe` });
+  }
+
+  const [id] = await db('chicken_species').insert({
+    name,
+    purchase_price: parseFloat(purchase_price),
+    eggs_per_day: parseFloat(eggs_per_day),
+    feed_per_day: parseFloat(feed_per_day),
+    lifespan_days: parseInt(lifespan_days, 10),
+    hatch_probability: parseFloat(hatch_probability || 0),
+  });
+
+  const created = await db('chicken_species').where({ id }).first();
+  res.json(created);
+});
+
+// PUT /api/admin/species/:id — update a species
+router.put('/species/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, purchase_price, eggs_per_day, feed_per_day, lifespan_days, hatch_probability, is_active } = req.body;
+
+  const species = await db('chicken_species').where({ id }).first();
+  if (!species) {
+    return res.status(404).json({ error: 'Espécie não encontrada' });
+  }
+
+  const updates = {};
+  if (name !== undefined) updates.name = name;
+  if (purchase_price !== undefined) updates.purchase_price = parseFloat(purchase_price);
+  if (eggs_per_day !== undefined) updates.eggs_per_day = parseFloat(eggs_per_day);
+  if (feed_per_day !== undefined) updates.feed_per_day = parseFloat(feed_per_day);
+  if (lifespan_days !== undefined) updates.lifespan_days = parseInt(lifespan_days, 10);
+  if (hatch_probability !== undefined) updates.hatch_probability = parseFloat(hatch_probability);
+  if (is_active !== undefined) updates.is_active = !!is_active;
+
+  await db('chicken_species').where({ id }).update(updates);
+  const updated = await db('chicken_species').where({ id }).first();
+  res.json(updated);
+});
+
+// DELETE /api/admin/species/:id — deactivate a species
+router.delete('/species/:id', async (req, res) => {
+  const { id } = req.params;
+
+  const activeChickens = await db('chickens')
+    .where({ species_id: id, status: 'alive' })
+    .count('id as count')
+    .first();
+
+  if (parseInt(activeChickens.count, 10) > 0) {
+    // Don't delete, just deactivate
+    await db('chicken_species').where({ id }).update({ is_active: false });
+    return res.json({ id: parseInt(id, 10), deactivated: true, reason: 'Existem galinhas vivas desta espécie' });
+  }
+
+  await db('chicken_species').where({ id }).update({ is_active: false });
+  res.json({ id: parseInt(id, 10), deactivated: true });
+});
+
 module.exports = router;
