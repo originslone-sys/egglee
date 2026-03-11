@@ -74,10 +74,15 @@ router.post('/verify', async (req, res) => {
 
   const isFirstLogin = !user.accepted_terms;
 
+  // Re-check admin role on every login (in case ADMIN_WALLETS env changed)
+  const adminWallets = (process.env.ADMIN_WALLETS || '').toLowerCase().split(',').filter(Boolean);
+  const expectedRole = adminWallets.includes(address) ? 'admin' : user.role;
+
   await db('users').where({ id: user.id }).update({
     auth_nonce: newNonce,
     last_login_at: db.fn.now(),
     accepted_terms: true,
+    role: expectedRole,
   });
 
   // Onboarding: give free chicken + feed on first login
@@ -109,14 +114,14 @@ router.post('/verify', async (req, res) => {
     });
   }
 
-  const token = signToken(user);
+  const token = signToken({ ...user, role: expectedRole });
   res.json({
     token,
     first_login: isFirstLogin,
     user: {
       id: user.id,
       wallet_address: user.wallet_address,
-      role: user.role,
+      role: expectedRole,
     },
   });
 });
