@@ -6,7 +6,7 @@ exports.up = function (knex) {
     t.decimal('fee_amount', 18, 2).notNullable();
     t.decimal('net_amount', 18, 2).notNullable().comment('amount - fee_amount');
     t.string('wallet_address', 42).notNullable();
-    t.enum('status', ['pending', 'processing', 'completed', 'rejected']).defaultTo('pending').notNullable();
+    t.string('status', 15).defaultTo('pending').notNullable();
     t.string('tx_hash', 66).nullable();
     t.integer('processed_by').unsigned().nullable().references('id').inTable('users').comment('Admin who processed');
     t.text('admin_note').nullable();

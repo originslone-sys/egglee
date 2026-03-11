@@ -1,22 +1,27 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 
+const path = require('path');
+
 module.exports = {
   development: {
-    client: 'mysql2',
+    client: 'better-sqlite3',
     connection: {
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '3306', 10),
-      user: process.env.DB_USER || 'galinha_farm',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'galinha_farm',
+      filename: path.resolve(__dirname, '../../data/galinha_farm.sqlite3'),
     },
+    useNullAsDefault: true,
     migrations: {
-      directory: require('path').resolve(__dirname, '../migrations'),
+      directory: path.resolve(__dirname, '../migrations'),
     },
     seeds: {
-      directory: require('path').resolve(__dirname, '../seeds'),
+      directory: path.resolve(__dirname, '../seeds'),
     },
-    pool: { min: 2, max: 10 },
+    pool: {
+      afterCreate(conn, cb) {
+        conn.pragma('journal_mode = WAL');
+        conn.pragma('foreign_keys = ON');
+        cb();
+      },
+    },
   },
 
   production: {
