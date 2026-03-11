@@ -85,8 +85,12 @@ router.post('/verify', async (req, res) => {
     role: expectedRole,
   });
 
-  // Onboarding: give free chicken + feed on first login
-  if (isFirstLogin) {
+  // Onboarding: give free chicken + feed if user never received one
+  const hasFreeChicken = await db('chickens')
+    .where({ user_id: user.id, is_free_chicken: true })
+    .first();
+
+  if (!hasFreeChicken) {
     await db.transaction(async (trx) => {
       const freeFeed = await EconomyConfig.getNumber('onboarding_free_feed');
       await trx('users').where({ id: user.id }).update({ feed_balance: freeFeed || 5 });

@@ -82,7 +82,13 @@ router.post('/buy-feed', async (req, res) => {
   }
 
   const feedPrice = await EconomyConfig.getNumber('feed_unit_price');
+  if (!feedPrice || feedPrice <= 0) {
+    return res.status(500).json({ error: 'Feed price not configured' });
+  }
   const cost = parseFloat((quantity * feedPrice).toFixed(2));
+  if (cost <= 0) {
+    return res.status(400).json({ error: 'Invalid purchase amount' });
+  }
 
   const result = await db.transaction(async (trx) => {
     const newBalance = await adjustBalance(

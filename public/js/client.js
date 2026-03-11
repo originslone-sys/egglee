@@ -290,6 +290,10 @@
   });
 
   el.feedBtn?.addEventListener('click', async () => {
+    if (farmData && farmData.balance_usdt <= 0) {
+      toast('Saldo insuficiente para comprar ração', true);
+      return;
+    }
     el.feedBtn.disabled = true;
     try {
       const r = await API.client.buyFeed(10);
