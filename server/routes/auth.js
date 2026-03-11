@@ -120,4 +120,24 @@ router.post('/verify', async (req, res) => {
   });
 });
 
+// POST /api/auth/bootstrap
+// Opens registrations if no users exist yet, or via JWT_SECRET
+router.post('/bootstrap', async (req, res) => {
+  const userCount = await db('users').count('* as cnt').first();
+  const count = parseInt(userCount.cnt, 10);
+
+  if (count === 0) {
+    await EconomyConfig.set('allow_new_registrations', 'true');
+    return res.json({ ok: true, message: 'Registrations enabled (no users exist)' });
+  }
+
+  const { secret } = req.body || {};
+  if (secret && secret === process.env.JWT_SECRET) {
+    await EconomyConfig.set('allow_new_registrations', 'true');
+    return res.json({ ok: true, message: 'Registrations enabled via secret' });
+  }
+
+  return res.status(403).json({ error: 'Cannot bootstrap: users exist and no valid secret provided' });
+});
+
 module.exports = router;
