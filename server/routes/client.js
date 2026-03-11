@@ -214,6 +214,131 @@ router.get('/ledger', async (req, res) => {
   res.json({ page, limit, entries });
 });
 
+// POST /api/client/incubate-egg — start incubating a fertile egg
+router.post('/incubate-egg', async (req, res) => {
+  const userId = req.user.id;
+  const { egg_id } = req.body;
+
+  if (!egg_id) {
+    return res.status(400).json({ error: 'egg_id required' });
+  }
+
+  const eggFeedCost = await EconomyConfig.getNumber('egg_to_chick_feed');
+
+  const result = await db.transaction(async (trx) => {
+    const egg = await trx('eggs')
+      .where({ id: egg_id, user_id: userId, status: 'available', is_fertile: true })
+      .forUpdate()
+      .first();
+
+    if (!egg) {
+      throw new Error('Fertile egg not found or not available');
+    }
+
+    // Consume feed for incubation
+    const newFeed = await adjustFeed(trx, userId, -eggFeedCost);
+
+    await trx('eggs').where({ id: egg_id }).update({
+      status: 'incubating',
+      incubation_started_at: trx.fn.now(),
+    });
+
+    return { egg_id, status: 'incubating', feed_consumed: eggFeedCost, new_feed: newFeed };
+  });
+
+  res.json(result);
+});
+
+// GET /api/client/fertile-eggs — list fertile eggs available for incubation
+router.get('/fertile-eggs', async (req, res) => {
+  const userId = req.user.id;
+
+  const eggs = await db('eggs')
+    .where({ user_id: userId, status: 'available', is_fertile: true })
+    .select('id', 'chicken_id', 'produced_at')
+    .orderBy('produced_at', 'desc');
+
+  const incubating = await db('eggs')
+    .where({ user_id: userId, status: 'incubating' })
+    .select('id', 'incubation_started_at')
+    .orderBy('incubation_started_at', 'desc');
+
+  res.json({ fertile: eggs, incubating });
+});
+
+// POST /api/client/feed-chick — feed a growing chick
+router.post('/feed-chick', async (req, res) => {
+  const userId = req.user.id;
+  const { chick_id, amount } = req.body;
+
+  if (!chick_id) {
+    return res.status(400).json({ error: 'chick_id required' });
+  }
+
+  const feedAmount = Math.max(0.1, Math.min(parseFloat(amount || '0.5'), 5.0));
+
+  const result = await db.transaction(async (trx) => {
+    const chick = await trx('chicks')
+      .where({ id: chick_id, user_id: userId, status: 'growing' })
+      .forUpdate()
+      .first();
+
+    if (!chick) {
+      throw new Error('Growing chick not found');
+    }
+
+    const chickFeedNeeded = await EconomyConfig.getNumber('chick_to_adult_feed');
+    const currentFeed = parseFloat(chick.feed_consumed);
+    const remaining = Math.max(0, chickFeedNeeded - currentFeed);
+    const actualFeed = Math.min(feedAmount, remaining);
+
+    if (actualFeed <= 0) {
+      throw new Error('Chick is already fully fed');
+    }
+
+    // Consume user feed
+    const newFeed = await adjustFeed(trx, userId, -actualFeed);
+
+    const newChickFeed = parseFloat((currentFeed + actualFeed).toFixed(2));
+    await trx('chicks').where({ id: chick_id }).update({ feed_consumed: newChickFeed });
+
+    return {
+      chick_id,
+      fed: actualFeed,
+      total_fed: newChickFeed,
+      needed: chickFeedNeeded,
+      progress: Math.min(100, ((newChickFeed / chickFeedNeeded) * 100)).toFixed(0) + '%',
+      new_feed: newFeed,
+    };
+  });
+
+  res.json(result);
+});
+
+// GET /api/client/dead-chickens — deceased chickens history
+router.get('/dead-chickens', async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page || '1', 10);
+  const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+  const offset = (page - 1) * limit;
+
+  const chickens = await db('chickens')
+    .where({ user_id: userId, status: 'dead' })
+    .join('chicken_species', 'chickens.species_id', 'chicken_species.id')
+    .select(
+      'chickens.id',
+      'chicken_species.name as species',
+      'chickens.born_at',
+      'chickens.died_at',
+      'chickens.death_cause'
+    )
+    .orderBy('chickens.died_at', 'desc')
+    .limit(limit)
+    .offset(offset);
+
+  res.json({ page, limit, chickens });
+});
+
 // GET /api/client/deposit-address — get user's deposit wallet address
 router.get('/deposit-address', async (req, res) => {
   const user = await db('users').where({ id: req.user.id }).first('wallet_address');

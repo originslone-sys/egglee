@@ -76,6 +76,10 @@ const API = (() => {
     ledger:        (page) => request('GET', `/client/ledger?page=${page || 1}`),
     depositAddress:() => request('GET', '/client/deposit-address'),
     deposits:      (page) => request('GET', `/client/deposits?page=${page || 1}`),
+    fertileEggs:   () => request('GET', '/client/fertile-eggs'),
+    incubateEgg:   (eggId) => request('POST', '/client/incubate-egg', { egg_id: eggId }),
+    feedChick:     (chickId, amount) => request('POST', '/client/feed-chick', { chick_id: chickId, amount }),
+    deadChickens:  (page) => request('GET', `/client/dead-chickens?page=${page || 1}`),
   };
 
   // ── Admin API ──────────────────────────────────────
@@ -91,6 +95,7 @@ const API = (() => {
     getUsers:         (page) => request('GET', `/admin/users?page=${page || 1}`),
     banUser:          (id, banned) => request('PUT', `/admin/users/${id}/ban`, { banned }),
     getAlerts:        () => request('GET', '/admin/alerts'),
+    getDeposits:      (status, page) => request('GET', `/admin/deposits?status=${status || 'all'}&page=${page || 1}`),
   };
 
   // ── Marketplace API ────────────────────────────────
