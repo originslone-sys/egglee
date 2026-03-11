@@ -48,6 +48,18 @@
       </div>
     </section>
 
+    <section class="section">
+      <p class="eyebrow">Farm Map</p>
+      <h2>Your farm in real time</h2>
+      <div class="farm-map-wrapper">
+        <canvas id="farm-canvas"></canvas>
+      </div>
+      <div id="farm-entity-info" class="farm-entity-info" style="display:none">
+        <span id="entity-close" class="entity-close">&times;</span>
+        <div id="entity-details"></div>
+      </div>
+    </section>
+
     <section id="farm" class="section">
       <p class="eyebrow">2D Farm Actions</p>
       <h2>Quick controls</h2>
@@ -224,6 +236,7 @@
     </section>
   </main>
   <script src="api.js"></script>
+  <script src="farm-map.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

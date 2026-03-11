@@ -431,6 +431,68 @@ select.input {
   cursor: not-allowed;
 }
 
+/* ── Farm Map ──────────────────────────────────── */
+.farm-map-wrapper {
+  border: 1px solid var(--stroke);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #1a2a20;
+  position: relative;
+}
+
+.farm-map-wrapper canvas {
+  display: block;
+  width: 100%;
+}
+
+.farm-entity-info {
+  margin-top: .8rem;
+  padding: .8rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  position: relative;
+  font-size: .88rem;
+}
+
+.entity-close {
+  position: absolute;
+  top: .4rem;
+  right: .6rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--text-soft);
+  line-height: 1;
+}
+
+.entity-close:hover {
+  color: var(--text);
+}
+
+.entity-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: .5rem .8rem;
+}
+
+.entity-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.entity-detail .detail-label {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+.entity-detail .detail-value {
+  font-weight: 700;
+  color: var(--text);
+}
+
 /* ── Deposits ──────────────────────────────────── */
 .deposit-address-box {
   display: flex;

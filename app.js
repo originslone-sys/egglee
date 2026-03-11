@@ -84,6 +84,50 @@
 
     let farmData = null;
 
+    // ── Farm Map 2D ────────────────────────────────
+    const entityInfo = $('farm-entity-info');
+    const entityDetails = $('entity-details');
+    const entityClose = $('entity-close');
+
+    FarmMap.init('farm-canvas', (entity) => {
+      if (!entityInfo || !entityDetails) return;
+      entityInfo.style.display = '';
+
+      if (entity.type === 'chicken') {
+        const c = entity.data;
+        const daysLeft = Math.max(0, Math.ceil((new Date(c.dies_at) - Date.now()) / 86400000));
+        const status = c.starvation_started_at ? '<span class="status-pill danger">Starving</span>' : '<span class="status-pill ok">Healthy</span>';
+        entityDetails.innerHTML = `
+          <div class="entity-details-grid">
+            <div class="entity-detail"><span class="detail-label">Species</span><span class="detail-value">${c.species}</span></div>
+            <div class="entity-detail"><span class="detail-label">ID</span><span class="detail-value">#${c.id}</span></div>
+            <div class="entity-detail"><span class="detail-label">Status</span><span class="detail-value">${status}</span></div>
+            <div class="entity-detail"><span class="detail-label">Days Left</span><span class="detail-value">${daysLeft}d</span></div>
+            <div class="entity-detail"><span class="detail-label">Born</span><span class="detail-value">${new Date(c.born_at).toLocaleDateString()}</span></div>
+          </div>`;
+      } else if (entity.type === 'chick') {
+        const c = entity.data;
+        const feedPct = Math.min(100, ((parseFloat(c.feed_consumed) / 2.0) * 100)).toFixed(0);
+        entityDetails.innerHTML = `
+          <div class="entity-details-grid">
+            <div class="entity-detail"><span class="detail-label">Type</span><span class="detail-value">Growing Chick</span></div>
+            <div class="entity-detail"><span class="detail-label">Target</span><span class="detail-value">${c.target_species}</span></div>
+            <div class="entity-detail"><span class="detail-label">Feed Progress</span><span class="detail-value">${feedPct}%</span></div>
+            <div class="entity-detail"><span class="detail-label">Hatched</span><span class="detail-value">${new Date(c.hatched_at).toLocaleDateString()}</span></div>
+          </div>`;
+      } else if (entity.type === 'egg') {
+        entityDetails.innerHTML = `
+          <div class="entity-details-grid">
+            <div class="entity-detail"><span class="detail-label">Type</span><span class="detail-value">Egg</span></div>
+            <div class="entity-detail"><span class="detail-label">Status</span><span class="detail-value">Available</span></div>
+          </div>`;
+      }
+    });
+
+    entityClose?.addEventListener('click', () => {
+      if (entityInfo) entityInfo.style.display = 'none';
+    });
+
     function renderFarm() {
       if (!farmData) return;
       el.chickens.textContent = String(farmData.chickens.length);
@@ -99,6 +143,9 @@
         el.farmStatus.textContent = 'Farm is stable. Production is running normally.';
         el.farmStatus.classList.remove('warning');
       }
+
+      // Update farm map
+      FarmMap.update(farmData);
 
       // Chicken list
       if (el.chickenList) {
