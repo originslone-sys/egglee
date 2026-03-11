@@ -7,6 +7,8 @@ const FarmMap = (() => {
   let lastTime = 0, gt = 0; // gt = gameTime
   let entities = [], particles = [], clouds = [], butterflies = [];
   let grass = [], flowers = [], trees = [], rocks = [], fireflies = [];
+  const MAX_PARTICLES = 120;
+  let sortedEntities = [], sortDirty = true;
 
   const S = { IDLE:0, WALK:1, PECK:2, EAT:3, SLEEP:4, FLAP:5 };
   const TROUGH = { xR: 0.48, yR: 0.58 };
@@ -90,6 +92,9 @@ const FarmMap = (() => {
       b.x+=b.vx*dt; b.y+=b.vy*dt; b.wp+=dt*14;
     });
     entities.forEach(e => tickEntity(e,dt));
+    sortDirty = true;
+    // Cap particles
+    if(particles.length>MAX_PARTICLES) particles.length=MAX_PARTICLES;
     for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.life-=dt;if(p.life<=0){particles.splice(i,1);continue;}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=(p.g||0)*dt;}
     const hr=new Date().getHours(), night=hr<6||hr>=20;
     if(night&&fireflies.length<12) fireflies.push({x:Math.random()*W,y:H*0.3+Math.random()*H*0.5,vx:rr(-15,15),vy:rr(-10,10),ph:Math.random()*Math.PI*2,life:3+Math.random()*5});
@@ -98,15 +103,16 @@ const FarmMap = (() => {
   }
 
   // ── Entity AI ──────────────────────────────────
+  function canSpawn(){return particles.length<MAX_PARTICLES;}
   function tickEntity(e, dt) {
     e.at = (e.at||0)+dt; e.st = (e.st||0)-dt;
     if (e.type==='egg') return;
     if (e.st<=0) pickState(e);
     switch(e.state) {
       case S.WALK: moveToTarget(e,dt); break;
-      case S.EAT: e.eatB=Math.abs(Math.sin(e.at*8))*3; if(Math.random()<dt*3) particles.push({x:e.x+e.dir*8,y:e.y-2,vx:rr(-15,15),vy:rr(-25,-10),life:0.5,color:PAL.feed,sz:1.5,g:50}); break;
-      case S.PECK: e.peckB=Math.abs(Math.sin(e.at*10))*5; if(Math.random()<dt*2) particles.push({x:e.x+e.dir*6,y:e.y+8,vx:rr(-8,8),vy:rr(-5,-15),life:0.6,color:PAL.dirt2,sz:1.5,g:20}); break;
-      case S.FLAP: e.flapA=Math.sin(e.at*12)*0.6; if(Math.random()<dt*2) particles.push({x:e.x,y:e.y-4,vx:rr(-20,20),vy:rr(-20,-5),life:1.2,color:e.colors?e.colors.wing:'#eee',sz:2,g:12,feather:1}); break;
+      case S.EAT: e.eatB=Math.abs(Math.sin(e.at*8))*3; if(canSpawn()&&Math.random()<dt*3) particles.push({x:e.x+e.dir*8,y:e.y-2,vx:rr(-15,15),vy:rr(-25,-10),life:0.5,color:PAL.feed,sz:1.5,g:50}); break;
+      case S.PECK: e.peckB=Math.abs(Math.sin(e.at*10))*5; if(canSpawn()&&Math.random()<dt*2) particles.push({x:e.x+e.dir*6,y:e.y+8,vx:rr(-8,8),vy:rr(-5,-15),life:0.6,color:PAL.dirt2,sz:1.5,g:20}); break;
+      case S.FLAP: e.flapA=Math.sin(e.at*12)*0.6; if(canSpawn()&&Math.random()<dt*2) particles.push({x:e.x,y:e.y-4,vx:rr(-20,20),vy:rr(-20,-5),life:1.2,color:e.colors?e.colors.wing:'#eee',sz:2,g:12,feather:1}); break;
       case S.SLEEP: e.sleepB=Math.sin(e.at*1.5)*1; break;
       default: e.idleB=Math.sin(e.at*2+(e.bo||0))*1;
     }
@@ -135,7 +141,7 @@ const FarmMap = (() => {
     if(d<5){if(e.goEat){e.state=S.EAT;e.st=2+Math.random()*3;e.goEat=0;}else{e.state=S.IDLE;e.st=1+Math.random()*2;}return;}
     const s=e.spd||20;e.x+=(dx/d)*s*dt;e.y+=(dy/d)*s*dt;e.dir=dx>0?1:-1;
     e.wp=(e.wp||0)+dt*8;
-    if(Math.random()<dt*4) particles.push({x:e.x-e.dir*3,y:e.y+(e.type==='chick'?6:14),vx:-e.dir*rr(3,10),vy:rr(-3,-8),life:0.4,color:'rgba(139,119,90,0.4)',sz:2,g:8});
+    if(canSpawn()&&Math.random()<dt*4) particles.push({x:e.x-e.dir*3,y:e.y+(e.type==='chick'?6:14),vx:-e.dir*rr(3,10),vy:rr(-3,-8),life:0.4,color:'rgba(139,119,90,0.4)',sz:2,g:8});
   }
 
   // ── Rebuild Entities ───────────────────────────
@@ -268,7 +274,7 @@ const FarmMap = (() => {
   }
 
   // ── Entity Drawing ─────────────────────────────
-  function drawEntities(){[...entities].sort((a,b)=>a.y-b.y).forEach(e=>{const s=selectedEntity===e;if(e.type==='chicken')drawChicken(e,s);else if(e.type==='chick')drawChick(e,s);else drawEgg(e);});}
+  function drawEntities(){if(sortDirty){sortedEntities=entities.slice().sort((a,b)=>a.y-b.y);sortDirty=false;}for(let i=0;i<sortedEntities.length;i++){const e=sortedEntities[i],s=selectedEntity===e;if(e.type==='chicken')drawChicken(e,s);else if(e.type==='chick')drawChick(e,s);else drawEgg(e);}}
 
   function drawChicken(e,sel){
     const x=e.x|0,d=e.dir,c=e.colors,a=e.at||0;
