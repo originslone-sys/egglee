@@ -112,6 +112,7 @@ router.post('/verify', async (req, res) => {
   const token = signToken(user);
   res.json({
     token,
+    first_login: isFirstLogin,
     user: {
       id: user.id,
       wallet_address: user.wallet_address,

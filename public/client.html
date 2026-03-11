@@ -332,6 +332,27 @@
   <script src="js/farm-map.js"></script>
   <script src="js/client.js"></script>
 
+  <!-- ── Welcome Modal (first login) ──────────── -->
+  <div id="welcome-modal" class="terms-overlay" style="display:none">
+    <div class="terms-box" style="text-align:center">
+      <div style="font-size:3rem;margin-bottom:.5rem">&#x1F414;</div>
+      <h2>Bem-vindo ao Galinha Farm!</h2>
+      <div class="terms-content" style="text-align:left;max-height:none">
+        <p>Você recebeu seu <strong>kit inicial gratuito</strong>:</p>
+        <ul style="list-style:none;padding:0;margin:.8rem 0">
+          <li style="padding:.5rem .8rem;background:var(--success-dim);border-radius:8px;margin-bottom:.5rem">
+            <strong>1x Galinha Comum</strong> — produz 1 ovo por dia, vive 183 dias
+          </li>
+          <li style="padding:.5rem .8rem;background:var(--warn-dim);border-radius:8px">
+            <strong>5 unidades de ração</strong> — mantenha suas galinhas alimentadas para produzir
+          </li>
+        </ul>
+        <p>Dica: compre mais ração com USDT, colete ovos diariamente e expanda sua fazenda!</p>
+      </div>
+      <button id="welcome-close-btn" class="btn btn-primary">Começar a jogar</button>
+    </div>
+  </div>
+
   <!-- ── Terms Modal ────────────────────────────── -->
   <div id="terms-modal" class="terms-overlay" style="display:none">
     <div class="terms-box">

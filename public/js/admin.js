@@ -42,29 +42,35 @@
   const accessDenied = $('access-denied');
   const adminContent = $('admin-content-wrap');
   const adminSidebar = $('admin-sidebar');
+  const loginPrompt = $('admin-login-prompt');
+  const adminConnectBtn = $('admin-connect-btn');
 
   function checkAdminAccess() {
     if (API.isLoggedIn() && !API.isAdmin()) {
+      if (loginPrompt) hide(loginPrompt);
       if (accessDenied) show(accessDenied);
       if (adminContent) hide(adminContent);
       if (adminSidebar) hide(adminSidebar);
       return false;
     }
     if (API.isLoggedIn() && API.isAdmin()) {
+      if (loginPrompt) hide(loginPrompt);
       if (accessDenied) hide(accessDenied);
       if (adminContent) show(adminContent);
       if (adminSidebar) show(adminSidebar);
       return true;
     }
+    // Not logged in
+    if (loginPrompt) show(loginPrompt);
     if (accessDenied) hide(accessDenied);
     if (adminContent) hide(adminContent);
     if (adminSidebar) hide(adminSidebar);
     return false;
   }
 
-  connectBtn?.addEventListener('click', async () => {
-    connectBtn.disabled = true;
-    connectBtn.textContent = 'Connecting...';
+  async function doAdminLogin() {
+    const btn = adminConnectBtn || connectBtn;
+    if (btn) { btn.disabled = true; btn.textContent = 'Connecting...'; }
     try {
       await API.connectMetaMask();
       updateAuthUI();
@@ -72,15 +78,17 @@
         toast('Connected as admin');
         loadAdmin();
       } else {
-        toast('Access denied: admin privileges required', true);
+        toast('Acesso negado: esta wallet não é admin', true);
       }
     } catch (e) {
       toast(e.message, true);
     } finally {
-      connectBtn.disabled = false;
-      connectBtn.textContent = 'Connect Wallet';
+      if (btn) { btn.disabled = false; btn.textContent = btn === adminConnectBtn ? 'Conectar MetaMask' : 'Connect Wallet'; }
     }
-  });
+  }
+
+  connectBtn?.addEventListener('click', doAdminLogin);
+  adminConnectBtn?.addEventListener('click', doAdminLogin);
 
   logoutBtn?.addEventListener('click', () => {
     API.logout();
@@ -90,6 +98,9 @@
 
   updateAuthUI();
   checkAdminAccess();
+
+  // Hide topbar connect when login prompt is visible
+  if (!API.isLoggedIn() && connectBtn) hide(connectBtn);
 
   // ── Sidebar Navigation ─────────────────────────
   const sidebarLinks = document.querySelectorAll('.sidebar-link[data-section]');
