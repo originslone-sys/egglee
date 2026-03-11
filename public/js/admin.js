@@ -240,7 +240,7 @@
             <td>${parseFloat(w.net_amount).toFixed(2)} USDT</td>
             <td>${new Date(w.created_at).toLocaleString()}</td>
             <td>
-              <button class="btn btn-primary btn-sm wd-process" data-id="${w.id}">Process</button>
+              <button class="btn btn-primary btn-sm wd-process" data-id="${w.id}">Fazer pagamento</button>
               <button class="btn btn-danger btn-sm wd-reject" data-id="${w.id}">Reject</button>
             </td>
           </tr>
@@ -250,8 +250,45 @@
           btn.addEventListener('click', async () => {
             try {
               const r = await API.admin.processWithdrawal(btn.dataset.id);
-              toast(`Withdrawal #${r.withdrawal_id} processing — pay ${parseFloat(r.net_amount).toFixed(2)} to ${shortWallet(r.pay_to)}`);
-              const txHash = prompt('Enter TX hash after sending payment:');
+              toast(`Withdrawal #${r.withdrawal_id} — pay ${parseFloat(r.net_amount).toFixed(2)} USDT to ${shortWallet(r.pay_to)}`);
+
+              // Try MetaMask BEP20 USDT transfer
+              let txHash = null;
+              if (typeof window.ethereum !== 'undefined') {
+                try {
+                  const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                  const from = accounts[0];
+
+                  // USDT BEP20 contract on BSC
+                  const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
+                  const amount = parseFloat(r.net_amount);
+                  const amountWei = '0x' + BigInt(Math.round(amount * 1e18)).toString(16);
+
+                  // ERC20 transfer(address,uint256) function selector
+                  const transferData = '0xa9059cbb'
+                    + r.pay_to.replace('0x', '').toLowerCase().padStart(64, '0')
+                    + amountWei.replace('0x', '').padStart(64, '0');
+
+                  const tx = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                      from,
+                      to: USDT_CONTRACT,
+                      data: transferData,
+                      chainId: '0x38', // BSC mainnet
+                    }],
+                  });
+                  txHash = tx;
+                  toast(`TX sent: ${shortWallet(tx)}`);
+                } catch (mmErr) {
+                  toast('MetaMask cancelled or failed — enter TX hash manually', true);
+                }
+              }
+
+              if (!txHash) {
+                txHash = prompt('Enter TX hash manually (after sending BEP20 USDT):');
+              }
+
               if (txHash) {
                 await API.admin.completeWithdrawal(btn.dataset.id, txHash);
                 toast(`Withdrawal #${r.withdrawal_id} completed`);

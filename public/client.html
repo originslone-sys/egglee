@@ -331,5 +331,35 @@
   <script src="js/api.js"></script>
   <script src="js/farm-map.js"></script>
   <script src="js/client.js"></script>
+
+  <!-- ── Terms Modal ────────────────────────────── -->
+  <div id="terms-modal" class="terms-overlay" style="display:none">
+    <div class="terms-box">
+      <h2>Termos de Uso</h2>
+      <div class="terms-content">
+        <p><strong>1. Natureza do produto</strong><br>
+        Plataforma de simulação digital com ativos e regras virtuais, sem promessa de investimento ou rendimento garantido.</p>
+        <p><strong>2. Risco operacional</strong><br>
+        Serviços podem sofrer manutenção, indisponibilidade temporária e ajustes de parâmetros econômicos pelo admin.</p>
+        <p><strong>3. Carteira e autenticação</strong><br>
+        O usuário é responsável pela segurança da própria carteira MetaMask, chaves e dispositivos.</p>
+        <p><strong>4. Depósitos e saques</strong><br>
+        Transações são processadas em BEP20 conforme regras de confirmação e fila operacional de saque manual.</p>
+        <p><strong>5. Economia e ajustes</strong><br>
+        Preços, taxas, probabilidades e limites podem ser alterados para manter sustentabilidade da economia.</p>
+        <p><strong>6. Condutas proibidas</strong><br>
+        Multi-conta abusiva, manipulação de mercado, automação maliciosa e fraude operacional.</p>
+        <p><strong>7. Sanções</strong><br>
+        Suspensão de conta, bloqueio de operações e estorno administrativo em casos de abuso comprovado.</p>
+        <p><strong>8. Limitação de responsabilidade</strong><br>
+        A plataforma não se responsabiliza por perdas decorrentes de erro do usuário, terceiros, falhas externas de rede ou carteira.</p>
+      </div>
+      <label class="terms-check">
+        <input type="checkbox" id="terms-checkbox" />
+        Li e aceito os termos de uso. Entendo que esta é uma plataforma de simulação com economia virtual.
+      </label>
+      <button id="terms-accept-btn" class="btn btn-primary" disabled>Aceitar e Continuar</button>
+    </div>
+  </div>
 </body>
 </html>

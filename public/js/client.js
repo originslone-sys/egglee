@@ -36,7 +36,36 @@
     }
   }
 
+  // ── Terms Modal ─────────────────────────────────
+  const termsModal = $('terms-modal');
+  const termsCheckbox = $('terms-checkbox');
+  const termsAcceptBtn = $('terms-accept-btn');
+
+  termsCheckbox?.addEventListener('change', () => {
+    if (termsAcceptBtn) termsAcceptBtn.disabled = !termsCheckbox.checked;
+  });
+
+  function hasAcceptedTerms() {
+    return localStorage.getItem('gf_terms_accepted') === 'true';
+  }
+
+  function showTermsModal() {
+    return new Promise((resolve) => {
+      if (termsModal) show(termsModal);
+      termsAcceptBtn?.addEventListener('click', () => {
+        localStorage.setItem('gf_terms_accepted', 'true');
+        if (termsModal) hide(termsModal);
+        resolve(true);
+      }, { once: true });
+    });
+  }
+
   connectBtn?.addEventListener('click', async () => {
+    // Show terms first if not yet accepted
+    if (!hasAcceptedTerms()) {
+      await showTermsModal();
+    }
+
     connectBtn.disabled = true;
     connectBtn.textContent = 'Connecting...';
     try {
@@ -152,11 +181,14 @@
 
     // Status banner
     if (el.farmStatus) {
-      if (farmData.feed_balance <= 3) {
-        el.farmStatus.textContent = 'Feed critically low! Chickens stop producing without feed.';
+      if (farmData.feed_balance <= 0) {
+        el.farmStatus.textContent = 'Ração esgotada: sem alimentação as galinhas podem morrer.';
+        el.farmStatus.className = 'farm-status-banner warning';
+      } else if (farmData.feed_balance <= 3) {
+        el.farmStatus.textContent = 'Ração baixa! Compre mais ração para manter a produção.';
         el.farmStatus.className = 'farm-status-banner warning';
       } else {
-        el.farmStatus.textContent = 'Farm is stable. Production is running normally.';
+        el.farmStatus.textContent = 'Fazenda estável. Produção funcionando normalmente.';
         el.farmStatus.className = 'farm-status-banner ok';
       }
     }
