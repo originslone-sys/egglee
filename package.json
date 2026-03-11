@@ -10,8 +10,10 @@
     "migrate:rollback": "knex migrate:rollback --knexfile server/config/knexfile.js",
     "seed": "knex seed:run --knexfile server/config/knexfile.js"
   },
+  "devDependencies": {
+    "better-sqlite3": "^12.6.2"
+  },
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "ethers": "^6.13.4",

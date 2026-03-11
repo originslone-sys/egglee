@@ -2,8 +2,11 @@ FROM node:20-slim
 
 WORKDIR /app
 
+# Set production environment
+ENV NODE_ENV=production
+
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 COPY . .
 
@@ -11,4 +14,4 @@ COPY . .
 EXPOSE 8080
 
 # Run migrations then start server
-CMD ["sh", "-c", "npx knex migrate:latest --knexfile server/config/knexfile.js && npx knex seed:run --knexfile server/config/knexfile.js && node server/index.js"]
+CMD ["sh", "-c", "npx knex migrate:latest --knexfile server/config/knexfile.js && node server/index.js"]
