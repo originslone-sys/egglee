@@ -287,17 +287,21 @@
   gap: 1.5rem;
 }
 
-.deposit-box {
+.topup-form {
   display: flex;
+  gap: .6rem;
+  margin: 1rem 0;
   align-items: center;
-  gap: .5rem;
-  padding: .6rem .8rem;
-  background: rgba(0,0,0,.2);
-  border-radius: 8px;
-  border: 1px solid var(--stroke);
-  margin: .8rem 0;
 }
-.deposit-addr { font-size: .75rem; word-break: break-all; flex: 1; color: var(--primary); font-family: monospace; }
+.topup-form .input { width: 160px; }
+.topup-status {
+  font-size: .82rem;
+  margin-top: .5rem;
+  padding: .4rem .7rem;
+  border-radius: 6px;
+}
+.topup-ok { color: var(--primary); background: rgba(34,197,94,.08); }
+.topup-error { color: var(--danger, #ef4444); background: rgba(239,68,68,.08); }
 
 .withdraw-form {
   display: flex;

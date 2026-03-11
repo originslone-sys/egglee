@@ -6,6 +6,9 @@ const EconomyConfig = require('../models/EconomyConfig');
 // USDT BEP20 contract on BSC mainnet
 const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
 
+// Platform wallet — all deposits go HERE
+const PLATFORM_WALLET = '0x8417C9a00249Da8e4ff7414c5992C08511c28328'.toLowerCase();
+
 // Minimal ERC20 ABI — only Transfer event and decimals
 const ERC20_ABI = [
   'event Transfer(address indexed from, address indexed to, uint256 value)',
@@ -16,7 +19,8 @@ let lastScannedBlock = 0;
 
 /**
  * Scans the BSC blockchain for incoming USDT BEP20 transfers
- * to registered user wallet addresses and credits their balance.
+ * TO the platform wallet. Matches the sender (from) address to
+ * registered users and credits their balance.
  */
 async function scanDeposits() {
   const rpcUrl = process.env.BSC_RPC_URL;
@@ -49,7 +53,7 @@ async function scanDeposits() {
   const fromBlock = lastScannedBlock + 1;
   const toBlock = Math.min(safeBlock, fromBlock + 4999);
 
-  // Get all registered wallet addresses
+  // Get all registered wallet addresses — map sender address → userId
   const users = await db('users').select('id', 'wallet_address');
   if (users.length === 0) {
     lastScannedBlock = toBlock;
@@ -58,21 +62,23 @@ async function scanDeposits() {
 
   const walletMap = new Map();
   for (const u of users) {
-    walletMap.set(u.wallet_address.toLowerCase(), u.id);
+    if (u.wallet_address) {
+      walletMap.set(u.wallet_address.toLowerCase(), u.id);
+    }
   }
 
-  // Query Transfer events TO any of our user addresses
+  // Query Transfer events TO the platform wallet only
   let found = 0;
   let credited = 0;
 
   try {
-    const filter = contract.filters.Transfer(null, null);
+    const filter = contract.filters.Transfer(null, PLATFORM_WALLET);
     const events = await contract.queryFilter(filter, fromBlock, toBlock);
 
     for (const event of events) {
-      const to = event.args.to.toLowerCase();
-      const userId = walletMap.get(to);
-      if (!userId) continue;
+      const from = event.args.from.toLowerCase();
+      const userId = walletMap.get(from);
+      if (!userId) continue; // sender not a registered user
 
       const txHash = event.transactionHash;
 
@@ -96,8 +102,8 @@ async function scanDeposits() {
           await trx('deposits').insert({
             user_id: userId,
             tx_hash: txHash,
-            from_address: event.args.from,
-            to_address: to,
+            from_address: from,
+            to_address: PLATFORM_WALLET,
             amount: amount.toFixed(2),
             block_number: event.blockNumber,
             confirmations,
@@ -119,8 +125,8 @@ async function scanDeposits() {
         await db('deposits').insert({
           user_id: userId,
           tx_hash: txHash,
-          from_address: event.args.from,
-          to_address: to,
+          from_address: from,
+          to_address: PLATFORM_WALLET,
           amount: amount.toFixed(2),
           block_number: event.blockNumber,
           confirmations,
