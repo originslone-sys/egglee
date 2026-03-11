@@ -19,7 +19,14 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors());
+
+// CORS — allow frontend origins (e.g. Hostinger static site)
+const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').filter(Boolean);
+app.use(cors(allowedOrigins.length > 0 ? {
+  origin: allowedOrigins,
+  credentials: true,
+} : undefined));
+
 app.use(express.json());
 
 // Rate limiting

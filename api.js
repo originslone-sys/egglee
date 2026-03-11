@@ -3,7 +3,9 @@
  * Handles auth token, MetaMask connection, and all API calls.
  */
 const API = (() => {
-  const BASE = '/api';
+  // Set window.GALINHA_API_URL before loading this script to point to an external backend.
+  // Example: window.GALINHA_API_URL = 'https://galinha-farm-xyz.run.app/api';
+  const BASE = window.GALINHA_API_URL || '/api';
   let token = localStorage.getItem('gf_token');
   let currentUser = JSON.parse(localStorage.getItem('gf_user') || 'null');
 
