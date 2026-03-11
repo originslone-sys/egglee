@@ -278,12 +278,13 @@
         <div class="wallet-grid">
           <div>
             <div class="card">
-              <h3>Deposit USDT (BEP20)</h3>
-              <p style="margin-bottom:.6rem">Send USDT on BSC (BEP20) network to your wallet address below. Deposits are credited automatically after 12 block confirmations.</p>
-              <div class="deposit-box">
-                <code id="deposit-addr" class="deposit-addr">Connect to see address</code>
-                <button id="copy-addr-btn" class="btn btn-ghost btn-sm">Copy</button>
+              <h3>Top Up Balance</h3>
+              <p style="margin-bottom:.6rem">Send USDT (BEP20) directly from your MetaMask wallet. Your balance is credited automatically after network confirmation.</p>
+              <div class="topup-form">
+                <input id="topup-amount" type="number" step="0.01" min="1" class="input" placeholder="Amount in USDT" />
+                <button id="topup-btn" class="btn btn-primary">Top Up</button>
               </div>
+              <p id="topup-status" class="topup-status" style="display:none"></p>
               <span class="status-pill ok">Network: BEP20 (BSC)</span>
             </div>
 

@@ -239,7 +239,6 @@
       renderFarm();
       loadSpecies();
       loadLedger();
-      loadDepositAddress();
       loadDeposits();
       loadFertileEggs();
       loadChickFeedSelect();
@@ -424,23 +423,86 @@
     } catch (_) { /* ignore */ }
   }
 
-  // ── Deposits ───────────────────────────────────
-  const depositAddr = $('deposit-addr');
-  const copyAddrBtn = $('copy-addr-btn');
+  // ── Top Up (Deposit via MetaMask) ──────────────
+  const PLATFORM_WALLET = '0x8417C9a00249Da8e4ff7414c5992C08511c28328';
+  const USDT_BEP20 = '0x55d398326f99059fF775485246999027B3197955';
+  const topupBtn = $('topup-btn');
+  const topupAmount = $('topup-amount');
+  const topupStatus = $('topup-status');
   const depositsBody = $('deposits-body');
 
-  async function loadDepositAddress() {
-    if (!depositAddr || !API.isLoggedIn()) return;
-    try {
-      const data = await API.client.depositAddress();
-      depositAddr.textContent = data.wallet_address;
-    } catch (_) { /* ignore */ }
+  function showTopupStatus(msg, isError) {
+    if (!topupStatus) return;
+    topupStatus.textContent = msg;
+    topupStatus.className = 'topup-status ' + (isError ? 'topup-error' : 'topup-ok');
+    topupStatus.style.display = '';
   }
 
-  copyAddrBtn?.addEventListener('click', () => {
-    const addr = depositAddr?.textContent;
-    if (addr && addr !== 'Connect to see address') {
-      navigator.clipboard.writeText(addr).then(() => toast('Address copied!'));
+  topupBtn?.addEventListener('click', async () => {
+    const amount = parseFloat(topupAmount?.value);
+    if (!amount || amount <= 0) { toast('Enter a valid amount', true); return; }
+
+    if (typeof window.ethereum === 'undefined') {
+      toast('MetaMask not detected. Please install MetaMask.', true);
+      return;
+    }
+
+    topupBtn.disabled = true;
+    topupBtn.textContent = 'Waiting...';
+    showTopupStatus('Opening MetaMask...', false);
+
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const from = accounts[0];
+
+      // Ensure BSC network (chainId 0x38 = 56)
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (chainId !== '0x38') {
+        try {
+          await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x38' }] });
+        } catch (switchErr) {
+          showTopupStatus('Please switch to BSC network in MetaMask.', true);
+          return;
+        }
+      }
+
+      // Encode ERC20 transfer(address,uint256)
+      const amountWei = '0x' + (BigInt(Math.round(amount * 1e18))).toString(16);
+      const transferData = '0xa9059cbb'
+        + PLATFORM_WALLET.slice(2).toLowerCase().padStart(64, '0')
+        + amountWei.slice(2).padStart(64, '0');
+
+      showTopupStatus('Confirm the transaction in MetaMask...', false);
+
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from,
+          to: USDT_BEP20,
+          data: transferData,
+          value: '0x0',
+        }],
+      });
+
+      showTopupStatus('Transaction sent! Waiting for confirmation...', false);
+      toast('Transaction sent! Your balance will be credited after confirmation.');
+      topupAmount.value = '';
+
+      // Notify backend about the pending deposit
+      try { await API.client.notifyDeposit(txHash, amount); } catch (_) { /* monitor will pick it up */ }
+
+      // Reload deposits after a short delay
+      setTimeout(() => loadDeposits(), 15000);
+
+    } catch (err) {
+      if (err.code === 4001) {
+        showTopupStatus('Transaction cancelled.', true);
+      } else {
+        showTopupStatus('Transaction failed: ' + (err.message || 'Unknown error'), true);
+      }
+    } finally {
+      topupBtn.disabled = false;
+      topupBtn.textContent = 'Top Up';
     }
   });
 

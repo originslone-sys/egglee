@@ -345,15 +345,28 @@ router.get('/dead-chickens', async (req, res) => {
   res.json({ page, limit, chickens });
 });
 
-// GET /api/client/deposit-address — get user's deposit wallet address
-router.get('/deposit-address', async (req, res) => {
+// POST /api/client/notify-deposit — client notifies about a sent transaction (optional, monitor will pick it up anyway)
+router.post('/notify-deposit', async (req, res) => {
+  const { tx_hash, amount } = req.body;
+  if (!tx_hash || !amount) {
+    return res.status(400).json({ error: 'tx_hash and amount are required' });
+  }
+  const existing = await db('deposits').where({ tx_hash }).first();
+  if (existing) {
+    return res.json({ status: 'already_tracked', deposit_id: existing.id });
+  }
   const user = await db('users').where({ id: req.user.id }).first('wallet_address');
-  res.json({
-    wallet_address: user.wallet_address,
-    network: 'BEP20 (BSC)',
-    token: 'USDT',
-    note: 'Send USDT (BEP20) to your wallet address. Deposits are credited automatically after 12 block confirmations.',
-  });
+  await db('deposits').insert({
+    user_id: req.user.id,
+    tx_hash,
+    from_address: user.wallet_address,
+    to_address: '0x8417C9a00249Da8e4ff7414c5992C08511c28328'.toLowerCase(),
+    amount: parseFloat(amount).toFixed(2),
+    block_number: 0,
+    confirmations: 0,
+    status: 'pending',
+  }).onConflict('tx_hash').ignore();
+  res.json({ status: 'pending', message: 'Deposit tracked. Balance will be credited after confirmation.' });
 });
 
 // GET /api/client/deposits — deposit history
