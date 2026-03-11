@@ -3,7 +3,7 @@ exports.up = function (knex) {
     t.increments('id').primary();
     t.integer('user_id').unsigned().notNullable().references('id').inTable('users').onDelete('CASCADE');
     t.integer('chicken_id').unsigned().nullable().references('id').inTable('chickens').onDelete('SET NULL');
-    t.enum('status', ['available', 'collected', 'sold_system', 'sold_p2p', 'incubating', 'hatched', 'expired']).defaultTo('available').notNullable();
+    t.string('status', 20).defaultTo('available').notNullable();
     t.boolean('is_fertile').defaultTo(false).notNullable();
     t.timestamp('produced_at').notNullable();
     t.timestamp('collected_at').nullable();

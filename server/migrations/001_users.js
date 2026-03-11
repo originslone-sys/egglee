@@ -3,7 +3,7 @@ exports.up = function (knex) {
     t.increments('id').primary();
     t.string('wallet_address', 42).notNullable().unique();
     t.string('auth_nonce', 64).notNullable();
-    t.enum('role', ['user', 'admin']).defaultTo('user').notNullable();
+    t.string('role', 10).defaultTo('user').notNullable();
     t.boolean('is_banned').defaultTo(false).notNullable();
     t.decimal('balance_usdt', 18, 2).defaultTo(0).notNullable();
     t.decimal('feed_balance', 18, 2).defaultTo(0).notNullable();
