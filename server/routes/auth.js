@@ -150,4 +150,26 @@ router.post('/bootstrap', async (req, res) => {
   return res.status(403).json({ error: 'Cannot bootstrap: users exist and no valid secret provided' });
 });
 
+// POST /api/auth/admin-login
+// Admin login with username and password
+router.post('/admin-login', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
+  }
+
+  const adminUser = process.env.ADMIN_USERNAME || 'admin';
+  const adminPass = process.env.ADMIN_PASSWORD || 'Antonio@23';
+
+  if (username !== adminUser || password !== adminPass) {
+    return res.status(401).json({ error: 'Usuário ou senha incorretos' });
+  }
+
+  const token = signToken({ id: 0, wallet_address: 'admin', role: 'admin' });
+  res.json({
+    token,
+    user: { id: 0, wallet_address: 'admin', role: 'admin' },
+  });
+});
+
 module.exports = router;

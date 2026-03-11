@@ -21,44 +21,42 @@
   }
 
   // ── Auth ────────────────────────────────────────
-  const connectBtn = $('connect-btn');
   const logoutBtn = $('logout-btn');
-  const walletLabel = $('wallet-label');
-  const authArea = $('auth-area');
+  const adminUserLabel = $('admin-user-label');
   const sidebarUser = $('sidebar-user-info');
-
-  function updateAuthUI() {
-    if (API.isLoggedIn()) {
-      if (connectBtn) hide(connectBtn);
-      if (logoutBtn) show(logoutBtn);
-      if (walletLabel) walletLabel.textContent = shortWallet(API.getUser()?.wallet_address);
-      if (sidebarUser) sidebarUser.textContent = shortWallet(API.getUser()?.wallet_address);
-    } else {
-      if (connectBtn) show(connectBtn);
-      if (logoutBtn) hide(logoutBtn);
-    }
-  }
 
   const accessDenied = $('access-denied');
   const adminContent = $('admin-content-wrap');
   const adminSidebar = $('admin-sidebar');
   const loginPrompt = $('admin-login-prompt');
-  const adminConnectBtn = $('admin-connect-btn');
+  const loginForm = $('admin-login-form');
+  const loginError = $('admin-login-error');
+
+  function updateAuthUI() {
+    if (API.isLoggedIn() && API.isAdmin()) {
+      if (logoutBtn) show(logoutBtn);
+      if (adminUserLabel) show(adminUserLabel);
+      if (sidebarUser) sidebarUser.textContent = 'Admin';
+    } else {
+      if (logoutBtn) hide(logoutBtn);
+      if (adminUserLabel) hide(adminUserLabel);
+    }
+  }
 
   function checkAdminAccess() {
-    if (API.isLoggedIn() && !API.isAdmin()) {
-      if (loginPrompt) hide(loginPrompt);
-      if (accessDenied) show(accessDenied);
-      if (adminContent) hide(adminContent);
-      if (adminSidebar) hide(adminSidebar);
-      return false;
-    }
     if (API.isLoggedIn() && API.isAdmin()) {
       if (loginPrompt) hide(loginPrompt);
       if (accessDenied) hide(accessDenied);
       if (adminContent) show(adminContent);
       if (adminSidebar) show(adminSidebar);
       return true;
+    }
+    if (API.isLoggedIn() && !API.isAdmin()) {
+      if (loginPrompt) hide(loginPrompt);
+      if (accessDenied) show(accessDenied);
+      if (adminContent) hide(adminContent);
+      if (adminSidebar) hide(adminSidebar);
+      return false;
     }
     // Not logged in
     if (loginPrompt) show(loginPrompt);
@@ -68,27 +66,31 @@
     return false;
   }
 
-  async function doAdminLogin() {
-    const btn = adminConnectBtn || connectBtn;
-    if (btn) { btn.disabled = true; btn.textContent = 'Connecting...'; }
+  loginForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = $('admin-user').value.trim();
+    const password = $('admin-pass').value;
+    const btn = $('admin-login-btn');
+
+    if (loginError) hide(loginError);
+    if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
+
     try {
-      await API.connectMetaMask();
+      await API.adminLogin(username, password);
       updateAuthUI();
       if (checkAdminAccess()) {
-        toast('Connected as admin');
+        toast('Login realizado com sucesso');
         loadAdmin();
-      } else {
-        toast('Acesso negado: esta wallet não é admin', true);
       }
-    } catch (e) {
-      toast(e.message, true);
+    } catch (err) {
+      if (loginError) {
+        loginError.textContent = err.message;
+        show(loginError);
+      }
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = btn === adminConnectBtn ? 'Conectar MetaMask' : 'Connect Wallet'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
     }
-  }
-
-  connectBtn?.addEventListener('click', doAdminLogin);
-  adminConnectBtn?.addEventListener('click', doAdminLogin);
+  });
 
   logoutBtn?.addEventListener('click', () => {
     API.logout();
@@ -98,9 +100,6 @@
 
   updateAuthUI();
   checkAdminAccess();
-
-  // Hide topbar connect when login prompt is visible
-  if (!API.isLoggedIn() && connectBtn) hide(connectBtn);
 
   // ── Sidebar Navigation ─────────────────────────
   const sidebarLinks = document.querySelectorAll('.sidebar-link[data-section]');
