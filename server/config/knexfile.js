@@ -26,18 +26,27 @@ module.exports = {
 
   production: {
     client: 'mysql2',
-    connection: {
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT || '3306', 10),
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    },
+    connection: process.env.CLOUD_SQL_CONNECTION_NAME
+      ? {
+          // Cloud SQL via Unix socket
+          socketPath: `/cloudsql/${process.env.CLOUD_SQL_CONNECTION_NAME}`,
+          user: process.env.DB_USER,
+          password: process.env.DB_PASSWORD,
+          database: process.env.DB_NAME,
+        }
+      : {
+          // Standard TCP connection
+          host: process.env.DB_HOST,
+          port: parseInt(process.env.DB_PORT || '3306', 10),
+          user: process.env.DB_USER,
+          password: process.env.DB_PASSWORD,
+          database: process.env.DB_NAME,
+        },
     migrations: {
-      directory: require('path').resolve(__dirname, '../migrations'),
+      directory: path.resolve(__dirname, '../migrations'),
     },
     seeds: {
-      directory: require('path').resolve(__dirname, '../seeds'),
+      directory: path.resolve(__dirname, '../seeds'),
     },
     pool: { min: 2, max: 20 },
   },
