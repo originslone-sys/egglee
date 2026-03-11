@@ -49,6 +49,10 @@
             <span class="link-icon">&#x1F4B0;</span>
             <span class="link-text">Deposits</span>
           </button>
+          <button class="sidebar-link" data-section="species">
+            <span class="link-icon">&#x1F414;</span>
+            <span class="link-text">Galinhas</span>
+          </button>
           <button class="sidebar-link" data-section="users">
             <span class="link-icon">&#x1F465;</span>
             <span class="link-text">Users</span>
@@ -221,6 +225,70 @@
               </thead>
               <tbody id="deposit-body">
                 <tr><td colspan="7" class="text-soft">Connect as admin to view deposits.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Species Section (Emissor de Galinhas) ── -->
+        <div id="section-species" class="admin-section">
+          <div class="section-header">
+            <h2>Emissor de Galinhas</h2>
+            <button id="species-add-btn" class="btn btn-primary btn-sm">+ Nova Espécie</button>
+          </div>
+
+          <!-- Create/Edit Form (hidden by default) -->
+          <div id="species-form-wrap" class="card" style="display:none;margin-bottom:1.5rem">
+            <h3 id="species-form-title">Nova Espécie</h3>
+            <form id="species-form" style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:.8rem">
+              <div>
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Nome</label>
+                <input id="sp-name" class="input" type="text" placeholder="Ex: Poedeira Premium" required style="width:100%" />
+              </div>
+              <div>
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Preço (USDT)</label>
+                <input id="sp-price" class="input" type="number" step="0.01" min="0" required style="width:100%" />
+              </div>
+              <div>
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Ovos/dia</label>
+                <input id="sp-eggs" class="input" type="number" step="0.1" min="0" required style="width:100%" />
+              </div>
+              <div>
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Ração/dia</label>
+                <input id="sp-feed" class="input" type="number" step="0.1" min="0" required style="width:100%" />
+              </div>
+              <div>
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Vida (dias)</label>
+                <input id="sp-lifespan" class="input" type="number" min="1" required style="width:100%" />
+              </div>
+              <div>
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Prob. Eclosão (0-1)</label>
+                <input id="sp-hatch" class="input" type="number" step="0.0001" min="0" max="1" value="0" style="width:100%" />
+              </div>
+              <div style="grid-column:1/-1;display:flex;gap:.5rem;justify-content:flex-end;margin-top:.3rem">
+                <button type="button" id="species-cancel-btn" class="btn btn-ghost btn-sm">Cancelar</button>
+                <button type="submit" id="species-save-btn" class="btn btn-primary btn-sm">Salvar</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Species Table -->
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nome</th>
+                  <th>Preço</th>
+                  <th>Ovos/dia</th>
+                  <th>Ração/dia</th>
+                  <th>Vida</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="species-body">
+                <tr><td colspan="8" class="text-soft">Carregando espécies...</td></tr>
               </tbody>
             </table>
           </div>

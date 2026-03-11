@@ -147,7 +147,7 @@
 
   async function loadAdmin() {
     if (!API.isLoggedIn() || !API.isAdmin()) return;
-    await Promise.all([loadAlerts(), loadEconomy(), loadWithdrawals(), loadUsers(), loadAdminDeposits()]);
+    await Promise.all([loadAlerts(), loadEconomy(), loadWithdrawals(), loadUsers(), loadAdminDeposits(), loadSpecies()]);
   }
 
   depStatusFilter?.addEventListener('change', () => loadAdminDeposits());
@@ -386,6 +386,115 @@
           </tr>`;
         }).join('');
       }
+    } catch (e) { toast(e.message, true); }
+  }
+
+  // ── Species (Emissor de Galinhas) ─────────────
+  const speciesBody = $('species-body');
+  const speciesFormWrap = $('species-form-wrap');
+  const speciesForm = $('species-form');
+  const speciesFormTitle = $('species-form-title');
+  const speciesAddBtn = $('species-add-btn');
+  const speciesCancelBtn = $('species-cancel-btn');
+  let editingSpeciesId = null;
+
+  function resetSpeciesForm() {
+    editingSpeciesId = null;
+    if (speciesFormTitle) speciesFormTitle.textContent = 'Nova Espécie';
+    $('sp-name').value = '';
+    $('sp-price').value = '';
+    $('sp-eggs').value = '';
+    $('sp-feed').value = '';
+    $('sp-lifespan').value = '';
+    $('sp-hatch').value = '0';
+    if (speciesFormWrap) hide(speciesFormWrap);
+  }
+
+  speciesAddBtn?.addEventListener('click', () => {
+    resetSpeciesForm();
+    if (speciesFormWrap) show(speciesFormWrap);
+  });
+
+  speciesCancelBtn?.addEventListener('click', () => resetSpeciesForm());
+
+  speciesForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+      name: $('sp-name').value.trim(),
+      purchase_price: $('sp-price').value,
+      eggs_per_day: $('sp-eggs').value,
+      feed_per_day: $('sp-feed').value,
+      lifespan_days: $('sp-lifespan').value,
+      hatch_probability: $('sp-hatch').value || '0',
+    };
+
+    try {
+      if (editingSpeciesId) {
+        await API.admin.updateSpecies(editingSpeciesId, data);
+        toast('Espécie atualizada');
+      } else {
+        await API.admin.createSpecies(data);
+        toast('Espécie criada');
+      }
+      resetSpeciesForm();
+      loadSpecies();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+
+  async function loadSpecies() {
+    if (!speciesBody) return;
+    try {
+      const species = await API.admin.getSpecies();
+      if (species.length === 0) {
+        speciesBody.innerHTML = '<tr><td colspan="8" class="text-soft">Nenhuma espécie cadastrada. Clique em "+ Nova Espécie" para criar.</td></tr>';
+        return;
+      }
+      speciesBody.innerHTML = species.map(s => `
+        <tr>
+          <td>#${s.id}</td>
+          <td><strong>${s.name}</strong></td>
+          <td>${parseFloat(s.purchase_price).toFixed(2)} USDT</td>
+          <td>${parseFloat(s.eggs_per_day).toFixed(1)}</td>
+          <td>${parseFloat(s.feed_per_day).toFixed(1)}</td>
+          <td>${s.lifespan_days}d</td>
+          <td><span class="status-pill ${s.is_active ? 'ok' : 'danger'}">${s.is_active ? 'Ativa' : 'Inativa'}</span></td>
+          <td style="display:flex;gap:.3rem;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm sp-edit" data-id="${s.id}" data-name="${s.name}" data-price="${s.purchase_price}" data-eggs="${s.eggs_per_day}" data-feed="${s.feed_per_day}" data-life="${s.lifespan_days}" data-hatch="${s.hatch_probability}">Editar</button>
+            <button class="btn ${s.is_active ? 'btn-danger' : 'btn-primary'} btn-sm sp-toggle" data-id="${s.id}" data-active="${s.is_active}">${s.is_active ? 'Desativar' : 'Ativar'}</button>
+          </td>
+        </tr>
+      `).join('');
+
+      speciesBody.querySelectorAll('.sp-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+          editingSpeciesId = btn.dataset.id;
+          if (speciesFormTitle) speciesFormTitle.textContent = `Editar: ${btn.dataset.name}`;
+          $('sp-name').value = btn.dataset.name;
+          $('sp-price').value = btn.dataset.price;
+          $('sp-eggs').value = btn.dataset.eggs;
+          $('sp-feed').value = btn.dataset.feed;
+          $('sp-lifespan').value = btn.dataset.life;
+          $('sp-hatch').value = btn.dataset.hatch;
+          if (speciesFormWrap) show(speciesFormWrap);
+        });
+      });
+
+      speciesBody.querySelectorAll('.sp-toggle').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const newActive = btn.dataset.active !== 'true';
+          try {
+            if (!newActive) {
+              await API.admin.deleteSpecies(btn.dataset.id);
+            } else {
+              await API.admin.updateSpecies(btn.dataset.id, { is_active: true });
+            }
+            toast(`Espécie ${newActive ? 'ativada' : 'desativada'}`);
+            loadSpecies();
+          } catch (err) { toast(err.message, true); }
+        });
+      });
     } catch (e) { toast(e.message, true); }
   }
 

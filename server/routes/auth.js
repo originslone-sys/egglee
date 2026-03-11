@@ -95,7 +95,18 @@ router.post('/verify', async (req, res) => {
       const freeFeed = await EconomyConfig.getNumber('onboarding_free_feed');
       await trx('users').where({ id: user.id }).update({ feed_balance: freeFeed || 5 });
 
-      const comum = await trx('chicken_species').where({ name: 'Comum' }).first();
+      let comum = await trx('chicken_species').where({ name: 'Comum' }).first();
+      if (!comum) {
+        const [id] = await trx('chicken_species').insert({
+          name: 'Comum',
+          purchase_price: 1.20,
+          eggs_per_day: 1.0,
+          feed_per_day: 0.8,
+          lifespan_days: 183,
+          hatch_probability: 0.7000,
+        });
+        comum = await trx('chicken_species').where({ id }).first();
+      }
       if (comum) {
         const now = new Date();
         const diesAt = new Date(now.getTime() + comum.lifespan_days * 86400000);
