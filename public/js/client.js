@@ -49,6 +49,15 @@
     return localStorage.getItem('gf_terms_accepted') === 'true';
   }
 
+  function showWelcomeMessage() {
+    const overlay = $('welcome-modal');
+    if (overlay) {
+      show(overlay);
+      const closeBtn = $('welcome-close-btn');
+      closeBtn?.addEventListener('click', () => hide(overlay), { once: true });
+    }
+  }
+
   function showTermsModal() {
     return new Promise((resolve) => {
       if (termsModal) show(termsModal);
@@ -69,9 +78,14 @@
     connectBtn.disabled = true;
     connectBtn.textContent = 'Connecting...';
     try {
-      await API.connectMetaMask();
+      const authData = await API.connectMetaMask();
       updateAuthUI();
-      toast('Connected successfully!');
+
+      if (authData.first_login) {
+        showWelcomeMessage();
+      } else {
+        toast('Connected successfully!');
+      }
       loadFarm();
     } catch (e) {
       toast(e.message, true);
