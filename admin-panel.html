@@ -25,6 +25,7 @@
       <a href="#alerts">Alerts</a>
       <a href="#economy">Economy</a>
       <a href="#withdrawals">Withdrawals</a>
+      <a href="#deposits">Deposits</a>
       <a href="#users">Users</a>
       <a href="client-dashboard.html">Client Panel</a>
     </nav>
@@ -64,6 +65,32 @@
           <thead><tr><th>ID</th><th>Wallet</th><th>Net Amount</th><th>Requested</th><th>Actions</th></tr></thead>
           <tbody id="withdrawal-body">
             <tr><td colspan="5" class="text-soft">Connect as admin to view queue.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="deposits" class="section">
+      <p class="eyebrow">Deposit Monitoring</p>
+      <h2>BEP20 USDT Deposits</h2>
+      <div class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
+        <article class="card"><h3>Confirmed</h3><p id="dep-confirmed" class="metric">--</p></article>
+        <article class="card"><h3>Pending</h3><p id="dep-pending" class="metric">--</p></article>
+        <article class="card"><h3>Total Volume</h3><p id="dep-volume" class="metric">--</p></article>
+      </div>
+      <div style="margin-bottom:.5rem">
+        <select id="dep-status-filter" class="input">
+          <option value="all">All Deposits</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>ID</th><th>User</th><th>Amount</th><th>Status</th><th>Conf.</th><th>TX Hash</th><th>Date</th></tr></thead>
+          <tbody id="deposit-body">
+            <tr><td colspan="7" class="text-soft">Connect as admin to view deposits.</td></tr>
           </tbody>
         </table>
       </div>

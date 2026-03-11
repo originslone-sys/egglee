@@ -174,6 +174,48 @@ router.put('/users/:id/ban', async (req, res) => {
   res.json({ user_id: parseInt(id, 10), is_banned: !!banned });
 });
 
+// GET /api/admin/deposits — deposit monitoring dashboard
+router.get('/deposits', async (req, res) => {
+  const status = req.query.status || 'all';
+  const page = parseInt(req.query.page || '1', 10);
+  const limit = Math.min(parseInt(req.query.limit || '20', 10), 100);
+  const offset = (page - 1) * limit;
+
+  const query = db('deposits')
+    .leftJoin('users', 'deposits.user_id', 'users.id')
+    .select(
+      'deposits.*',
+      'users.wallet_address as user_wallet'
+    )
+    .orderBy('deposits.created_at', 'desc')
+    .limit(limit)
+    .offset(offset);
+
+  if (status !== 'all') {
+    query.where('deposits.status', status);
+  }
+
+  const deposits = await query;
+
+  const counts = await db('deposits')
+    .select('status')
+    .count('id as count')
+    .groupBy('status');
+
+  const totalVolume = await db('deposits')
+    .where({ status: 'confirmed' })
+    .sum('amount as total')
+    .first();
+
+  res.json({
+    page,
+    limit,
+    deposits,
+    counts: counts.reduce((acc, c) => { acc[c.status] = parseInt(c.count, 10); return acc; }, {}),
+    total_confirmed_volume: parseFloat(totalVolume.total) || 0,
+  });
+});
+
 // GET /api/admin/alerts — operational alerts summary
 router.get('/alerts', async (req, res) => {
   const starvationHours = await EconomyConfig.getNumber('starvation_death_hours');

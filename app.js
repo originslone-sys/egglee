@@ -169,6 +169,9 @@
         loadLedger();
         loadDepositAddress();
         loadDeposits();
+        loadFertileEggs();
+        loadChickFeedSelect();
+        loadDeadChickens();
       } catch (e) {
         toast(e.message, true);
       }
@@ -257,6 +260,93 @@
       } catch (e) { toast(e.message, true); }
       el.withdrawBtn.disabled = false;
     });
+
+    // ── Incubation & Chick Feeding ──────────────────
+    const fertileEggSelect = $('fertile-egg-select');
+    const incubateBtn = $('incubate-btn');
+    const incubatingList = $('incubating-list');
+    const chickFeedSelect = $('chick-feed-select');
+    const chickFeedAmount = $('chick-feed-amount');
+    const feedChickBtn = $('feed-chick-btn');
+    const deadChickensBody = $('dead-chickens-body');
+
+    async function loadFertileEggs() {
+      if (!fertileEggSelect || !API.isLoggedIn()) return;
+      try {
+        const data = await API.client.fertileEggs();
+        if (data.fertile.length === 0) {
+          fertileEggSelect.innerHTML = '<option disabled>No fertile eggs</option>';
+        } else {
+          fertileEggSelect.innerHTML = data.fertile.map(e =>
+            `<option value="${e.id}">Egg #${e.id} — ${new Date(e.produced_at).toLocaleDateString()}</option>`
+          ).join('');
+        }
+        if (incubatingList) {
+          incubatingList.innerHTML = data.incubating.length > 0
+            ? data.incubating.map(e =>
+                `<span class="status-pill warn" style="margin:.2rem">Egg #${e.id} incubating</span>`
+              ).join('')
+            : '';
+        }
+      } catch (_) { /* ignore */ }
+    }
+
+    incubateBtn?.addEventListener('click', async () => {
+      const eggId = parseInt(fertileEggSelect?.value, 10);
+      if (!eggId) { toast('Select a fertile egg', true); return; }
+      incubateBtn.disabled = true;
+      try {
+        const r = await API.client.incubateEgg(eggId);
+        toast(`Egg #${r.egg_id} is now incubating (feed used: ${r.feed_consumed})`);
+        loadFarm();
+      } catch (e) { toast(e.message, true); }
+      incubateBtn.disabled = false;
+    });
+
+    function loadChickFeedSelect() {
+      if (!chickFeedSelect || !farmData) return;
+      if (farmData.chicks.length === 0) {
+        chickFeedSelect.innerHTML = '<option disabled>No growing chicks</option>';
+      } else {
+        chickFeedSelect.innerHTML = farmData.chicks.map(c =>
+          `<option value="${c.id}">Chick #${c.id} → ${c.target_species} (fed: ${parseFloat(c.feed_consumed).toFixed(1)}/2.0)</option>`
+        ).join('');
+      }
+    }
+
+    feedChickBtn?.addEventListener('click', async () => {
+      const chickId = parseInt(chickFeedSelect?.value, 10);
+      const amount = parseFloat(chickFeedAmount?.value || '0.5');
+      if (!chickId) { toast('Select a chick', true); return; }
+      feedChickBtn.disabled = true;
+      try {
+        const r = await API.client.feedChick(chickId, amount);
+        toast(`Fed chick #${r.chick_id}: ${r.fed} units (${r.progress} complete)`);
+        loadFarm();
+      } catch (e) { toast(e.message, true); }
+      feedChickBtn.disabled = false;
+    });
+
+    async function loadDeadChickens() {
+      if (!deadChickensBody || !API.isLoggedIn()) return;
+      try {
+        const { chickens } = await API.client.deadChickens(1);
+        if (chickens.length === 0) {
+          deadChickensBody.innerHTML = '<tr><td colspan="5" class="text-soft">No deceased chickens.</td></tr>';
+        } else {
+          deadChickensBody.innerHTML = chickens.map(c => {
+            const causeClass = c.death_cause === 'starvation' ? 'danger' : 'warn';
+            return `<tr>
+              <td>#${c.id}</td>
+              <td>${c.species}</td>
+              <td>${new Date(c.born_at).toLocaleDateString()}</td>
+              <td>${c.died_at ? new Date(c.died_at).toLocaleDateString() : '—'}</td>
+              <td><span class="status-pill ${causeClass}">${c.death_cause || 'unknown'}</span></td>
+            </tr>`;
+          }).join('');
+        }
+      } catch (_) { /* ignore */ }
+    }
 
     // ── Deposits ─────────────────────────────────────
     const depositAddr = $('deposit-addr');
@@ -507,9 +597,47 @@
     const withdrawalBody = $('withdrawal-body');
     const userBody = $('user-body');
 
+    const depositBody = $('deposit-body');
+    const depConfirmed = $('dep-confirmed');
+    const depPending = $('dep-pending');
+    const depVolume = $('dep-volume');
+    const depStatusFilter = $('dep-status-filter');
+
     async function loadAdmin() {
       if (!API.isLoggedIn() || !API.isAdmin()) return;
-      await Promise.all([loadAlerts(), loadEconomy(), loadWithdrawals(), loadUsers()]);
+      await Promise.all([loadAlerts(), loadEconomy(), loadWithdrawals(), loadUsers(), loadAdminDeposits()]);
+    }
+
+    depStatusFilter?.addEventListener('change', () => loadAdminDeposits());
+
+    async function loadAdminDeposits() {
+      if (!depositBody) return;
+      try {
+        const status = depStatusFilter?.value || 'all';
+        const data = await API.admin.getDeposits(status);
+
+        if (depConfirmed) depConfirmed.textContent = String(data.counts.confirmed || 0);
+        if (depPending) depPending.textContent = String(data.counts.pending || 0);
+        if (depVolume) depVolume.textContent = `${data.total_confirmed_volume.toFixed(2)} USDT`;
+
+        if (data.deposits.length === 0) {
+          depositBody.innerHTML = '<tr><td colspan="7" class="text-soft">No deposits found.</td></tr>';
+        } else {
+          depositBody.innerHTML = data.deposits.map(d => {
+            const statusClass = d.status === 'confirmed' ? 'ok' : d.status === 'failed' ? 'danger' : 'warn';
+            const txShort = d.tx_hash ? d.tx_hash.slice(0, 12) + '...' : '—';
+            return `<tr>
+              <td>#${d.id}</td>
+              <td title="${d.user_wallet || ''}">${shortWallet(d.user_wallet)}</td>
+              <td>${parseFloat(d.amount).toFixed(2)} USDT</td>
+              <td><span class="status-pill ${statusClass}">${d.status}</span></td>
+              <td>${d.confirmations}</td>
+              <td title="${d.tx_hash || ''}">${txShort}</td>
+              <td>${new Date(d.created_at).toLocaleString()}</td>
+            </tr>`;
+          }).join('');
+        }
+      } catch (e) { toast(e.message, true); }
     }
 
     async function loadAlerts() {

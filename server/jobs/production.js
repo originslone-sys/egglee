@@ -60,7 +60,15 @@ async function runProductionCycle() {
     await promoteChick(chick, now);
   }
 
-  return { processed_users: usersWithChickens.length, hatched_eggs: readyEggs.length, promoted_chicks: matureChicks.length };
+  // 6) Expire old uncollected eggs (7 days)
+  const eggMaxAgeDays = 7;
+  const eggExpireDeadline = new Date(now.getTime() - eggMaxAgeDays * 86400000);
+  const expiredCount = await db('eggs')
+    .where({ status: 'available' })
+    .where('produced_at', '<=', eggExpireDeadline)
+    .update({ status: 'expired' });
+
+  return { processed_users: usersWithChickens.length, hatched_eggs: readyEggs.length, promoted_chicks: matureChicks.length, expired_eggs: expiredCount };
 }
 
 async function processUserFarm(userId, now) {
