@@ -20,7 +20,7 @@ const fs = require('fs');
 console.log('[BOOT] Core modules loaded');
 
 // Check that frontend files exist
-const frontendDir = path.join(__dirname, '..');
+const frontendDir = path.join(__dirname, '..', 'public');
 const indexPath = path.join(frontendDir, 'index.html');
 console.log('[BOOT] Frontend dir:', frontendDir);
 console.log('[BOOT] index.html exists:', fs.existsSync(indexPath));
@@ -100,12 +100,12 @@ app.use('/api/client', clientRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 
-// Serve static frontend files
-app.use(express.static(path.join(__dirname, '..')));
+// Serve static frontend files from public/
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Health check with debug info
 app.get('/api/health', (req, res) => {
-  const frontendDir = path.join(__dirname, '..');
+  const frontendDir = path.join(__dirname, '..', 'public');
   const indexExists = fs.existsSync(path.join(frontendDir, 'index.html'));
   let rootFiles = [];
   try {
@@ -127,7 +127,7 @@ app.get('/api/health', (req, res) => {
 
 // Catch-all: serve index.html for any non-API route
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
 // Global error handler
