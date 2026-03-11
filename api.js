@@ -74,6 +74,8 @@ const API = (() => {
     withdraw:      (amount) => request('POST', '/client/withdraw', { amount }),
     species:       () => request('GET', '/client/species'),
     ledger:        (page) => request('GET', `/client/ledger?page=${page || 1}`),
+    depositAddress:() => request('GET', '/client/deposit-address'),
+    deposits:      (page) => request('GET', `/client/deposits?page=${page || 1}`),
   };
 
   // ── Admin API ──────────────────────────────────────
