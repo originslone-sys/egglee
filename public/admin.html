@@ -90,18 +90,32 @@
           <h1 id="page-title">Alerts</h1>
         </div>
         <div class="topbar-actions">
-          <span id="wallet-label" class="status-pill ok" style="display:none"></span>
-          <button id="connect-btn" class="btn btn-outline btn-sm">Connect Wallet</button>
-          <button id="logout-btn" class="btn btn-ghost btn-sm" style="display:none">Logout</button>
+          <span id="admin-user-label" class="status-pill ok" style="display:none">Admin</span>
+          <button id="logout-btn" class="btn btn-ghost btn-sm" style="display:none">Sair</button>
         </div>
       </header>
 
       <!-- ── Admin Login Prompt ──────────────── -->
-      <div id="admin-login-prompt" style="text-align:center;padding:5rem 2rem">
-        <div style="font-size:3rem;margin-bottom:1rem">&#x1F512;</div>
-        <h2 style="margin-bottom:.5rem">Admin Login</h2>
-        <p class="text-soft" style="margin-bottom:1.5rem">Conecte sua wallet de administrador para acessar o painel.</p>
-        <button id="admin-connect-btn" class="btn btn-primary">Conectar MetaMask</button>
+      <div id="admin-login-prompt" style="display:flex;align-items:center;justify-content:center;padding:5rem 2rem;min-height:calc(100vh - var(--topbar-h))">
+        <div style="width:100%;max-width:380px">
+          <div style="text-align:center;margin-bottom:1.5rem">
+            <div style="font-size:3rem;margin-bottom:.5rem">&#x1F512;</div>
+            <h2 style="margin-bottom:.3rem">Painel Admin</h2>
+            <p class="text-soft">Insira suas credenciais para acessar.</p>
+          </div>
+          <form id="admin-login-form" autocomplete="off">
+            <div style="margin-bottom:1rem">
+              <label for="admin-user" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:.4rem;color:var(--text-soft)">Usuário</label>
+              <input id="admin-user" type="text" class="input" placeholder="admin" style="width:100%" required />
+            </div>
+            <div style="margin-bottom:1.5rem">
+              <label for="admin-pass" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:.4rem;color:var(--text-soft)">Senha</label>
+              <input id="admin-pass" type="password" class="input" placeholder="********" style="width:100%" required />
+            </div>
+            <button id="admin-login-btn" type="submit" class="btn btn-primary" style="width:100%">Entrar</button>
+            <p id="admin-login-error" style="display:none;color:var(--danger);font-size:.82rem;text-align:center;margin-top:.8rem"></p>
+          </form>
+        </div>
       </div>
 
       <!-- ── Access Denied ──────────────────── -->

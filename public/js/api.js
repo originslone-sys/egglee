@@ -110,5 +110,14 @@ const API = (() => {
     cancel:       (orderId) => request('POST', `/marketplace/cancel/${orderId}`),
   };
 
-  return { connectMetaMask, logout, isLoggedIn, getUser, isAdmin, client, admin, marketplace };
+  async function adminLogin(username, password) {
+    const data = await request('POST', '/auth/admin-login', { username, password });
+    token = data.token;
+    currentUser = data.user;
+    localStorage.setItem('gf_token', token);
+    localStorage.setItem('gf_user', JSON.stringify(currentUser));
+    return data;
+  }
+
+  return { connectMetaMask, adminLogin, logout, isLoggedIn, getUser, isAdmin, client, admin, marketplace };
 })();
