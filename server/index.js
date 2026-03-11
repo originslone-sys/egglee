@@ -47,6 +47,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Catch-all: serve index.html for any non-API route
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
+
 // Global error handler
 app.use((err, req, res, _next) => {
   console.error(`[ERROR] ${req.method} ${req.path}:`, err.message);
