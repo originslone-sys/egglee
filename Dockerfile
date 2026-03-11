@@ -13,5 +13,5 @@ COPY . .
 # Cloud Run sets PORT env var automatically
 EXPOSE 8080
 
-# Run migrations then start server
-CMD ["sh", "-c", "npx knex migrate:latest --knexfile server/config/knexfile.js && node server/index.js"]
+# Run migrations in production env, then start server
+CMD ["sh", "-c", "npx knex migrate:latest --env production --knexfile server/config/knexfile.js && node server/index.js"]
