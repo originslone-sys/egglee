@@ -39,14 +39,41 @@
     }
   }
 
+  const accessDenied = $('access-denied');
+  const adminContent = $('admin-content-wrap');
+  const adminSidebar = $('admin-sidebar');
+
+  function checkAdminAccess() {
+    if (API.isLoggedIn() && !API.isAdmin()) {
+      if (accessDenied) show(accessDenied);
+      if (adminContent) hide(adminContent);
+      if (adminSidebar) hide(adminSidebar);
+      return false;
+    }
+    if (API.isLoggedIn() && API.isAdmin()) {
+      if (accessDenied) hide(accessDenied);
+      if (adminContent) show(adminContent);
+      if (adminSidebar) show(adminSidebar);
+      return true;
+    }
+    if (accessDenied) hide(accessDenied);
+    if (adminContent) hide(adminContent);
+    if (adminSidebar) hide(adminSidebar);
+    return false;
+  }
+
   connectBtn?.addEventListener('click', async () => {
     connectBtn.disabled = true;
     connectBtn.textContent = 'Connecting...';
     try {
       await API.connectMetaMask();
       updateAuthUI();
-      toast('Connected successfully!');
-      loadAdmin();
+      if (checkAdminAccess()) {
+        toast('Connected as admin');
+        loadAdmin();
+      } else {
+        toast('Access denied: admin privileges required', true);
+      }
     } catch (e) {
       toast(e.message, true);
     } finally {
@@ -62,6 +89,7 @@
   });
 
   updateAuthUI();
+  checkAdminAccess();
 
   // ── Sidebar Navigation ─────────────────────────
   const sidebarLinks = document.querySelectorAll('.sidebar-link[data-section]');
@@ -316,6 +344,7 @@
 
   // ── Auto-refresh ───────────────────────────────
   if (API.isLoggedIn() && API.isAdmin()) {
+    checkAdminAccess();
     loadAdmin();
     setInterval(loadAdmin, 60000);
   }
