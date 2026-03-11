@@ -22,7 +22,7 @@ router.put('/economy/:key', async (req, res) => {
     return res.status(400).json({ error: 'value required' });
   }
 
-  await EconomyConfig.set(key, value, req.user.id);
+  await EconomyConfig.set(key, value, req.user.id || null);
   res.json({ key, value: String(value), updated: true });
 });
 
