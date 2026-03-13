@@ -7,6 +7,222 @@ const router = Router();
 router.use(authenticate);
 router.use(requireAdmin);
 
+// GET /api/admin/dashboard — overview stats for admin homepage
+router.get('/dashboard', async (req, res) => {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [
+    purchasesTotal, purchasesToday, purchasesMonth,
+    withdrawalsTotal, withdrawalsToday, withdrawalsMonth,
+    depositsTotal, depositsToday, depositsMonth,
+    totalUsers, activeChickens, totalEggs,
+  ] = await Promise.all([
+    // Purchases (confirmed only)
+    db('pending_purchases').where({ status: 'confirmed' }).sum('expected_amount as total').first(),
+    db('pending_purchases').where({ status: 'confirmed' }).where('confirmed_at', '>=', todayStart).sum('expected_amount as total').first(),
+    db('pending_purchases').where({ status: 'confirmed' }).where('confirmed_at', '>=', monthStart).sum('expected_amount as total').first(),
+    // Withdrawals (completed only)
+    db('withdrawals').where({ status: 'completed' }).sum('net_amount as total').first(),
+    db('withdrawals').where({ status: 'completed' }).where('processed_at', '>=', todayStart).sum('net_amount as total').first(),
+    db('withdrawals').where({ status: 'completed' }).where('processed_at', '>=', monthStart).sum('net_amount as total').first(),
+    // Deposits (confirmed only)
+    db('deposits').where({ status: 'confirmed' }).sum('amount as total').first(),
+    db('deposits').where({ status: 'confirmed' }).where('confirmed_at', '>=', todayStart).sum('amount as total').first(),
+    db('deposits').where({ status: 'confirmed' }).where('confirmed_at', '>=', monthStart).sum('amount as total').first(),
+    // Counters
+    db('users').count('id as count').first(),
+    db('chickens').where({ status: 'alive' }).count('id as count').first(),
+    db('eggs').whereIn('status', ['available', 'incubating']).count('id as count').first(),
+  ]);
+
+  const pendingWithdrawals = await db('withdrawals').where({ status: 'pending' }).count('id as count').first();
+  const purchasesCount = await db('pending_purchases').where({ status: 'confirmed' }).count('id as count').first();
+
+  res.json({
+    purchases: {
+      total: parseFloat(purchasesTotal.total) || 0,
+      today: parseFloat(purchasesToday.total) || 0,
+      month: parseFloat(purchasesMonth.total) || 0,
+      count: parseInt(purchasesCount.count, 10),
+    },
+    withdrawals: {
+      total: parseFloat(withdrawalsTotal.total) || 0,
+      today: parseFloat(withdrawalsToday.total) || 0,
+      month: parseFloat(withdrawalsMonth.total) || 0,
+      pending: parseInt(pendingWithdrawals.count, 10),
+    },
+    deposits: {
+      total: parseFloat(depositsTotal.total) || 0,
+      today: parseFloat(depositsToday.total) || 0,
+      month: parseFloat(depositsMonth.total) || 0,
+    },
+    users: parseInt(totalUsers.count, 10),
+    active_chickens: parseInt(activeChickens.count, 10),
+    total_eggs: parseInt(totalEggs.count, 10),
+  });
+});
+
+// GET /api/admin/purchases/stats — purchase statistics with best sellers
+router.get('/purchases/stats', async (req, res) => {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Overall purchase stats by type
+  const byType = await db('pending_purchases')
+    .where({ status: 'confirmed' })
+    .select('purchase_type')
+    .count('id as count')
+    .sum('expected_amount as total')
+    .groupBy('purchase_type');
+
+  // Today's stats by type
+  const byTypeToday = await db('pending_purchases')
+    .where({ status: 'confirmed' })
+    .where('confirmed_at', '>=', todayStart)
+    .select('purchase_type')
+    .count('id as count')
+    .sum('expected_amount as total')
+    .groupBy('purchase_type');
+
+  // Month stats by type
+  const byTypeMonth = await db('pending_purchases')
+    .where({ status: 'confirmed' })
+    .where('confirmed_at', '>=', monthStart)
+    .select('purchase_type')
+    .count('id as count')
+    .sum('expected_amount as total')
+    .groupBy('purchase_type');
+
+  // Best selling species (chickens purchased)
+  const topSpecies = await db('pending_purchases')
+    .where({ status: 'confirmed', purchase_type: 'chicken' })
+    .select(db.raw("JSON_UNQUOTE(JSON_EXTRACT(purchase_data, '$.species_id')) as species_id"))
+    .count('id as count')
+    .sum('expected_amount as total')
+    .groupBy('species_id')
+    .orderBy('count', 'desc')
+    .limit(10);
+
+  // Get species names
+  const speciesIds = topSpecies.map(s => s.species_id).filter(Boolean);
+  let speciesMap = {};
+  if (speciesIds.length > 0) {
+    const speciesList = await db('chicken_species').whereIn('id', speciesIds).select('id', 'name');
+    speciesMap = speciesList.reduce((acc, s) => { acc[s.id] = s.name; return acc; }, {});
+  }
+
+  // Recent purchases (last 50)
+  const recent = await db('pending_purchases')
+    .where({ status: 'confirmed' })
+    .leftJoin('users', 'pending_purchases.user_id', 'users.id')
+    .select(
+      'pending_purchases.*',
+      'users.wallet_address as user_wallet'
+    )
+    .orderBy('pending_purchases.confirmed_at', 'desc')
+    .limit(50);
+
+  // Totals
+  const totals = await db('pending_purchases')
+    .where({ status: 'confirmed' })
+    .count('id as count')
+    .sum('expected_amount as total')
+    .first();
+
+  const totalToday = await db('pending_purchases')
+    .where({ status: 'confirmed' })
+    .where('confirmed_at', '>=', todayStart)
+    .count('id as count')
+    .sum('expected_amount as total')
+    .first();
+
+  const totalMonth = await db('pending_purchases')
+    .where({ status: 'confirmed' })
+    .where('confirmed_at', '>=', monthStart)
+    .count('id as count')
+    .sum('expected_amount as total')
+    .first();
+
+  const formatByType = (arr) => arr.reduce((acc, r) => {
+    acc[r.purchase_type] = { count: parseInt(r.count, 10), total: parseFloat(r.total) || 0 };
+    return acc;
+  }, {});
+
+  res.json({
+    totals: {
+      all: { count: parseInt(totals.count, 10), total: parseFloat(totals.total) || 0 },
+      today: { count: parseInt(totalToday.count, 10), total: parseFloat(totalToday.total) || 0 },
+      month: { count: parseInt(totalMonth.count, 10), total: parseFloat(totalMonth.total) || 0 },
+    },
+    by_type: formatByType(byType),
+    by_type_today: formatByType(byTypeToday),
+    by_type_month: formatByType(byTypeMonth),
+    top_species: topSpecies.map(s => ({
+      species_id: s.species_id,
+      species_name: speciesMap[s.species_id] || `ID #${s.species_id}`,
+      count: parseInt(s.count, 10),
+      total: parseFloat(s.total) || 0,
+    })),
+    recent,
+  });
+});
+
+// GET /api/admin/withdrawals/stats — withdrawal statistics
+router.get('/withdrawals/stats', async (req, res) => {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [
+    totalCompleted, todayCompleted, monthCompleted,
+    totalFees, todayFees, monthFees,
+    statusCounts, avgAmount,
+  ] = await Promise.all([
+    db('withdrawals').where({ status: 'completed' }).sum('net_amount as total').count('id as count').first(),
+    db('withdrawals').where({ status: 'completed' }).where('processed_at', '>=', todayStart).sum('net_amount as total').count('id as count').first(),
+    db('withdrawals').where({ status: 'completed' }).where('processed_at', '>=', monthStart).sum('net_amount as total').count('id as count').first(),
+    db('withdrawals').where({ status: 'completed' }).sum('fee_amount as total').first(),
+    db('withdrawals').where({ status: 'completed' }).where('processed_at', '>=', todayStart).sum('fee_amount as total').first(),
+    db('withdrawals').where({ status: 'completed' }).where('processed_at', '>=', monthStart).sum('fee_amount as total').first(),
+    db('withdrawals').select('status').count('id as count').groupBy('status'),
+    db('withdrawals').where({ status: 'completed' }).avg('net_amount as avg').first(),
+  ]);
+
+  // Top withdrawers
+  const topUsers = await db('withdrawals')
+    .where({ status: 'completed' })
+    .join('users', 'withdrawals.user_id', 'users.id')
+    .select('users.wallet_address')
+    .sum('withdrawals.net_amount as total')
+    .count('withdrawals.id as count')
+    .groupBy('withdrawals.user_id', 'users.wallet_address')
+    .orderBy('total', 'desc')
+    .limit(10);
+
+  res.json({
+    completed: {
+      total: { amount: parseFloat(totalCompleted.total) || 0, count: parseInt(totalCompleted.count, 10) },
+      today: { amount: parseFloat(todayCompleted.total) || 0, count: parseInt(todayCompleted.count, 10) },
+      month: { amount: parseFloat(monthCompleted.total) || 0, count: parseInt(monthCompleted.count, 10) },
+    },
+    fees: {
+      total: parseFloat(totalFees.total) || 0,
+      today: parseFloat(todayFees.total) || 0,
+      month: parseFloat(monthFees.total) || 0,
+    },
+    avg_amount: parseFloat(avgAmount.avg) || 0,
+    status_counts: statusCounts.reduce((acc, c) => { acc[c.status] = parseInt(c.count, 10); return acc; }, {}),
+    top_users: topUsers.map(u => ({
+      wallet: u.wallet_address,
+      total: parseFloat(u.total) || 0,
+      count: parseInt(u.count, 10),
+    })),
+  });
+});
+
 // GET /api/admin/economy — get all economy configs
 router.get('/economy', async (req, res) => {
   const configs = await EconomyConfig.getAll();
