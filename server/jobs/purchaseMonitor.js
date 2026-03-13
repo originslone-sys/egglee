@@ -157,13 +157,18 @@ async function releasePurchase(purchase) {
         dies_at: diesAt,
       });
     } else if (purchase.purchase_type === 'eggs') {
+      // For purchased eggs, fertility is decided by weighted random across all species
+      const species = await trx('chicken_species').where({ is_active: true }).select('hatch_probability');
+      const totalProb = species.reduce((sum, s) => sum + parseFloat(s.hatch_probability), 0);
+      const avgFertility = species.length > 0 ? totalProb / species.length : 0.1;
+
       const qty = data.quantity;
       const rows = [];
       for (let i = 0; i < qty; i++) {
         rows.push({
           user_id: purchase.user_id,
           chicken_id: null,
-          is_fertile: false,
+          is_fertile: Math.random() < avgFertility,
           status: 'available',
           produced_at: new Date(),
         });

@@ -11,7 +11,7 @@ router.use(authenticate);
 router.get('/farm', async (req, res) => {
   const userId = req.user.id;
 
-  const [user, chickens, eggCount, chicks] = await Promise.all([
+  const [user, chickens, eggCount, chicks, chickFeedNeeded] = await Promise.all([
     db('users').where({ id: userId }).first('balance_usdt', 'feed_balance', 'auto_feed_enabled'),
     db('chickens')
       .where({ user_id: userId, status: 'alive' })
@@ -28,6 +28,7 @@ router.get('/farm', async (req, res) => {
       .where({ user_id: userId, status: 'growing' })
       .join('chicken_species', 'chicks.target_species_id', 'chicken_species.id')
       .select('chicks.id', 'chicken_species.name as target_species', 'chicks.hatched_at', 'chicks.feed_consumed'),
+    EconomyConfig.getNumber('chick_to_adult_feed'),
   ]);
 
   res.json({
@@ -37,6 +38,7 @@ router.get('/farm', async (req, res) => {
     chickens,
     eggs_available: parseInt(eggCount.count, 10),
     chicks,
+    chick_feed_needed: chickFeedNeeded,
   });
 });
 
