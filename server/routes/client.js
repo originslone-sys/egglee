@@ -78,6 +78,52 @@ router.get('/feed-price', async (req, res) => {
   res.json({ feed_unit_price: feedPrice });
 });
 
+// GET /api/client/egg-price — get current egg purchase price
+router.get('/egg-price', async (req, res) => {
+  const eggPrice = await EconomyConfig.getNumber('egg_purchase_price');
+  res.json({ egg_purchase_price: eggPrice });
+});
+
+// POST /api/client/buy-eggs — submit tx_hash after MetaMask payment for eggs
+router.post('/buy-eggs', async (req, res) => {
+  const userId = req.user.id;
+  const { quantity, tx_hash } = req.body;
+
+  const qty = parseInt(quantity, 10);
+  if (!qty || qty <= 0) {
+    return res.status(400).json({ error: 'Valid quantity required' });
+  }
+  if (!tx_hash || typeof tx_hash !== 'string' || !tx_hash.startsWith('0x')) {
+    return res.status(400).json({ error: 'Valid tx_hash required' });
+  }
+
+  const eggPrice = await EconomyConfig.getNumber('egg_purchase_price');
+  if (!eggPrice || eggPrice <= 0) {
+    return res.status(500).json({ error: 'Egg price not configured' });
+  }
+  const cost = parseFloat((qty * eggPrice).toFixed(2));
+
+  // Check tx_hash not already used
+  const existing = await db('pending_purchases').where({ tx_hash }).first();
+  if (existing) {
+    return res.status(409).json({ error: 'Transaction already submitted' });
+  }
+
+  const user = await db('users').where({ id: userId }).first('wallet_address');
+
+  await db('pending_purchases').insert({
+    user_id: userId,
+    tx_hash,
+    purchase_type: 'eggs',
+    purchase_data: JSON.stringify({ quantity: qty }),
+    expected_amount: cost,
+    from_address: user.wallet_address,
+    status: 'pending',
+  });
+
+  res.json({ status: 'pending', tx_hash, cost, quantity: qty, message: 'Eggs will be credited after blockchain verification.' });
+});
+
 // POST /api/client/buy-feed — submit tx_hash after MetaMask payment
 router.post('/buy-feed', async (req, res) => {
   const userId = req.user.id;
