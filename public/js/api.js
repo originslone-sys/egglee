@@ -124,7 +124,7 @@ const API = (() => {
     species:       () => request('GET', '/client/species'),
     ledger:        (page) => request('GET', `/client/ledger?page=${page || 1}`),
     purchases:     (page) => request('GET', `/client/purchases?page=${page || 1}`),
-    fertileEggs:   () => request('GET', '/client/fertile-eggs'),
+    eggsForIncubation: () => request('GET', '/client/eggs-for-incubation'),
     incubateEgg:   (eggId) => request('POST', '/client/incubate-egg', { egg_id: eggId }),
     feedChick:     (chickId, amount) => request('POST', '/client/feed-chick', { chick_id: chickId, amount }),
     deadChickens:  (page) => request('GET', `/client/dead-chickens?page=${page || 1}`),

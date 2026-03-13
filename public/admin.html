@@ -262,12 +262,8 @@
                 <input id="sp-lifespan" class="input" type="number" min="1" required style="width:100%" />
               </div>
               <div>
-                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Fertilidade (0-1)</label>
-                <input id="sp-hatch" class="input" type="number" step="0.0001" min="0" max="1" value="0" style="width:100%" title="Chance do ovo ser fértil" />
-              </div>
-              <div>
                 <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Peso Espécie (0-1)</label>
-                <input id="sp-weight" class="input" type="number" step="0.0001" min="0" max="1" value="0" style="width:100%" title="Peso relativo para seleção de espécie na eclosão" />
+                <input id="sp-weight" class="input" type="number" step="0.0001" min="0" max="1" value="0" style="width:100%" title="Peso relativo para seleção de espécie quando pintinho vira adulto" />
               </div>
               <div style="grid-column:1/-1;display:flex;gap:.5rem;justify-content:flex-end;margin-top:.3rem">
                 <button type="button" id="species-cancel-btn" class="btn btn-ghost btn-sm">Cancelar</button>
@@ -287,14 +283,13 @@
                   <th>Ovos/dia</th>
                   <th>Ração/dia</th>
                   <th>Vida</th>
-                  <th>Fertilidade</th>
                   <th>Peso Espécie</th>
                   <th>Status</th>
                   <th>Ações</th>
                 </tr>
               </thead>
               <tbody id="species-body">
-                <tr><td colspan="10" class="text-soft">Carregando espécies...</td></tr>
+                <tr><td colspan="9" class="text-soft">Carregando espécies...</td></tr>
               </tbody>
             </table>
           </div>

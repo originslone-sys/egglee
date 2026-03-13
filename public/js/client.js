@@ -241,7 +241,7 @@
       loadSpecies();
       loadLedger();
       loadPurchases();
-      loadFertileEggs();
+      loadEggsForIncubation();
       loadChickFeedSelect();
       loadDeadChickens();
     } catch (e) {
@@ -420,7 +420,7 @@
   });
 
   // ── Incubation & Chick Feeding ─────────────────
-  const fertileEggSelect = $('fertile-egg-select');
+  const eggSelect = $('fertile-egg-select');
   const incubateBtn = $('incubate-btn');
   const incubatingList = $('incubating-list');
   const chickFeedSelect = $('chick-feed-select');
@@ -428,14 +428,14 @@
   const feedChickBtn = $('feed-chick-btn');
   const deadChickensBody = $('dead-chickens-body');
 
-  async function loadFertileEggs() {
-    if (!fertileEggSelect || !API.isLoggedIn()) return;
+  async function loadEggsForIncubation() {
+    if (!eggSelect || !API.isLoggedIn()) return;
     try {
-      const data = await API.client.fertileEggs();
-      if (data.fertile.length === 0) {
-        fertileEggSelect.innerHTML = '<option disabled>No fertile eggs</option>';
+      const data = await API.client.eggsForIncubation();
+      if (data.eggs.length === 0) {
+        eggSelect.innerHTML = '<option disabled>No eggs available</option>';
       } else {
-        fertileEggSelect.innerHTML = data.fertile.map(e =>
+        eggSelect.innerHTML = data.eggs.map(e =>
           `<option value="${e.id}">Egg #${e.id} — ${new Date(e.produced_at).toLocaleDateString()}</option>`
         ).join('');
       }
@@ -450,8 +450,8 @@
   }
 
   incubateBtn?.addEventListener('click', async () => {
-    const eggId = parseInt(fertileEggSelect?.value, 10);
-    if (!eggId) { toast('Select a fertile egg', true); return; }
+    const eggId = parseInt(eggSelect?.value, 10);
+    if (!eggId) { toast('Select an egg to incubate', true); return; }
     incubateBtn.disabled = true;
     try {
       const r = await API.client.incubateEgg(eggId);
