@@ -77,7 +77,7 @@ async function processUserFarm(userId, now) {
     const chickens = await trx('chickens')
       .where({ user_id: userId, status: 'alive' })
       .join('chicken_species', 'chickens.species_id', 'chicken_species.id')
-      .select('chickens.id', 'chicken_species.eggs_per_day', 'chicken_species.feed_per_day', 'chickens.starvation_started_at');
+      .select('chickens.id', 'chicken_species.eggs_per_day', 'chicken_species.feed_per_day', 'chicken_species.hatch_probability', 'chickens.starvation_started_at');
 
     if (chickens.length === 0) return;
 
@@ -108,7 +108,7 @@ async function processUserFarm(userId, now) {
         const eggsThisCycle = parseFloat(c.eggs_per_day) / cyclesPerDay;
         // Use probability: if random < eggsThisCycle, produce 1 egg
         if (Math.random() < eggsThisCycle) {
-          const isFertile = Math.random() < 0.1; // 10% chance of fertile egg
+          const isFertile = Math.random() < parseFloat(c.hatch_probability);
           eggsToInsert.push({
             user_id: userId,
             chicken_id: c.id,
@@ -133,14 +133,20 @@ async function processUserFarm(userId, now) {
 
 async function hatchEgg(egg, now) {
   await db.transaction(async (trx) => {
-    // Roll species based on probability
     const species = await trx('chicken_species').where({ is_active: true }).select('*');
+    if (species.length === 0) {
+      console.error(`[PRODUCTION] Cannot hatch egg #${egg.id}: no active species`);
+      return;
+    }
+
+    // Normalize probabilities so they sum to 1.0
+    const totalProb = species.reduce((sum, s) => sum + parseFloat(s.hatch_probability), 0);
     const roll = Math.random();
     let cumulative = 0;
-    let targetSpecies = species[0]; // fallback
+    let targetSpecies = species[0];
 
     for (const s of species) {
-      cumulative += parseFloat(s.hatch_probability);
+      cumulative += parseFloat(s.hatch_probability) / (totalProb || 1);
       if (roll <= cumulative) {
         targetSpecies = s;
         break;
@@ -161,6 +167,10 @@ async function hatchEgg(egg, now) {
 async function promoteChick(chick, now) {
   await db.transaction(async (trx) => {
     const species = await trx('chicken_species').where({ id: chick.target_species_id }).first();
+    if (!species) {
+      console.error(`[PRODUCTION] Cannot promote chick #${chick.id}: species #${chick.target_species_id} not found`);
+      return;
+    }
 
     const diesAt = new Date(now.getTime() + species.lifespan_days * 86400000);
 

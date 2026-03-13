@@ -163,7 +163,8 @@
           </div>`;
       } else if (entity.type === 'chick') {
         const c = entity.data;
-        const feedPct = Math.min(100, ((parseFloat(c.feed_consumed) / 2.0) * 100)).toFixed(0);
+        const chickTarget = (farmData && farmData.chick_feed_needed) || 2.0;
+        const feedPct = Math.min(100, ((parseFloat(c.feed_consumed) / chickTarget) * 100)).toFixed(0);
         entityDetails.innerHTML = `
           <div class="entity-details-grid">
             <div class="entity-detail"><span class="detail-label">Type</span><span class="detail-value">Growing Chick</span></div>
@@ -466,7 +467,7 @@
       chickFeedSelect.innerHTML = '<option disabled>No growing chicks</option>';
     } else {
       chickFeedSelect.innerHTML = farmData.chicks.map(c =>
-        `<option value="${c.id}">Chick #${c.id} → ${c.target_species} (fed: ${parseFloat(c.feed_consumed).toFixed(1)}/2.0)</option>`
+        `<option value="${c.id}">Chick #${c.id} → ${c.target_species} (fed: ${parseFloat(c.feed_consumed).toFixed(1)}/${(farmData.chick_feed_needed || 2.0).toFixed(1)})</option>`
       ).join('');
     }
   }
