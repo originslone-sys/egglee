@@ -285,7 +285,7 @@ router.get('/ledger', async (req, res) => {
   res.json({ page, limit, entries });
 });
 
-// POST /api/client/incubate-egg — start incubating a fertile egg
+// POST /api/client/incubate-egg — start incubating an egg
 router.post('/incubate-egg', async (req, res) => {
   const userId = req.user.id;
   const { egg_id } = req.body;
@@ -298,12 +298,12 @@ router.post('/incubate-egg', async (req, res) => {
 
   const result = await db.transaction(async (trx) => {
     const egg = await trx('eggs')
-      .where({ id: egg_id, user_id: userId, status: 'available', is_fertile: true })
+      .where({ id: egg_id, user_id: userId, status: 'available' })
       .forUpdate()
       .first();
 
     if (!egg) {
-      throw new Error('Fertile egg not found or not available');
+      throw new Error('Egg not found or not available');
     }
 
     // Consume feed for incubation
@@ -320,12 +320,12 @@ router.post('/incubate-egg', async (req, res) => {
   res.json(result);
 });
 
-// GET /api/client/fertile-eggs — list fertile eggs available for incubation
-router.get('/fertile-eggs', async (req, res) => {
+// GET /api/client/eggs-for-incubation — list eggs available for incubation
+router.get('/eggs-for-incubation', async (req, res) => {
   const userId = req.user.id;
 
   const eggs = await db('eggs')
-    .where({ user_id: userId, status: 'available', is_fertile: true })
+    .where({ user_id: userId, status: 'available' })
     .select('id', 'chicken_id', 'produced_at')
     .orderBy('produced_at', 'desc');
 
@@ -334,7 +334,7 @@ router.get('/fertile-eggs', async (req, res) => {
     .select('id', 'incubation_started_at')
     .orderBy('incubation_started_at', 'desc');
 
-  res.json({ fertile: eggs, incubating });
+  res.json({ eggs, incubating });
 });
 
 // POST /api/client/feed-chick — feed a growing chick

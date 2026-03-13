@@ -77,7 +77,7 @@ async function processUserFarm(userId, now) {
     const chickens = await trx('chickens')
       .where({ user_id: userId, status: 'alive' })
       .join('chicken_species', 'chickens.species_id', 'chicken_species.id')
-      .select('chickens.id', 'chicken_species.eggs_per_day', 'chicken_species.feed_per_day', 'chicken_species.hatch_probability', 'chickens.starvation_started_at');
+      .select('chickens.id', 'chicken_species.eggs_per_day', 'chicken_species.feed_per_day', 'chickens.starvation_started_at');
 
     if (chickens.length === 0) return;
 
@@ -102,17 +102,16 @@ async function processUserFarm(userId, now) {
         .whereNotNull('starvation_started_at')
         .update({ starvation_started_at: null });
 
-      // Produce eggs
+      // Produce eggs (all eggs are fertile by default)
       const eggsToInsert = [];
       for (const c of chickens) {
         const eggsThisCycle = parseFloat(c.eggs_per_day) / cyclesPerDay;
         // Use probability: if random < eggsThisCycle, produce 1 egg
         if (Math.random() < eggsThisCycle) {
-          const isFertile = Math.random() < parseFloat(c.hatch_probability);
           eggsToInsert.push({
             user_id: userId,
             chicken_id: c.id,
-            is_fertile: isFertile,
+            is_fertile: true,
             produced_at: now,
           });
         }
@@ -133,6 +132,16 @@ async function processUserFarm(userId, now) {
 
 async function hatchEgg(egg, now) {
   await db.transaction(async (trx) => {
+    // Check hatch success rate (global config)
+    const hatchSuccessRate = await EconomyConfig.getNumber('egg_hatch_success_rate') || 0.3;
+
+    if (Math.random() >= hatchSuccessRate) {
+      // Hatch failed
+      await trx('eggs').where({ id: egg.id }).update({ status: 'failed', hatched_at: now });
+      console.log(`[PRODUCTION] Egg #${egg.id} failed to hatch (rate: ${(hatchSuccessRate * 100).toFixed(0)}%)`);
+      return;
+    }
+
     const species = await trx('chicken_species').where({ is_active: true }).select('*');
     if (species.length === 0) {
       console.error(`[PRODUCTION] Cannot hatch egg #${egg.id}: no active species`);
