@@ -127,7 +127,8 @@
     farmStatus: $('farm-status'),
     collectBtn: $('collect-btn'),
     feedBtn: $('feed-btn'),
-    autoBtn: $('auto-feed-btn'),
+    buyEggBtn: $('buy-egg-btn'),
+    eggQty: $('egg-qty'),
     buyChickenBtn: $('buy-chicken-btn'),
     speciesSelect: $('species-select'),
     withdrawBtn: $('withdraw-btn'),
@@ -191,7 +192,6 @@
     if (el.eggs) el.eggs.textContent = String(farmData.eggs_available);
     if (el.feed) el.feed.textContent = `${farmData.feed_balance.toFixed(1)}`;
     if (el.wallet) el.wallet.textContent = `${farmData.balance_usdt.toFixed(2)}`;
-    if (el.autoBtn) el.autoBtn.textContent = farmData.auto_feed_enabled ? 'Disable' : 'Enable';
 
     // Status banner
     if (el.farmStatus) {
@@ -290,7 +290,7 @@
         purchasesBody.innerHTML = purchases.slice(0, 10).map(p => {
           const statusClass = p.status === 'confirmed' ? 'ok' : p.status === 'failed' ? 'danger' : 'warn';
           const txShort = p.tx_hash ? p.tx_hash.slice(0, 10) + '...' : '';
-          const typeLabel = p.purchase_type === 'feed' ? 'Ração' : 'Galinha';
+          const typeLabel = p.purchase_type === 'feed' ? 'Ração' : p.purchase_type === 'eggs' ? 'Ovos' : 'Galinha';
           return `<tr>
             <td>${new Date(p.created_at).toLocaleString()}</td>
             <td>${typeLabel}</td>
@@ -343,13 +343,35 @@
     }
   });
 
-  el.autoBtn?.addEventListener('click', async () => {
+  // Buy Eggs — pay directly via MetaMask
+  el.buyEggBtn?.addEventListener('click', async () => {
+    const qty = parseInt(el.eggQty?.value, 10);
+    if (!qty || qty <= 0) { toast('Enter a valid quantity', true); return; }
+
+    el.buyEggBtn.disabled = true;
+    el.buyEggBtn.textContent = 'Loading...';
     try {
-      const r = await API.client.toggleAutoFeed();
-      if (farmData) farmData.auto_feed_enabled = r.auto_feed_enabled;
-      renderFarm();
-      toast(`Auto feed ${r.auto_feed_enabled ? 'enabled' : 'disabled'}`);
-    } catch (e) { toast(e.message, true); }
+      const { egg_purchase_price } = await API.client.eggPrice();
+      const cost = parseFloat((qty * egg_purchase_price).toFixed(2));
+
+      el.buyEggBtn.textContent = `Pay ${cost} USDT...`;
+      const txHash = await API.sendPayment(cost);
+
+      el.buyEggBtn.textContent = 'Confirming...';
+      toast('Transaction sent! Eggs will be credited after blockchain confirmation.');
+
+      await API.client.buyEggs(qty, txHash);
+      loadFarm();
+    } catch (e) {
+      if (e.code === 4001) {
+        toast('Transaction cancelled.', true);
+      } else {
+        toast(e.message, true);
+      }
+    } finally {
+      el.buyEggBtn.disabled = false;
+      el.buyEggBtn.textContent = 'Buy';
+    }
   });
 
   // Buy Chicken — pay directly via MetaMask

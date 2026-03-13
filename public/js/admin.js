@@ -182,7 +182,8 @@
       if (!economyForm) return;
 
       const editableKeys = [
-        { key: 'egg_system_price', label: 'Egg System Price (USDT)', type: 'number' },
+        { key: 'egg_system_price', label: 'Egg Sell Price (USDT)', type: 'number' },
+        { key: 'egg_purchase_price', label: 'Egg Buy Price (USDT)', type: 'number' },
         { key: 'feed_unit_price', label: 'Feed Unit Price (USDT)', type: 'number' },
         { key: 'withdrawal_fee_rate', label: 'Withdrawal Fee Rate', type: 'number' },
         { key: 'withdrawal_min_amount', label: 'Min Withdrawal (USDT)', type: 'number' },

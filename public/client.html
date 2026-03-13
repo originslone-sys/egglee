@@ -74,10 +74,10 @@
           <div class="action-card">
             <div class="action-icon" style="background:var(--success-dim)">&#x1F95A;</div>
             <div class="action-body">
-              <h3>Collect & Sell Eggs</h3>
-              <p>Instantly collect all available eggs.</p>
+              <h3>Sell Eggs</h3>
+              <p>Sell all available eggs instantly.</p>
             </div>
-            <button id="collect-btn" class="btn btn-primary btn-sm">Collect</button>
+            <button id="collect-btn" class="btn btn-primary btn-sm">Sell Eggs</button>
           </div>
 
           <div class="action-card">
@@ -90,12 +90,15 @@
           </div>
 
           <div class="action-card">
-            <div class="action-icon" style="background:var(--accent-dim)">&#x2699;</div>
+            <div class="action-icon" style="background:var(--accent-dim)">&#x1F95A;</div>
             <div class="action-body">
-              <h3>Auto Feed</h3>
-              <p>Automatic feed from your stock.</p>
+              <h3>Buy Eggs</h3>
+              <p>Pay directly via MetaMask (USDT BEP20).</p>
             </div>
-            <button id="auto-feed-btn" class="btn btn-ghost btn-sm">Enable</button>
+            <div style="display:flex;gap:.4rem;align-items:center">
+              <input id="egg-qty" type="number" min="1" value="1" class="input" style="width:65px;font-size:.78rem" />
+              <button id="buy-egg-btn" class="btn btn-primary btn-sm">Buy</button>
+            </div>
           </div>
 
           <div class="action-card">

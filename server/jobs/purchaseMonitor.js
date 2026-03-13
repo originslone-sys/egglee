@@ -156,6 +156,19 @@ async function releasePurchase(purchase) {
         born_at: now,
         dies_at: diesAt,
       });
+    } else if (purchase.purchase_type === 'eggs') {
+      const qty = data.quantity;
+      const rows = [];
+      for (let i = 0; i < qty; i++) {
+        rows.push({
+          user_id: purchase.user_id,
+          chicken_id: null,
+          is_fertile: false,
+          status: 'available',
+          produced_at: new Date(),
+        });
+      }
+      await trx('eggs').insert(rows);
     }
 
     await trx('pending_purchases').where({ id: purchase.id }).update({

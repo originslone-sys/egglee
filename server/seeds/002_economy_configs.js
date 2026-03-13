@@ -2,7 +2,8 @@ exports.seed = async function (knex) {
   await knex('economy_configs').del();
 
   await knex('economy_configs').insert([
-    { key: 'egg_system_price', value: '0.10', description: 'Price the system pays per egg (USDT)' },
+    { key: 'egg_system_price', value: '0.10', description: 'Price the system pays per egg when selling (USDT)' },
+    { key: 'egg_purchase_price', value: '0.15', description: 'Price per egg when buying via MetaMask (USDT)' },
     { key: 'feed_unit_price', value: '0.12', description: 'Price per feed unit (USDT)' },
     { key: 'withdrawal_fee_rate', value: '0.03', description: 'Withdrawal fee rate (3%)' },
     { key: 'withdrawal_min_amount', value: '0', description: 'Minimum withdrawal amount (USDT)' },
