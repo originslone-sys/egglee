@@ -7,7 +7,7 @@ const EconomyConfig = require('../models/EconomyConfig');
  */
 async function runProductionCycle() {
   const now = new Date();
-  const starvationDeathHours = await EconomyConfig.getNumber('starvation_death_hours');
+  const starvationDeathHours = await EconomyConfig.getNumber('starvation_death_hours') || 72;
 
   // 1) Kill chickens past their lifespan
   await db('chickens')
@@ -33,7 +33,7 @@ async function runProductionCycle() {
   }
 
   // 4) Hatch eggs that have been incubating long enough
-  const incubationHours = await EconomyConfig.getNumber('egg_incubation_hours');
+  const incubationHours = await EconomyConfig.getNumber('egg_incubation_hours') || 72;
   const hatchDeadline = new Date(now.getTime() - incubationHours * 3600000);
 
   const readyEggs = await db('eggs')
@@ -46,8 +46,8 @@ async function runProductionCycle() {
   }
 
   // 5) Grow chicks that have reached maturity
-  const chickGrowthDays = await EconomyConfig.getNumber('chick_growth_days');
-  const chickFeedNeeded = await EconomyConfig.getNumber('chick_to_adult_feed');
+  const chickGrowthDays = await EconomyConfig.getNumber('chick_growth_days') || 12;
+  const chickFeedNeeded = await EconomyConfig.getNumber('chick_to_adult_feed') || 2.0;
   const growthDeadline = new Date(now.getTime() - chickGrowthDays * 86400000);
 
   const matureChicks = await db('chicks')
