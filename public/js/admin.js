@@ -20,6 +20,10 @@
     return addr.slice(0, 6) + '...' + addr.slice(-4);
   }
 
+  function fmtUSDT(v) { return (parseFloat(v) || 0).toFixed(2) + ' USDT'; }
+
+  const purchaseTypeLabels = { chicken: 'Galinha', feed: 'Ração', eggs: 'Ovos' };
+
   // ── Auth ────────────────────────────────────────
   const logoutBtn = $('logout-btn');
   const adminUserLabel = $('admin-user-label');
@@ -144,13 +148,49 @@
   const depPending = $('dep-pending');
   const depVolume = $('dep-volume');
   const depStatusFilter = $('dep-status-filter');
+  const wdStatusFilter = $('wd-status-filter');
 
   async function loadAdmin() {
     if (!API.isLoggedIn() || !API.isAdmin()) return;
-    await Promise.all([loadAlerts(), loadEconomy(), loadWithdrawals(), loadUsers(), loadAdminDeposits(), loadSpecies()]);
+    await Promise.all([
+      loadDashboard(), loadAlerts(), loadEconomy(),
+      loadWithdrawals(), loadWithdrawalStats(),
+      loadUsers(), loadAdminDeposits(), loadPurchaseStats(), loadSpecies(),
+    ]);
   }
 
   depStatusFilter?.addEventListener('change', () => loadAdminDeposits());
+  wdStatusFilter?.addEventListener('change', () => loadWithdrawals());
+
+  // ── Dashboard ───────────────────────────────────
+  async function loadDashboard() {
+    try {
+      const d = await API.admin.getDashboard();
+
+      // Purchases
+      const el = (id, val) => { const e = $(id); if (e) e.textContent = val; };
+      el('dash-purchases-total', fmtUSDT(d.purchases.total));
+      el('dash-purchases-today', fmtUSDT(d.purchases.today));
+      el('dash-purchases-month', fmtUSDT(d.purchases.month));
+
+      // Withdrawals
+      el('dash-withdrawals-total', fmtUSDT(d.withdrawals.total));
+      el('dash-withdrawals-today', fmtUSDT(d.withdrawals.today));
+      el('dash-withdrawals-month', fmtUSDT(d.withdrawals.month));
+
+      // Deposits
+      el('dash-deposits-total', fmtUSDT(d.deposits.total));
+      el('dash-deposits-today', fmtUSDT(d.deposits.today));
+      el('dash-deposits-month', fmtUSDT(d.deposits.month));
+
+      // Counters
+      el('dash-users', String(d.users));
+      el('dash-chickens', String(d.active_chickens));
+      el('dash-eggs', String(d.total_eggs));
+      el('dash-pending-wd', String(d.withdrawals.pending));
+      el('dash-purchases-count', String(d.purchases.count));
+    } catch (_) { /* ignore */ }
+  }
 
   // ── Alerts ─────────────────────────────────────
   async function loadAlerts() {
@@ -166,10 +206,10 @@
       if (alertDetails) {
         let html = '';
         if (data.p1.starvation_risk > 0)
-          html += `<div class="alert-item danger">Starvation risk: ${data.p1.starvation_risk} chickens at risk</div>`;
+          html += `<div class="alert-item danger">Risco de fome: ${data.p1.starvation_risk} galinhas em risco</div>`;
         if (data.p1.withdrawal_sla_breach > 0)
-          html += `<div class="alert-item danger">SLA breach: ${data.p1.withdrawal_sla_breach} withdrawals overdue</div>`;
-        if (!html) html = '<p class="text-soft">No active P1 alerts.</p>';
+          html += `<div class="alert-item danger">SLA violado: ${data.p1.withdrawal_sla_breach} saques atrasados</div>`;
+        if (!html) html = '<p class="text-soft">Nenhum alerta P1 ativo.</p>';
         alertDetails.innerHTML = html;
       }
     } catch (_) { /* ignore */ }
@@ -237,86 +277,144 @@
     } catch (e) { toast(e.message, true); }
   }
 
+  // ── Withdrawal Stats ────────────────────────────
+  async function loadWithdrawalStats() {
+    try {
+      const s = await API.admin.getWithdrawalStats();
+      const el = (id, val) => { const e = $(id); if (e) e.textContent = val; };
+
+      el('wd-total-amount', fmtUSDT(s.completed.total.amount));
+      el('wd-total-count', `${s.completed.total.count} saques`);
+      el('wd-today-amount', fmtUSDT(s.completed.today.amount));
+      el('wd-today-count', `${s.completed.today.count} saques`);
+      el('wd-month-amount', fmtUSDT(s.completed.month.amount));
+      el('wd-month-count', `${s.completed.month.count} saques`);
+      el('wd-fees-total', fmtUSDT(s.fees.total));
+      el('wd-fees-month', `Mês: ${fmtUSDT(s.fees.month)}`);
+
+      // Status counters
+      el('wd-count-pending', String(s.status_counts.pending || 0));
+      el('wd-count-processing', String(s.status_counts.processing || 0));
+      el('wd-count-completed', String(s.status_counts.completed || 0));
+      el('wd-count-rejected', String(s.status_counts.rejected || 0));
+
+      // Top users
+      const topBody = $('wd-top-users-body');
+      if (topBody) {
+        if (s.top_users.length === 0) {
+          topBody.innerHTML = '<tr><td colspan="3" class="text-soft">Nenhum saque completado.</td></tr>';
+        } else {
+          topBody.innerHTML = s.top_users.map(u => `
+            <tr>
+              <td title="${u.wallet}">${shortWallet(u.wallet)}</td>
+              <td>${fmtUSDT(u.total)}</td>
+              <td>${u.count}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    } catch (_) { /* ignore */ }
+  }
+
   // ── Withdrawals ────────────────────────────────
   async function loadWithdrawals() {
     if (!withdrawalBody) return;
     try {
-      const data = await API.admin.getWithdrawals('pending');
+      const status = wdStatusFilter?.value || 'pending';
+      const data = await API.admin.getWithdrawals(status);
+
       if (data.withdrawals.length === 0) {
-        withdrawalBody.innerHTML = '<tr><td colspan="5" class="text-soft">No pending withdrawals.</td></tr>';
+        withdrawalBody.innerHTML = `<tr><td colspan="8" class="text-soft">Nenhum saque ${status}.</td></tr>`;
       } else {
-        withdrawalBody.innerHTML = data.withdrawals.map(w => `
+        withdrawalBody.innerHTML = data.withdrawals.map(w => {
+          const statusClass = w.status === 'completed' ? 'ok' : w.status === 'rejected' ? 'danger' : w.status === 'processing' ? 'info' : 'warn';
+          const showActions = w.status === 'pending' || w.status === 'processing';
+          return `
           <tr>
             <td>#${w.id}</td>
-            <td title="${w.wallet_address}">${shortWallet(w.wallet_address)}</td>
-            <td>${parseFloat(w.net_amount).toFixed(2)} USDT</td>
+            <td title="${w.wallet_address || w.user_wallet || ''}">${shortWallet(w.wallet_address || w.user_wallet)}</td>
+            <td>${fmtUSDT(w.amount)}</td>
+            <td>${fmtUSDT(w.fee_amount)}</td>
+            <td>${fmtUSDT(w.net_amount)}</td>
+            <td><span class="status-pill ${statusClass}">${w.status}</span></td>
             <td>${new Date(w.created_at).toLocaleString()}</td>
             <td>
-              <button class="btn btn-primary btn-sm wd-process" data-id="${w.id}">Fazer pagamento</button>
-              <button class="btn btn-danger btn-sm wd-reject" data-id="${w.id}">Reject</button>
+              ${w.status === 'pending' ? `<button class="btn btn-primary btn-sm wd-process" data-id="${w.id}">Pagar</button>
+              <button class="btn btn-danger btn-sm wd-reject" data-id="${w.id}">Rejeitar</button>` : ''}
+              ${w.status === 'processing' ? `<button class="btn btn-primary btn-sm wd-complete" data-id="${w.id}">Completar</button>
+              <button class="btn btn-danger btn-sm wd-reject" data-id="${w.id}">Rejeitar</button>` : ''}
+              ${w.tx_hash ? `<span title="${w.tx_hash}" style="font-size:.75rem;color:var(--text-soft)">${w.tx_hash.slice(0, 10)}...</span>` : ''}
             </td>
-          </tr>
-        `).join('');
+          </tr>`;
+        }).join('');
 
+        // Process buttons
         withdrawalBody.querySelectorAll('.wd-process').forEach(btn => {
           btn.addEventListener('click', async () => {
             try {
               const r = await API.admin.processWithdrawal(btn.dataset.id);
-              toast(`Withdrawal #${r.withdrawal_id} — pay ${parseFloat(r.net_amount).toFixed(2)} USDT to ${shortWallet(r.pay_to)}`);
+              toast(`Saque #${r.withdrawal_id} — pagar ${fmtUSDT(r.net_amount)} para ${shortWallet(r.pay_to)}`);
 
-              // Try MetaMask BEP20 USDT transfer
               let txHash = null;
               if (typeof window.ethereum !== 'undefined') {
                 try {
                   const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                   const from = accounts[0];
-
-                  // USDT BEP20 contract on BSC
                   const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
                   const amount = parseFloat(r.net_amount);
                   const amountWei = '0x' + BigInt(Math.round(amount * 1e18)).toString(16);
-
-                  // ERC20 transfer(address,uint256) function selector
                   const transferData = '0xa9059cbb'
                     + r.pay_to.replace('0x', '').toLowerCase().padStart(64, '0')
                     + amountWei.replace('0x', '').padStart(64, '0');
-
                   const tx = await window.ethereum.request({
                     method: 'eth_sendTransaction',
-                    params: [{
-                      from,
-                      to: USDT_CONTRACT,
-                      data: transferData,
-                      chainId: '0x38', // BSC mainnet
-                    }],
+                    params: [{ from, to: USDT_CONTRACT, data: transferData, chainId: '0x38' }],
                   });
                   txHash = tx;
-                  toast(`TX sent: ${shortWallet(tx)}`);
+                  toast(`TX enviada: ${shortWallet(tx)}`);
                 } catch (mmErr) {
-                  toast('MetaMask cancelled or failed — enter TX hash manually', true);
+                  toast('MetaMask cancelou — insira o TX hash manualmente', true);
                 }
               }
 
               if (!txHash) {
-                txHash = prompt('Enter TX hash manually (after sending BEP20 USDT):');
+                txHash = prompt('Insira o TX hash manualmente (após enviar BEP20 USDT):');
               }
 
               if (txHash) {
                 await API.admin.completeWithdrawal(btn.dataset.id, txHash);
-                toast(`Withdrawal #${r.withdrawal_id} completed`);
+                toast(`Saque #${r.withdrawal_id} completado`);
               }
               loadWithdrawals();
+              loadWithdrawalStats();
             } catch (e) { toast(e.message, true); }
           });
         });
 
+        // Complete buttons (for processing status)
+        withdrawalBody.querySelectorAll('.wd-complete').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const txHash = prompt('Insira o TX hash da transação:');
+            if (txHash) {
+              try {
+                await API.admin.completeWithdrawal(btn.dataset.id, txHash);
+                toast(`Saque #${btn.dataset.id} completado`);
+                loadWithdrawals();
+                loadWithdrawalStats();
+              } catch (e) { toast(e.message, true); }
+            }
+          });
+        });
+
+        // Reject buttons
         withdrawalBody.querySelectorAll('.wd-reject').forEach(btn => {
           btn.addEventListener('click', async () => {
-            const note = prompt('Rejection reason (optional):');
+            const note = prompt('Motivo da rejeição (opcional):');
             try {
               await API.admin.rejectWithdrawal(btn.dataset.id, note || '');
-              toast(`Withdrawal #${btn.dataset.id} rejected and refunded`);
+              toast(`Saque #${btn.dataset.id} rejeitado e reembolsado`);
               loadWithdrawals();
+              loadWithdrawalStats();
             } catch (e) { toast(e.message, true); }
           });
         });
@@ -369,10 +467,10 @@
 
       if (depConfirmed) depConfirmed.textContent = String(data.counts.confirmed || 0);
       if (depPending) depPending.textContent = String(data.counts.pending || 0);
-      if (depVolume) depVolume.textContent = `${data.total_confirmed_volume.toFixed(2)} USDT`;
+      if (depVolume) depVolume.textContent = fmtUSDT(data.total_confirmed_volume);
 
       if (data.deposits.length === 0) {
-        depositBody.innerHTML = '<tr><td colspan="7" class="text-soft">No deposits found.</td></tr>';
+        depositBody.innerHTML = '<tr><td colspan="7" class="text-soft">Nenhum depósito encontrado.</td></tr>';
       } else {
         depositBody.innerHTML = data.deposits.map(d => {
           const statusClass = d.status === 'confirmed' ? 'ok' : d.status === 'failed' ? 'danger' : 'warn';
@@ -380,7 +478,7 @@
           return `<tr>
             <td>#${d.id}</td>
             <td title="${d.user_wallet || ''}">${shortWallet(d.user_wallet)}</td>
-            <td>${parseFloat(d.amount).toFixed(2)} USDT</td>
+            <td>${fmtUSDT(d.amount)}</td>
             <td><span class="status-pill ${statusClass}">${d.status}</span></td>
             <td>${d.confirmations}</td>
             <td title="${d.tx_hash || ''}">${txShort}</td>
@@ -389,6 +487,66 @@
         }).join('');
       }
     } catch (e) { toast(e.message, true); }
+  }
+
+  // ── Purchase Stats ─────────────────────────────
+  async function loadPurchaseStats() {
+    try {
+      const s = await API.admin.getPurchaseStats();
+      const el = (id, val) => { const e = $(id); if (e) e.textContent = val; };
+
+      // Totals
+      el('purch-total', fmtUSDT(s.totals.all.total));
+      el('purch-total-count', `${s.totals.all.count} compras`);
+      el('purch-today', fmtUSDT(s.totals.today.total));
+      el('purch-today-count', `${s.totals.today.count} compras`);
+      el('purch-month', fmtUSDT(s.totals.month.total));
+      el('purch-month-count', `${s.totals.month.count} compras`);
+
+      // By type
+      const bt = s.by_type;
+      el('purch-chicken-count', String(bt.chicken?.count || 0));
+      el('purch-chicken-total', fmtUSDT(bt.chicken?.total));
+      el('purch-feed-count', String(bt.feed?.count || 0));
+      el('purch-feed-total', fmtUSDT(bt.feed?.total));
+      el('purch-eggs-count', String(bt.eggs?.count || 0));
+      el('purch-eggs-total', fmtUSDT(bt.eggs?.total));
+
+      // Top species
+      const topBody = $('top-species-body');
+      if (topBody) {
+        if (s.top_species.length === 0) {
+          topBody.innerHTML = '<tr><td colspan="4" class="text-soft">Nenhuma galinha vendida ainda.</td></tr>';
+        } else {
+          topBody.innerHTML = s.top_species.map((sp, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td><strong>${sp.species_name}</strong></td>
+              <td>${sp.count}</td>
+              <td>${fmtUSDT(sp.total)}</td>
+            </tr>
+          `).join('');
+        }
+      }
+
+      // Recent purchases
+      const purchBody = $('purchases-body');
+      if (purchBody) {
+        if (s.recent.length === 0) {
+          purchBody.innerHTML = '<tr><td colspan="5" class="text-soft">Nenhuma compra registrada.</td></tr>';
+        } else {
+          purchBody.innerHTML = s.recent.map(p => `
+            <tr>
+              <td>#${p.id}</td>
+              <td title="${p.user_wallet || ''}">${shortWallet(p.user_wallet)}</td>
+              <td><span class="status-pill info">${purchaseTypeLabels[p.purchase_type] || p.purchase_type}</span></td>
+              <td>${fmtUSDT(p.expected_amount)}</td>
+              <td>${new Date(p.confirmed_at || p.created_at).toLocaleString()}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    } catch (_) { /* ignore */ }
   }
 
   // ── Species (Emissor de Galinhas) ─────────────

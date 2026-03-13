@@ -28,7 +28,11 @@
       <nav class="sidebar-nav">
         <div class="sidebar-section">
           <div class="sidebar-section-label">Overview</div>
-          <button class="sidebar-link active" data-section="alerts">
+          <button class="sidebar-link active" data-section="dashboard">
+            <span class="link-icon">&#x1F4CA;</span>
+            <span class="link-text">Dashboard</span>
+          </button>
+          <button class="sidebar-link" data-section="alerts">
             <span class="link-icon">&#x26A0;</span>
             <span class="link-text">Alerts</span>
             <span class="link-badge" id="p1-badge" style="display:none">0</span>
@@ -91,7 +95,7 @@
       <header class="admin-topbar">
         <div style="display:flex;align-items:center;gap:.8rem">
           <button class="sidebar-toggle" id="sidebar-toggle">&#9776;</button>
-          <h1 id="page-title">Alerts</h1>
+          <h1 id="page-title">Dashboard</h1>
         </div>
         <div class="topbar-actions">
           <span id="admin-user-label" class="status-pill ok" style="display:none">Admin</span>
@@ -132,8 +136,121 @@
 
       <div id="admin-content-wrap" class="admin-content" style="display:none">
 
+        <!-- ── Dashboard Section ──────────────── -->
+        <div id="section-dashboard" class="admin-section active">
+          <div class="section-header">
+            <h2>Dashboard</h2>
+          </div>
+
+          <!-- Summary Cards Row -->
+          <div class="dashboard-grid">
+            <div class="dash-card">
+              <div class="dash-card-icon purchases">&#x1F6D2;</div>
+              <div class="dash-card-body">
+                <p class="dash-card-label">Compras — Total Geral</p>
+                <p class="dash-card-value" id="dash-purchases-total">--</p>
+              </div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-icon purchases">&#x1F4C5;</div>
+              <div class="dash-card-body">
+                <p class="dash-card-label">Compras — Hoje</p>
+                <p class="dash-card-value" id="dash-purchases-today">--</p>
+              </div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-icon purchases">&#x1F5D3;</div>
+              <div class="dash-card-body">
+                <p class="dash-card-label">Compras — Mês</p>
+                <p class="dash-card-value" id="dash-purchases-month">--</p>
+              </div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-icon withdrawals">&#x1F4B8;</div>
+              <div class="dash-card-body">
+                <p class="dash-card-label">Saques — Total Geral</p>
+                <p class="dash-card-value" id="dash-withdrawals-total">--</p>
+              </div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-icon withdrawals">&#x1F4C5;</div>
+              <div class="dash-card-body">
+                <p class="dash-card-label">Saques — Hoje</p>
+                <p class="dash-card-value" id="dash-withdrawals-today">--</p>
+              </div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-icon withdrawals">&#x1F5D3;</div>
+              <div class="dash-card-body">
+                <p class="dash-card-label">Saques — Mês</p>
+                <p class="dash-card-value" id="dash-withdrawals-month">--</p>
+              </div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-icon deposits">&#x1F4B0;</div>
+              <div class="dash-card-body">
+                <p class="dash-card-label">Depósitos — Total Geral</p>
+                <p class="dash-card-value" id="dash-deposits-total">--</p>
+              </div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-icon deposits">&#x1F4C5;</div>
+              <div class="dash-card-body">
+                <p class="dash-card-label">Depósitos — Hoje</p>
+                <p class="dash-card-value" id="dash-deposits-today">--</p>
+              </div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-icon deposits">&#x1F5D3;</div>
+              <div class="dash-card-body">
+                <p class="dash-card-label">Depósitos — Mês</p>
+                <p class="dash-card-value" id="dash-deposits-month">--</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick counters -->
+          <div class="dashboard-counters">
+            <div class="counter-card">
+              <span class="counter-icon">&#x1F465;</span>
+              <div>
+                <p class="counter-value" id="dash-users">--</p>
+                <p class="counter-label">Usuários</p>
+              </div>
+            </div>
+            <div class="counter-card">
+              <span class="counter-icon">&#x1F414;</span>
+              <div>
+                <p class="counter-value" id="dash-chickens">--</p>
+                <p class="counter-label">Galinhas Vivas</p>
+              </div>
+            </div>
+            <div class="counter-card">
+              <span class="counter-icon">&#x1F95A;</span>
+              <div>
+                <p class="counter-value" id="dash-eggs">--</p>
+                <p class="counter-label">Ovos Ativos</p>
+              </div>
+            </div>
+            <div class="counter-card">
+              <span class="counter-icon">&#x23F3;</span>
+              <div>
+                <p class="counter-value" id="dash-pending-wd">--</p>
+                <p class="counter-label">Saques Pendentes</p>
+              </div>
+            </div>
+            <div class="counter-card">
+              <span class="counter-icon">&#x1F6D2;</span>
+              <div>
+                <p class="counter-value" id="dash-purchases-count">--</p>
+                <p class="counter-label">Total Compras</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── Alerts Section ──────────────────── -->
-        <div id="section-alerts" class="admin-section active">
+        <div id="section-alerts" class="admin-section">
           <div class="section-header">
             <h2>Operational Alerts</h2>
           </div>
@@ -175,58 +292,204 @@
         <!-- ── Withdrawals Section ─────────────── -->
         <div id="section-withdrawals" class="admin-section">
           <div class="section-header">
-            <h2>Withdrawal Queue</h2>
-          </div>
-          <div class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr><th>ID</th><th>Wallet</th><th>Net Amount</th><th>Requested</th><th>Actions</th></tr>
-              </thead>
-              <tbody id="withdrawal-body">
-                <tr><td colspan="5" class="text-soft">Connect as admin to view queue.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- ── Deposits Section ────────────────── -->
-        <div id="section-deposits" class="admin-section">
-          <div class="section-header">
-            <h2>BEP20 USDT Deposits</h2>
+            <h2>Saques</h2>
             <div class="section-actions">
-              <select id="dep-status-filter" class="input">
-                <option value="all">All Deposits</option>
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="failed">Failed</option>
+              <select id="wd-status-filter" class="input">
+                <option value="pending">Pendentes</option>
+                <option value="processing">Em Processamento</option>
+                <option value="completed">Completados</option>
+                <option value="rejected">Rejeitados</option>
               </select>
             </div>
           </div>
 
-          <div class="deposit-summary">
-            <div class="card">
-              <p class="metric-label">Confirmed</p>
+          <!-- Withdrawal Stats Cards -->
+          <div class="stats-grid stats-grid-4">
+            <div class="card stat-card">
+              <p class="metric-label">Total Pago (Geral)</p>
+              <p class="metric" id="wd-total-amount">--</p>
+              <p class="metric-sub" id="wd-total-count">-- saques</p>
+            </div>
+            <div class="card stat-card">
+              <p class="metric-label">Pago Hoje</p>
+              <p class="metric" id="wd-today-amount">--</p>
+              <p class="metric-sub" id="wd-today-count">-- saques</p>
+            </div>
+            <div class="card stat-card">
+              <p class="metric-label">Pago no Mês</p>
+              <p class="metric" id="wd-month-amount">--</p>
+              <p class="metric-sub" id="wd-month-count">-- saques</p>
+            </div>
+            <div class="card stat-card">
+              <p class="metric-label">Taxas Arrecadadas</p>
+              <p class="metric" id="wd-fees-total">--</p>
+              <p class="metric-sub" id="wd-fees-month">Mês: --</p>
+            </div>
+          </div>
+
+          <!-- Status Counters -->
+          <div class="stats-grid stats-grid-4" style="margin-bottom:1rem">
+            <div class="card stat-card mini">
+              <p class="metric-label">Pendentes</p>
+              <p class="metric" id="wd-count-pending">0</p>
+            </div>
+            <div class="card stat-card mini">
+              <p class="metric-label">Processando</p>
+              <p class="metric" id="wd-count-processing">0</p>
+            </div>
+            <div class="card stat-card mini">
+              <p class="metric-label">Completados</p>
+              <p class="metric" id="wd-count-completed">0</p>
+            </div>
+            <div class="card stat-card mini">
+              <p class="metric-label">Rejeitados</p>
+              <p class="metric" id="wd-count-rejected">0</p>
+            </div>
+          </div>
+
+          <!-- Top Users -->
+          <div class="card" id="wd-top-users-card" style="margin-bottom:1.5rem">
+            <h3 style="margin-bottom:.8rem">Top Sacadores</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th>Wallet</th><th>Total Sacado</th><th>Qtd Saques</th></tr>
+                </thead>
+                <tbody id="wd-top-users-body">
+                  <tr><td colspan="3" class="text-soft">Carregando...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Withdrawal Queue Table -->
+          <div class="card">
+            <h3 style="margin-bottom:.8rem">Fila de Saques</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th>ID</th><th>Wallet</th><th>Valor Bruto</th><th>Taxa</th><th>Valor Líq.</th><th>Status</th><th>Data</th><th>Ações</th></tr>
+                </thead>
+                <tbody id="withdrawal-body">
+                  <tr><td colspan="8" class="text-soft">Connect as admin to view queue.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Deposits / Compras Section ────────── -->
+        <div id="section-deposits" class="admin-section">
+          <div class="section-header">
+            <h2>Depósitos & Compras</h2>
+            <div class="section-actions">
+              <select id="dep-status-filter" class="input">
+                <option value="all">Todos Depósitos</option>
+                <option value="pending">Pendentes</option>
+                <option value="confirmed">Confirmados</option>
+                <option value="failed">Falharam</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Deposit Stats -->
+          <div class="stats-grid stats-grid-3">
+            <div class="card stat-card">
+              <p class="metric-label">Depósitos Confirmados</p>
               <p class="metric" id="dep-confirmed">--</p>
             </div>
-            <div class="card">
-              <p class="metric-label">Pending</p>
+            <div class="card stat-card">
+              <p class="metric-label">Depósitos Pendentes</p>
               <p class="metric" id="dep-pending">--</p>
             </div>
-            <div class="card">
-              <p class="metric-label">Total Volume</p>
+            <div class="card stat-card">
+              <p class="metric-label">Volume Total</p>
               <p class="metric" id="dep-volume">--</p>
             </div>
           </div>
 
-          <div class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr><th>ID</th><th>User</th><th>Amount</th><th>Status</th><th>Conf.</th><th>TX Hash</th><th>Date</th></tr>
-              </thead>
-              <tbody id="deposit-body">
-                <tr><td colspan="7" class="text-soft">Connect as admin to view deposits.</td></tr>
-              </tbody>
-            </table>
+          <!-- Purchase Stats -->
+          <h3 style="margin-bottom:1rem;margin-top:.5rem">Estatísticas de Compras</h3>
+          <div class="stats-grid stats-grid-3">
+            <div class="card stat-card">
+              <p class="metric-label">Compras — Total Geral</p>
+              <p class="metric" id="purch-total">--</p>
+              <p class="metric-sub" id="purch-total-count">-- compras</p>
+            </div>
+            <div class="card stat-card">
+              <p class="metric-label">Compras — Hoje</p>
+              <p class="metric" id="purch-today">--</p>
+              <p class="metric-sub" id="purch-today-count">-- compras</p>
+            </div>
+            <div class="card stat-card">
+              <p class="metric-label">Compras — Mês</p>
+              <p class="metric" id="purch-month">--</p>
+              <p class="metric-sub" id="purch-month-count">-- compras</p>
+            </div>
+          </div>
+
+          <!-- By Type -->
+          <div class="stats-grid stats-grid-3" style="margin-bottom:1rem">
+            <div class="card stat-card mini">
+              <p class="metric-label">Galinhas Vendidas</p>
+              <p class="metric" id="purch-chicken-count">0</p>
+              <p class="metric-sub" id="purch-chicken-total">0 USDT</p>
+            </div>
+            <div class="card stat-card mini">
+              <p class="metric-label">Ração Vendida</p>
+              <p class="metric" id="purch-feed-count">0</p>
+              <p class="metric-sub" id="purch-feed-total">0 USDT</p>
+            </div>
+            <div class="card stat-card mini">
+              <p class="metric-label">Ovos Vendidos</p>
+              <p class="metric" id="purch-eggs-count">0</p>
+              <p class="metric-sub" id="purch-eggs-total">0 USDT</p>
+            </div>
+          </div>
+
+          <!-- Top Species -->
+          <div class="card" id="top-species-card" style="margin-bottom:1.5rem">
+            <h3 style="margin-bottom:.8rem">Espécies Mais Vendidas</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th>#</th><th>Espécie</th><th>Qtd Vendida</th><th>Total USDT</th></tr>
+                </thead>
+                <tbody id="top-species-body">
+                  <tr><td colspan="4" class="text-soft">Carregando...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Deposits Table -->
+          <div class="card">
+            <h3 style="margin-bottom:.8rem">Histórico de Depósitos</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th>ID</th><th>Usuário</th><th>Valor</th><th>Status</th><th>Conf.</th><th>TX Hash</th><th>Data</th></tr>
+                </thead>
+                <tbody id="deposit-body">
+                  <tr><td colspan="7" class="text-soft">Connect as admin to view deposits.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent Purchases Table -->
+          <div class="card" style="margin-top:1.5rem">
+            <h3 style="margin-bottom:.8rem">Compras Recentes</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th>ID</th><th>Usuário</th><th>Tipo</th><th>Valor</th><th>Data</th></tr>
+                </thead>
+                <tbody id="purchases-body">
+                  <tr><td colspan="5" class="text-soft">Carregando...</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
