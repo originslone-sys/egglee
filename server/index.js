@@ -82,7 +82,7 @@ app.use(express.json());
 // Rate limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
 });
