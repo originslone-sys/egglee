@@ -20,6 +20,27 @@
     return addr.slice(0, 6) + '...' + addr.slice(-4);
   }
 
+  function formatCountdown(targetMs) {
+    const diff = targetMs - Date.now();
+    if (diff <= 0) return 'Pronto!';
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  }
+
+  function formatCountdownDays(targetMs) {
+    const diff = targetMs - Date.now();
+    if (diff <= 0) return 'Pronto!';
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    if (d > 0) return `${d}d ${h}h`;
+    const m = Math.floor((diff % 3600000) / 60000);
+    return `${h}h ${m}m`;
+  }
+
   // ── Auth ────────────────────────────────────────
   const connectBtn = $('connect-btn');
   const logoutBtn = $('logout-btn');
@@ -243,6 +264,10 @@
       loadPurchases();
       loadEggsForIncubation();
       loadChickFeedSelect();
+      renderIncubatingEggs();
+      renderGrowingChicks();
+      renderHatchHistory();
+      loadChickHistory();
       loadDeadChickens();
     } catch (e) {
       toast(e.message, true);
@@ -422,40 +447,263 @@
   // ── Incubation & Chick Feeding ─────────────────
   const eggSelect = $('fertile-egg-select');
   const incubateBtn = $('incubate-btn');
-  const incubatingList = $('incubating-list');
   const chickFeedSelect = $('chick-feed-select');
   const chickFeedAmount = $('chick-feed-amount');
   const feedChickBtn = $('feed-chick-btn');
   const deadChickensBody = $('dead-chickens-body');
+  let countdownInterval = null;
 
   async function loadEggsForIncubation() {
     if (!eggSelect || !API.isLoggedIn()) return;
     try {
       const data = await API.client.eggsForIncubation();
       if (data.eggs.length === 0) {
-        eggSelect.innerHTML = '<option disabled>No eggs available</option>';
+        eggSelect.innerHTML = '<option disabled>Nenhum ovo disponível</option>';
       } else {
         eggSelect.innerHTML = data.eggs.map(e =>
-          `<option value="${e.id}">Egg #${e.id} — ${new Date(e.produced_at).toLocaleDateString()}</option>`
+          `<option value="${e.id}">Ovo #${e.id} — ${new Date(e.produced_at).toLocaleDateString()}</option>`
         ).join('');
-      }
-      if (incubatingList) {
-        incubatingList.innerHTML = data.incubating.length > 0
-          ? data.incubating.map(e =>
-              `<span class="status-pill warn" style="margin:.2rem">Egg #${e.id} incubating</span>`
-            ).join('')
-          : '';
       }
     } catch (_) { /* ignore */ }
   }
 
+  // Render incubating eggs with countdowns
+  function renderIncubatingEggs() {
+    const container = $('incubating-eggs-list');
+    const badge = $('incubating-count');
+    if (!container || !farmData) return;
+
+    const eggs = farmData.incubating_eggs || [];
+    const incHours = farmData.incubation_hours || 72;
+
+    if (badge) badge.textContent = String(eggs.length);
+
+    if (eggs.length === 0) {
+      container.innerHTML = '<p class="text-soft">Nenhum ovo incubando no momento.</p>';
+      return;
+    }
+
+    container.innerHTML = '<div class="farm-items-grid">' + eggs.map(e => {
+      const startMs = new Date(e.incubation_started_at).getTime();
+      const endMs = startMs + incHours * 3600000;
+      const progress = Math.min(100, ((Date.now() - startMs) / (incHours * 3600000)) * 100).toFixed(0);
+      const isReady = Date.now() >= endMs;
+
+      return `<div class="farm-item-card ${isReady ? 'ready' : ''}">
+        <div class="farm-item-icon">&#x1F95A;</div>
+        <div class="farm-item-body">
+          <div class="farm-item-title">Ovo #${e.id}</div>
+          <div class="farm-item-meta">Incubando desde ${new Date(e.incubation_started_at).toLocaleString()}</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" style="width:${progress}%"></div>
+          </div>
+          <div class="farm-item-countdown" data-end="${endMs}">
+            ${isReady ? '<span class="status-pill ok">Pronto para eclodir!</span>' : `<span class="countdown-timer">${formatCountdown(endMs)}</span> restantes`}
+          </div>
+        </div>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
+  // Render growing chicks with countdowns
+  function renderGrowingChicks() {
+    const container = $('growing-chicks-list');
+    const badge = $('chicks-count');
+    if (!container || !farmData) return;
+
+    const chicks = farmData.chicks || [];
+    const growthDays = farmData.chick_growth_days || 12;
+    const feedNeeded = farmData.chick_feed_needed || 2.0;
+
+    if (badge) badge.textContent = String(chicks.length);
+
+    if (chicks.length === 0) {
+      container.innerHTML = '<p class="text-soft">Nenhum pintinho em crescimento.</p>';
+      return;
+    }
+
+    container.innerHTML = '<div class="farm-items-grid">' + chicks.map(c => {
+      const hatchMs = new Date(c.hatched_at).getTime();
+      const adultMs = hatchMs + growthDays * 86400000;
+      const fedPct = Math.min(100, (parseFloat(c.feed_consumed) / feedNeeded) * 100).toFixed(0);
+      const timeReady = Date.now() >= adultMs;
+      const feedReady = parseFloat(c.feed_consumed) >= feedNeeded;
+      const isReady = timeReady && feedReady;
+
+      return `<div class="farm-item-card ${isReady ? 'ready' : ''}">
+        <div class="farm-item-icon">&#x1F423;</div>
+        <div class="farm-item-body">
+          <div class="farm-item-title">Pintinho #${c.id} &rarr; ${c.target_species}</div>
+          <div class="farm-item-meta">Eclodiu em ${new Date(c.hatched_at).toLocaleString()}</div>
+          <div class="farm-item-stats">
+            <span>Ração: ${parseFloat(c.feed_consumed).toFixed(1)}/${feedNeeded.toFixed(1)} (${fedPct}%)</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar ${feedReady ? 'complete' : ''}" style="width:${fedPct}%"></div>
+          </div>
+          <div class="farm-item-countdown" data-end="${adultMs}">
+            ${timeReady
+              ? (feedReady
+                ? '<span class="status-pill ok">Pronto para virar adulto!</span>'
+                : '<span class="status-pill warn">Precisa de mais ração</span>')
+              : `<span class="countdown-timer">${formatCountdownDays(adultMs)}</span> para maturidade`}
+          </div>
+        </div>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
+  // Render hatch history
+  function renderHatchHistory() {
+    const body = $('hatch-history-body');
+    const badge = $('hatch-history-count');
+    if (!body || !farmData) return;
+
+    const eggs = farmData.hatched_eggs || [];
+    if (badge) badge.textContent = String(eggs.length);
+
+    if (eggs.length === 0) {
+      body.innerHTML = '<tr><td colspan="4" class="text-soft">Nenhum ovo eclodido ainda.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = eggs.slice(0, 20).map(e => {
+      const isSuccess = e.status === 'hatched';
+      return `<tr>
+        <td>#${e.id}</td>
+        <td>${e.incubation_started_at ? new Date(e.incubation_started_at).toLocaleString() : '--'}</td>
+        <td>${e.hatched_at ? new Date(e.hatched_at).toLocaleString() : '--'}</td>
+        <td><span class="status-pill ${isSuccess ? 'ok' : 'danger'}">${isSuccess ? 'Sucesso' : 'Fracassou'}</span></td>
+      </tr>`;
+    }).join('');
+
+    // If more than 20, show load more
+    const pagination = $('hatch-history-pagination');
+    if (pagination && eggs.length >= 20) {
+      pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-hatch">Ver mais</button>';
+      $('load-more-hatch')?.addEventListener('click', () => loadEggHistory(2));
+    }
+  }
+
+  let eggHistoryPage = 1;
+  async function loadEggHistory(page) {
+    const body = $('hatch-history-body');
+    if (!body) return;
+    try {
+      const data = await API.client.eggHistory(page);
+      if (data.eggs.length === 0) return;
+
+      const newRows = data.eggs.map(e => {
+        const isSuccess = e.status === 'hatched';
+        return `<tr>
+          <td>#${e.id}</td>
+          <td>${e.incubation_started_at ? new Date(e.incubation_started_at).toLocaleString() : '--'}</td>
+          <td>${e.hatched_at ? new Date(e.hatched_at).toLocaleString() : '--'}</td>
+          <td><span class="status-pill ${isSuccess ? 'ok' : 'danger'}">${isSuccess ? 'Sucesso' : 'Fracassou'}</span></td>
+        </tr>`;
+      }).join('');
+
+      body.insertAdjacentHTML('beforeend', newRows);
+      eggHistoryPage = page;
+
+      const pagination = $('hatch-history-pagination');
+      if (pagination) {
+        if (data.eggs.length < data.limit || page * data.limit >= data.total) {
+          pagination.innerHTML = '';
+        } else {
+          pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-hatch">Ver mais</button>';
+          $('load-more-hatch')?.addEventListener('click', () => loadEggHistory(page + 1));
+        }
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  // Chick history (promoted to adult)
+  let chickHistoryPage = 1;
+  async function loadChickHistory() {
+    const body = $('chick-history-body');
+    if (!body || !API.isLoggedIn()) return;
+    try {
+      const data = await API.client.chickHistory(1);
+      if (data.chicks.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" class="text-soft">Nenhum pintinho promovido ainda.</td></tr>';
+      } else {
+        body.innerHTML = data.chicks.map(c => `
+          <tr>
+            <td>#${c.id}</td>
+            <td>${c.species}</td>
+            <td>${new Date(c.hatched_at).toLocaleString()}</td>
+            <td>${c.adult_at ? new Date(c.adult_at).toLocaleString() : '--'}</td>
+            <td>${parseFloat(c.feed_consumed).toFixed(1)}</td>
+          </tr>
+        `).join('');
+
+        const pagination = $('chick-history-pagination');
+        if (pagination && data.total > data.limit) {
+          pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-chick-hist">Ver mais</button>';
+          $('load-more-chick-hist')?.addEventListener('click', () => loadMoreChickHistory(2));
+        }
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  async function loadMoreChickHistory(page) {
+    const body = $('chick-history-body');
+    if (!body) return;
+    try {
+      const data = await API.client.chickHistory(page);
+      if (data.chicks.length === 0) return;
+
+      body.insertAdjacentHTML('beforeend', data.chicks.map(c => `
+        <tr>
+          <td>#${c.id}</td>
+          <td>${c.species}</td>
+          <td>${new Date(c.hatched_at).toLocaleString()}</td>
+          <td>${c.adult_at ? new Date(c.adult_at).toLocaleString() : '--'}</td>
+          <td>${parseFloat(c.feed_consumed).toFixed(1)}</td>
+        </tr>
+      `).join(''));
+
+      const pagination = $('chick-history-pagination');
+      if (pagination) {
+        if (data.chicks.length < data.limit || page * data.limit >= data.total) {
+          pagination.innerHTML = '';
+        } else {
+          pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-chick-hist">Ver mais</button>';
+          $('load-more-chick-hist')?.addEventListener('click', () => loadMoreChickHistory(page + 1));
+        }
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  // Start countdown ticker
+  function startCountdownTicker() {
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+      document.querySelectorAll('.farm-item-countdown[data-end]').forEach(el => {
+        const endMs = parseInt(el.dataset.end, 10);
+        if (isNaN(endMs)) return;
+        const timer = el.querySelector('.countdown-timer');
+        if (timer) {
+          if (Date.now() >= endMs) {
+            el.innerHTML = '<span class="status-pill ok">Pronto!</span>';
+          } else {
+            // Decide format based on time remaining
+            const diff = endMs - Date.now();
+            timer.textContent = diff > 86400000 ? formatCountdownDays(endMs) : formatCountdown(endMs);
+          }
+        }
+      });
+    }, 1000);
+  }
+
   incubateBtn?.addEventListener('click', async () => {
     const eggId = parseInt(eggSelect?.value, 10);
-    if (!eggId) { toast('Select an egg to incubate', true); return; }
+    if (!eggId) { toast('Selecione um ovo para incubar', true); return; }
     incubateBtn.disabled = true;
     try {
       const r = await API.client.incubateEgg(eggId);
-      toast(`Egg #${r.egg_id} is now incubating (feed used: ${r.feed_consumed})`);
+      toast(`Ovo #${r.egg_id} está incubando (ração usada: ${r.feed_consumed})`);
       loadFarm();
     } catch (e) { toast(e.message, true); }
     incubateBtn.disabled = false;
@@ -464,10 +712,10 @@
   function loadChickFeedSelect() {
     if (!chickFeedSelect || !farmData) return;
     if (farmData.chicks.length === 0) {
-      chickFeedSelect.innerHTML = '<option disabled>No growing chicks</option>';
+      chickFeedSelect.innerHTML = '<option disabled>Nenhum pintinho</option>';
     } else {
       chickFeedSelect.innerHTML = farmData.chicks.map(c =>
-        `<option value="${c.id}">Chick #${c.id} → ${c.target_species} (fed: ${parseFloat(c.feed_consumed).toFixed(1)}/${(farmData.chick_feed_needed || 2.0).toFixed(1)})</option>`
+        `<option value="${c.id}">Pintinho #${c.id} → ${c.target_species} (${parseFloat(c.feed_consumed).toFixed(1)}/${(farmData.chick_feed_needed || 2.0).toFixed(1)})</option>`
       ).join('');
     }
   }
@@ -475,11 +723,11 @@
   feedChickBtn?.addEventListener('click', async () => {
     const chickId = parseInt(chickFeedSelect?.value, 10);
     const amount = parseFloat(chickFeedAmount?.value || '0.5');
-    if (!chickId) { toast('Select a chick', true); return; }
+    if (!chickId) { toast('Selecione um pintinho', true); return; }
     feedChickBtn.disabled = true;
     try {
       const r = await API.client.feedChick(chickId, amount);
-      toast(`Fed chick #${r.chick_id}: ${r.fed} units (${r.progress} complete)`);
+      toast(`Pintinho #${r.chick_id} alimentado: ${r.fed} (${r.progress} completo)`);
       loadFarm();
     } catch (e) { toast(e.message, true); }
     feedChickBtn.disabled = false;
@@ -490,16 +738,17 @@
     try {
       const { chickens } = await API.client.deadChickens(1);
       if (chickens.length === 0) {
-        deadChickensBody.innerHTML = '<tr><td colspan="5" class="text-soft">No deceased chickens.</td></tr>';
+        deadChickensBody.innerHTML = '<tr><td colspan="5" class="text-soft">Nenhuma galinha falecida.</td></tr>';
       } else {
         deadChickensBody.innerHTML = chickens.map(c => {
+          const causeLabel = c.death_cause === 'starvation' ? 'Fome' : c.death_cause === 'lifespan' ? 'Idade' : c.death_cause || 'Desconhecido';
           const causeClass = c.death_cause === 'starvation' ? 'danger' : 'warn';
           return `<tr>
             <td>#${c.id}</td>
             <td>${c.species}</td>
             <td>${new Date(c.born_at).toLocaleDateString()}</td>
             <td>${c.died_at ? new Date(c.died_at).toLocaleDateString() : ''}</td>
-            <td><span class="status-pill ${causeClass}">${c.death_cause || 'unknown'}</span></td>
+            <td><span class="status-pill ${causeClass}">${causeLabel}</span></td>
           </tr>`;
         }).join('');
       }
@@ -509,6 +758,7 @@
   // ── Auto-refresh ───────────────────────────────
   if (API.isLoggedIn()) {
     loadFarm();
+    startCountdownTicker();
     setInterval(loadFarm, 30000);
   }
 })();

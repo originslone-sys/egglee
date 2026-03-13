@@ -385,4 +385,107 @@
 
 @media (max-width: 600px) {
   .overview-metrics { grid-template-columns: 1fr; }
+  .farm-items-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Farm Item Cards (Eggs, Chicks) ───────────── */
+.farm-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: .8rem;
+}
+
+.farm-item-card {
+  display: flex;
+  gap: .8rem;
+  padding: .9rem 1rem;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  transition: border-color var(--transition);
+}
+.farm-item-card:hover { border-color: var(--stroke-strong); }
+.farm-item-card.ready { border-color: var(--success); background: var(--success-dim); }
+
+.farm-item-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  width: 40px;
+  text-align: center;
+}
+
+.farm-item-body { flex: 1; min-width: 0; }
+
+.farm-item-title {
+  font-weight: 600;
+  font-size: .88rem;
+  margin-bottom: .2rem;
+}
+
+.farm-item-meta {
+  font-size: .72rem;
+  color: var(--text-soft);
+  margin-bottom: .4rem;
+}
+
+.farm-item-stats {
+  font-size: .78rem;
+  color: var(--text-soft);
+  margin-bottom: .3rem;
+}
+
+.farm-item-countdown {
+  font-size: .8rem;
+  font-weight: 500;
+  margin-top: .3rem;
+}
+
+.countdown-timer {
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Progress Bar ─────────────────────────────── */
+.progress-bar-wrap {
+  height: 6px;
+  background: rgba(255,255,255,.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+  transition: width .3s ease;
+}
+
+.progress-bar.complete { background: var(--success); }
+
+/* ── Card Header Row ──────────────────────────── */
+.card-header-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .8rem;
+}
+.card-header-row h3 { margin: 0; }
+
+.badge {
+  background: var(--primary-dim);
+  color: var(--primary);
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .15rem .5rem;
+  border-radius: 99px;
+  min-width: 22px;
+  text-align: center;
+}
+
+/* ── Pagination Row ───────────────────────────── */
+.pagination-row {
+  display: flex;
+  justify-content: center;
+  padding: .5rem 0 0;
 }

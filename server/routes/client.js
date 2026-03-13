@@ -11,7 +11,7 @@ router.use(authenticate);
 router.get('/farm', async (req, res) => {
   const userId = req.user.id;
 
-  const [user, chickens, eggCount, chicks, chickFeedNeeded] = await Promise.all([
+  const [user, chickens, eggCount, chicks, chickFeedNeeded, incubationHours, chickGrowthDays] = await Promise.all([
     db('users').where({ id: userId }).first('balance_usdt', 'feed_balance', 'auto_feed_enabled'),
     db('chickens')
       .where({ user_id: userId, status: 'alive' })
@@ -29,7 +29,23 @@ router.get('/farm', async (req, res) => {
       .join('chicken_species', 'chicks.target_species_id', 'chicken_species.id')
       .select('chicks.id', 'chicken_species.name as target_species', 'chicks.hatched_at', 'chicks.feed_consumed'),
     EconomyConfig.getNumber('chick_to_adult_feed'),
+    EconomyConfig.getNumber('egg_incubation_hours'),
+    EconomyConfig.getNumber('chick_growth_days'),
   ]);
+
+  // Get incubating eggs
+  const incubatingEggs = await db('eggs')
+    .where({ user_id: userId, status: 'incubating' })
+    .select('id', 'incubation_started_at')
+    .orderBy('incubation_started_at', 'asc');
+
+  // Get recently hatched/failed eggs (last 50)
+  const hatchedEggs = await db('eggs')
+    .where({ user_id: userId })
+    .whereIn('status', ['hatched', 'failed'])
+    .select('id', 'status', 'incubation_started_at', 'hatched_at')
+    .orderBy('hatched_at', 'desc')
+    .limit(50);
 
   res.json({
     balance_usdt: parseFloat(user.balance_usdt),
@@ -39,6 +55,10 @@ router.get('/farm', async (req, res) => {
     eggs_available: parseInt(eggCount.count, 10),
     chicks,
     chick_feed_needed: chickFeedNeeded,
+    incubating_eggs: incubatingEggs,
+    hatched_eggs: hatchedEggs,
+    incubation_hours: incubationHours,
+    chick_growth_days: chickGrowthDays,
   });
 });
 
@@ -424,6 +444,53 @@ router.get('/purchases', async (req, res) => {
     .offset(offset);
 
   res.json({ page, limit, purchases });
+});
+
+// GET /api/client/egg-history — history of hatched/failed eggs with pagination
+router.get('/egg-history', async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page || '1', 10);
+  const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+  const offset = (page - 1) * limit;
+
+  const eggs = await db('eggs')
+    .where({ user_id: userId })
+    .whereIn('status', ['hatched', 'failed'])
+    .select('id', 'status', 'incubation_started_at', 'hatched_at')
+    .orderBy('hatched_at', 'desc')
+    .limit(limit)
+    .offset(offset);
+
+  const totalRow = await db('eggs')
+    .where({ user_id: userId })
+    .whereIn('status', ['hatched', 'failed'])
+    .count('id as count')
+    .first();
+
+  res.json({ page, limit, total: parseInt(totalRow.count, 10), eggs });
+});
+
+// GET /api/client/chick-history — history of promoted chicks with pagination
+router.get('/chick-history', async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page || '1', 10);
+  const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+  const offset = (page - 1) * limit;
+
+  const chicks = await db('chicks')
+    .where({ 'chicks.user_id': userId, 'chicks.status': 'adult' })
+    .join('chicken_species', 'chicks.target_species_id', 'chicken_species.id')
+    .select('chicks.id', 'chicken_species.name as species', 'chicks.hatched_at', 'chicks.adult_at', 'chicks.feed_consumed')
+    .orderBy('chicks.adult_at', 'desc')
+    .limit(limit)
+    .offset(offset);
+
+  const totalRow = await db('chicks')
+    .where({ user_id: userId, status: 'adult' })
+    .count('id as count')
+    .first();
+
+  res.json({ page, limit, total: parseInt(totalRow.count, 10), chicks });
 });
 
 module.exports = router;
