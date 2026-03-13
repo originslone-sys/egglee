@@ -143,11 +143,6 @@
   const economyForm = $('economy-form');
   const withdrawalBody = $('withdrawal-body');
   const userBody = $('user-body');
-  const depositBody = $('deposit-body');
-  const depConfirmed = $('dep-confirmed');
-  const depPending = $('dep-pending');
-  const depVolume = $('dep-volume');
-  const depStatusFilter = $('dep-status-filter');
   const wdStatusFilter = $('wd-status-filter');
 
   async function loadAdmin() {
@@ -155,11 +150,10 @@
     await Promise.all([
       loadDashboard(), loadAlerts(), loadEconomy(),
       loadWithdrawals(), loadWithdrawalStats(),
-      loadUsers(), loadAdminDeposits(), loadPurchaseStats(), loadSpecies(),
+      loadUsers(), loadPurchaseStats(), loadSpecies(),
     ]);
   }
 
-  depStatusFilter?.addEventListener('change', () => loadAdminDeposits());
   wdStatusFilter?.addEventListener('change', () => loadWithdrawals());
 
   // ── Dashboard ───────────────────────────────────
@@ -177,11 +171,6 @@
       el('dash-withdrawals-total', fmtUSDT(d.withdrawals.total));
       el('dash-withdrawals-today', fmtUSDT(d.withdrawals.today));
       el('dash-withdrawals-month', fmtUSDT(d.withdrawals.month));
-
-      // Deposits
-      el('dash-deposits-total', fmtUSDT(d.deposits.total));
-      el('dash-deposits-today', fmtUSDT(d.deposits.today));
-      el('dash-deposits-month', fmtUSDT(d.deposits.month));
 
       // Counters
       el('dash-users', String(d.users));
@@ -454,37 +443,6 @@
             } catch (e) { toast(e.message, true); }
           });
         });
-      }
-    } catch (e) { toast(e.message, true); }
-  }
-
-  // ── Deposits ───────────────────────────────────
-  async function loadAdminDeposits() {
-    if (!depositBody) return;
-    try {
-      const status = depStatusFilter?.value || 'all';
-      const data = await API.admin.getDeposits(status);
-
-      if (depConfirmed) depConfirmed.textContent = String(data.counts.confirmed || 0);
-      if (depPending) depPending.textContent = String(data.counts.pending || 0);
-      if (depVolume) depVolume.textContent = fmtUSDT(data.total_confirmed_volume);
-
-      if (data.deposits.length === 0) {
-        depositBody.innerHTML = '<tr><td colspan="7" class="text-soft">Nenhum depósito encontrado.</td></tr>';
-      } else {
-        depositBody.innerHTML = data.deposits.map(d => {
-          const statusClass = d.status === 'confirmed' ? 'ok' : d.status === 'failed' ? 'danger' : 'warn';
-          const txShort = d.tx_hash ? d.tx_hash.slice(0, 12) + '...' : '';
-          return `<tr>
-            <td>#${d.id}</td>
-            <td title="${d.user_wallet || ''}">${shortWallet(d.user_wallet)}</td>
-            <td>${fmtUSDT(d.amount)}</td>
-            <td><span class="status-pill ${statusClass}">${d.status}</span></td>
-            <td>${d.confirmations}</td>
-            <td title="${d.tx_hash || ''}">${txShort}</td>
-            <td>${new Date(d.created_at).toLocaleString()}</td>
-          </tr>`;
-        }).join('');
       }
     } catch (e) { toast(e.message, true); }
   }

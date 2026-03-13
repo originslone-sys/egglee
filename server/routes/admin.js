@@ -16,7 +16,6 @@ router.get('/dashboard', async (req, res) => {
   const [
     purchasesTotal, purchasesToday, purchasesMonth,
     withdrawalsTotal, withdrawalsToday, withdrawalsMonth,
-    depositsTotal, depositsToday, depositsMonth,
     totalUsers, activeChickens, totalEggs,
   ] = await Promise.all([
     // Purchases (confirmed only)
@@ -27,10 +26,6 @@ router.get('/dashboard', async (req, res) => {
     db('withdrawals').where({ status: 'completed' }).sum('net_amount as total').first(),
     db('withdrawals').where({ status: 'completed' }).where('processed_at', '>=', todayStart).sum('net_amount as total').first(),
     db('withdrawals').where({ status: 'completed' }).where('processed_at', '>=', monthStart).sum('net_amount as total').first(),
-    // Deposits (confirmed only)
-    db('deposits').where({ status: 'confirmed' }).sum('amount as total').first(),
-    db('deposits').where({ status: 'confirmed' }).where('confirmed_at', '>=', todayStart).sum('amount as total').first(),
-    db('deposits').where({ status: 'confirmed' }).where('confirmed_at', '>=', monthStart).sum('amount as total').first(),
     // Counters
     db('users').count('id as count').first(),
     db('chickens').where({ status: 'alive' }).count('id as count').first(),
@@ -52,11 +47,6 @@ router.get('/dashboard', async (req, res) => {
       today: parseFloat(withdrawalsToday.total) || 0,
       month: parseFloat(withdrawalsMonth.total) || 0,
       pending: parseInt(pendingWithdrawals.count, 10),
-    },
-    deposits: {
-      total: parseFloat(depositsTotal.total) || 0,
-      today: parseFloat(depositsToday.total) || 0,
-      month: parseFloat(depositsMonth.total) || 0,
     },
     users: parseInt(totalUsers.count, 10),
     active_chickens: parseInt(activeChickens.count, 10),
