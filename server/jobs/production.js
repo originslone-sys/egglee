@@ -139,14 +139,14 @@ async function hatchEgg(egg, now) {
       return;
     }
 
-    // Normalize probabilities so they sum to 1.0
-    const totalProb = species.reduce((sum, s) => sum + parseFloat(s.hatch_probability), 0);
+    // Use species_weight for species selection (normalized to sum to 1.0)
+    const totalWeight = species.reduce((sum, s) => sum + parseFloat(s.species_weight), 0);
     const roll = Math.random();
     let cumulative = 0;
     let targetSpecies = species[0];
 
     for (const s of species) {
-      cumulative += parseFloat(s.hatch_probability) / (totalProb || 1);
+      cumulative += parseFloat(s.species_weight) / (totalWeight || 1);
       if (roll <= cumulative) {
         targetSpecies = s;
         break;

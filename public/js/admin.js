@@ -408,6 +408,7 @@
     $('sp-feed').value = '';
     $('sp-lifespan').value = '';
     $('sp-hatch').value = '0';
+    $('sp-weight').value = '0';
     if (speciesFormWrap) hide(speciesFormWrap);
   }
 
@@ -427,6 +428,7 @@
       feed_per_day: $('sp-feed').value,
       lifespan_days: $('sp-lifespan').value,
       hatch_probability: $('sp-hatch').value || '0',
+      species_weight: $('sp-weight').value || '0',
     };
 
     try {
@@ -449,7 +451,7 @@
     try {
       const species = await API.admin.getSpecies();
       if (species.length === 0) {
-        speciesBody.innerHTML = '<tr><td colspan="8" class="text-soft">Nenhuma espécie cadastrada. Clique em "+ Nova Espécie" para criar.</td></tr>';
+        speciesBody.innerHTML = '<tr><td colspan="10" class="text-soft">Nenhuma espécie cadastrada. Clique em "+ Nova Espécie" para criar.</td></tr>';
         return;
       }
       speciesBody.innerHTML = species.map(s => `
@@ -460,9 +462,11 @@
           <td>${parseFloat(s.eggs_per_day).toFixed(1)}</td>
           <td>${parseFloat(s.feed_per_day).toFixed(1)}</td>
           <td>${s.lifespan_days}d</td>
+          <td>${(parseFloat(s.hatch_probability) * 100).toFixed(1)}%</td>
+          <td>${(parseFloat(s.species_weight) * 100).toFixed(1)}%</td>
           <td><span class="status-pill ${s.is_active ? 'ok' : 'danger'}">${s.is_active ? 'Ativa' : 'Inativa'}</span></td>
           <td style="display:flex;gap:.3rem;flex-wrap:wrap">
-            <button class="btn btn-outline btn-sm sp-edit" data-id="${s.id}" data-name="${s.name}" data-price="${s.purchase_price}" data-eggs="${s.eggs_per_day}" data-feed="${s.feed_per_day}" data-life="${s.lifespan_days}" data-hatch="${s.hatch_probability}">Editar</button>
+            <button class="btn btn-outline btn-sm sp-edit" data-id="${s.id}" data-name="${s.name}" data-price="${s.purchase_price}" data-eggs="${s.eggs_per_day}" data-feed="${s.feed_per_day}" data-life="${s.lifespan_days}" data-hatch="${s.hatch_probability}" data-weight="${s.species_weight}">Editar</button>
             <button class="btn ${s.is_active ? 'btn-danger' : 'btn-primary'} btn-sm sp-toggle" data-id="${s.id}" data-active="${s.is_active}">${s.is_active ? 'Desativar' : 'Ativar'}</button>
           </td>
         </tr>
@@ -478,6 +482,7 @@
           $('sp-feed').value = btn.dataset.feed;
           $('sp-lifespan').value = btn.dataset.life;
           $('sp-hatch').value = btn.dataset.hatch;
+          $('sp-weight').value = btn.dataset.weight;
           if (speciesFormWrap) show(speciesFormWrap);
         });
       });
