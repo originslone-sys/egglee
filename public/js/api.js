@@ -146,7 +146,6 @@ const API = (() => {
     getDashboard:     () => request('GET', '/admin/dashboard'),
     getPurchaseStats: () => request('GET', '/admin/purchases/stats'),
     getWithdrawalStats:() => request('GET', '/admin/withdrawals/stats'),
-    getDeposits:      (status, page) => request('GET', `/admin/deposits?status=${status || 'all'}&page=${page || 1}`),
     getSpecies:       () => request('GET', '/admin/species'),
     createSpecies:    (data) => request('POST', '/admin/species', data),
     updateSpecies:    (id, data) => request('PUT', `/admin/species/${id}`, data),

@@ -47,11 +47,11 @@
           </button>
           <button class="sidebar-link" data-section="withdrawals">
             <span class="link-icon">&#x1F4B8;</span>
-            <span class="link-text">Withdrawals</span>
+            <span class="link-text">Saques</span>
           </button>
-          <button class="sidebar-link" data-section="deposits">
-            <span class="link-icon">&#x1F4B0;</span>
-            <span class="link-text">Deposits</span>
+          <button class="sidebar-link" data-section="purchases">
+            <span class="link-icon">&#x1F6D2;</span>
+            <span class="link-text">Compras</span>
           </button>
           <button class="sidebar-link" data-section="species">
             <span class="link-icon">&#x1F414;</span>
@@ -184,27 +184,6 @@
               <div class="dash-card-body">
                 <p class="dash-card-label">Saques — Mês</p>
                 <p class="dash-card-value" id="dash-withdrawals-month">--</p>
-              </div>
-            </div>
-            <div class="dash-card">
-              <div class="dash-card-icon deposits">&#x1F4B0;</div>
-              <div class="dash-card-body">
-                <p class="dash-card-label">Depósitos — Total Geral</p>
-                <p class="dash-card-value" id="dash-deposits-total">--</p>
-              </div>
-            </div>
-            <div class="dash-card">
-              <div class="dash-card-icon deposits">&#x1F4C5;</div>
-              <div class="dash-card-body">
-                <p class="dash-card-label">Depósitos — Hoje</p>
-                <p class="dash-card-value" id="dash-deposits-today">--</p>
-              </div>
-            </div>
-            <div class="dash-card">
-              <div class="dash-card-icon deposits">&#x1F5D3;</div>
-              <div class="dash-card-body">
-                <p class="dash-card-label">Depósitos — Mês</p>
-                <p class="dash-card-value" id="dash-deposits-month">--</p>
               </div>
             </div>
           </div>
@@ -378,38 +357,13 @@
           </div>
         </div>
 
-        <!-- ── Deposits / Compras Section ────────── -->
-        <div id="section-deposits" class="admin-section">
+        <!-- ── Compras Section ────────────────────── -->
+        <div id="section-purchases" class="admin-section">
           <div class="section-header">
-            <h2>Depósitos & Compras</h2>
-            <div class="section-actions">
-              <select id="dep-status-filter" class="input">
-                <option value="all">Todos Depósitos</option>
-                <option value="pending">Pendentes</option>
-                <option value="confirmed">Confirmados</option>
-                <option value="failed">Falharam</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Deposit Stats -->
-          <div class="stats-grid stats-grid-3">
-            <div class="card stat-card">
-              <p class="metric-label">Depósitos Confirmados</p>
-              <p class="metric" id="dep-confirmed">--</p>
-            </div>
-            <div class="card stat-card">
-              <p class="metric-label">Depósitos Pendentes</p>
-              <p class="metric" id="dep-pending">--</p>
-            </div>
-            <div class="card stat-card">
-              <p class="metric-label">Volume Total</p>
-              <p class="metric" id="dep-volume">--</p>
-            </div>
+            <h2>Compras</h2>
           </div>
 
           <!-- Purchase Stats -->
-          <h3 style="margin-bottom:1rem;margin-top:.5rem">Estatísticas de Compras</h3>
           <div class="stats-grid stats-grid-3">
             <div class="card stat-card">
               <p class="metric-label">Compras — Total Geral</p>
@@ -462,23 +416,8 @@
             </div>
           </div>
 
-          <!-- Deposits Table -->
-          <div class="card">
-            <h3 style="margin-bottom:.8rem">Histórico de Depósitos</h3>
-            <div class="table-wrap">
-              <table class="table">
-                <thead>
-                  <tr><th>ID</th><th>Usuário</th><th>Valor</th><th>Status</th><th>Conf.</th><th>TX Hash</th><th>Data</th></tr>
-                </thead>
-                <tbody id="deposit-body">
-                  <tr><td colspan="7" class="text-soft">Connect as admin to view deposits.</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
           <!-- Recent Purchases Table -->
-          <div class="card" style="margin-top:1.5rem">
+          <div class="card">
             <h3 style="margin-bottom:.8rem">Compras Recentes</h3>
             <div class="table-wrap">
               <table class="table">
