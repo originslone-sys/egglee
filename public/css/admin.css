@@ -279,6 +279,124 @@
   margin-bottom: 1.5rem;
 }
 
+/* ── Dashboard Grid ─────────────────────────── */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dash-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  transition: border-color var(--transition);
+}
+.dash-card:hover { border-color: var(--stroke-strong); }
+
+.dash-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.dash-card-icon.purchases { background: rgba(34, 197, 94, .12); }
+.dash-card-icon.withdrawals { background: rgba(239, 68, 68, .12); }
+.dash-card-icon.deposits { background: rgba(59, 130, 246, .12); }
+
+.dash-card-body { flex: 1; min-width: 0; }
+
+.dash-card-label {
+  font-size: .75rem;
+  color: var(--text-soft);
+  font-weight: 500;
+  margin: 0 0 .2rem;
+}
+
+.dash-card-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ── Dashboard Counters ─────────────────────── */
+.dashboard-counters {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.counter-card {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  padding: 1rem;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.counter-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.counter-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.counter-label {
+  font-size: .72rem;
+  color: var(--text-soft);
+  margin: .1rem 0 0;
+}
+
+/* ── Stats Grid ─────────────────────────────── */
+.stats-grid {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stats-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.stats-grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+.stat-card {
+  text-align: center;
+  padding: 1.2rem 1rem;
+}
+
+.stat-card.mini {
+  padding: .8rem .6rem;
+}
+
+.stat-card .metric {
+  font-size: 1.35rem;
+}
+
+.stat-card.mini .metric {
+  font-size: 1.1rem;
+}
+
+.metric-sub {
+  font-size: .78rem;
+  color: var(--text-soft);
+  margin: .2rem 0 0;
+}
+
 /* ── Mobile Sidebar Toggle ───────────────────── */
 .sidebar-toggle {
   display: none;
@@ -311,7 +429,8 @@
   .admin-topbar { padding: .8rem 1rem; }
   .admin-content { padding: 1rem; }
 
-  .alert-cards, .deposit-summary { grid-template-columns: 1fr; }
+  .alert-cards, .deposit-summary, .dashboard-grid, .stats-grid-3, .stats-grid-4 { grid-template-columns: 1fr; }
+  .dashboard-counters { grid-template-columns: repeat(2, 1fr); }
   .config-row { flex-wrap: wrap; }
   .config-row .input { width: 100%; }
 }
