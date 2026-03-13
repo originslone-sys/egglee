@@ -72,13 +72,22 @@ router.post('/collect-eggs', async (req, res) => {
   res.json(result);
 });
 
-// POST /api/client/buy-feed — buy feed with USDT
+// GET /api/client/feed-price — get current feed unit price
+router.get('/feed-price', async (req, res) => {
+  const feedPrice = await EconomyConfig.getNumber('feed_unit_price');
+  res.json({ feed_unit_price: feedPrice });
+});
+
+// POST /api/client/buy-feed — submit tx_hash after MetaMask payment
 router.post('/buy-feed', async (req, res) => {
   const userId = req.user.id;
-  const { quantity } = req.body;
+  const { quantity, tx_hash } = req.body;
 
   if (!quantity || quantity <= 0 || !Number.isFinite(quantity)) {
     return res.status(400).json({ error: 'Valid quantity required' });
+  }
+  if (!tx_hash || typeof tx_hash !== 'string' || !tx_hash.startsWith('0x')) {
+    return res.status(400).json({ error: 'Valid tx_hash required' });
   }
 
   const feedPrice = await EconomyConfig.getNumber('feed_unit_price');
@@ -86,21 +95,26 @@ router.post('/buy-feed', async (req, res) => {
     return res.status(500).json({ error: 'Feed price not configured' });
   }
   const cost = parseFloat((quantity * feedPrice).toFixed(2));
-  if (cost <= 0) {
-    return res.status(400).json({ error: 'Invalid purchase amount' });
+
+  // Check tx_hash not already used
+  const existing = await db('pending_purchases').where({ tx_hash }).first();
+  if (existing) {
+    return res.status(409).json({ error: 'Transaction already submitted' });
   }
 
-  const result = await db.transaction(async (trx) => {
-    const newBalance = await adjustBalance(
-      trx, userId, -cost, 'feed_purchase',
-      `Bought ${quantity} feed units at ${feedPrice} USDT each`
-    );
-    const newFeed = await adjustFeed(trx, userId, quantity);
+  const user = await db('users').where({ id: userId }).first('wallet_address');
 
-    return { cost, new_balance: newBalance, new_feed: newFeed };
+  await db('pending_purchases').insert({
+    user_id: userId,
+    tx_hash,
+    purchase_type: 'feed',
+    purchase_data: JSON.stringify({ quantity }),
+    expected_amount: cost,
+    from_address: user.wallet_address,
+    status: 'pending',
   });
 
-  res.json(result);
+  res.json({ status: 'pending', tx_hash, cost, message: 'Purchase will be confirmed after blockchain verification.' });
 });
 
 // POST /api/client/toggle-auto-feed
@@ -112,13 +126,16 @@ router.post('/toggle-auto-feed', async (req, res) => {
   res.json({ auto_feed_enabled: newState });
 });
 
-// POST /api/client/buy-chicken — buy a chicken by species
+// POST /api/client/buy-chicken — submit tx_hash after MetaMask payment
 router.post('/buy-chicken', async (req, res) => {
   const userId = req.user.id;
-  const { species_id } = req.body;
+  const { species_id, tx_hash } = req.body;
 
   if (!species_id) {
     return res.status(400).json({ error: 'species_id required' });
+  }
+  if (!tx_hash || typeof tx_hash !== 'string' || !tx_hash.startsWith('0x')) {
+    return res.status(400).json({ error: 'Valid tx_hash required' });
   }
 
   const species = await db('chicken_species').where({ id: species_id, is_active: true }).first();
@@ -126,25 +143,25 @@ router.post('/buy-chicken', async (req, res) => {
     return res.status(404).json({ error: 'Species not found or inactive' });
   }
 
-  const result = await db.transaction(async (trx) => {
-    const newBalance = await adjustBalance(
-      trx, userId, -species.purchase_price, 'chicken_purchase',
-      `Bought 1 ${species.name} chicken`
-    );
+  // Check tx_hash not already used
+  const existing = await db('pending_purchases').where({ tx_hash }).first();
+  if (existing) {
+    return res.status(409).json({ error: 'Transaction already submitted' });
+  }
 
-    const now = new Date();
-    const diesAt = new Date(now.getTime() + species.lifespan_days * 86400000);
-    const [chickenId] = await trx('chickens').insert({
-      user_id: userId,
-      species_id: species.id,
-      born_at: now,
-      dies_at: diesAt,
-    });
+  const user = await db('users').where({ id: userId }).first('wallet_address');
 
-    return { chicken_id: chickenId, species: species.name, new_balance: newBalance };
+  await db('pending_purchases').insert({
+    user_id: userId,
+    tx_hash,
+    purchase_type: 'chicken',
+    purchase_data: JSON.stringify({ species_id: species.id }),
+    expected_amount: parseFloat(species.purchase_price),
+    from_address: user.wallet_address,
+    status: 'pending',
   });
 
-  res.json(result);
+  res.json({ status: 'pending', tx_hash, cost: parseFloat(species.purchase_price), species: species.name, message: 'Chicken will be added after blockchain verification.' });
 });
 
 // POST /api/client/withdraw — request USDT withdrawal
@@ -345,44 +362,20 @@ router.get('/dead-chickens', async (req, res) => {
   res.json({ page, limit, chickens });
 });
 
-// POST /api/client/notify-deposit — client notifies about a sent transaction (optional, monitor will pick it up anyway)
-router.post('/notify-deposit', async (req, res) => {
-  const { tx_hash, amount } = req.body;
-  if (!tx_hash || !amount) {
-    return res.status(400).json({ error: 'tx_hash and amount are required' });
-  }
-  const existing = await db('deposits').where({ tx_hash }).first();
-  if (existing) {
-    return res.json({ status: 'already_tracked', deposit_id: existing.id });
-  }
-  const user = await db('users').where({ id: req.user.id }).first('wallet_address');
-  await db('deposits').insert({
-    user_id: req.user.id,
-    tx_hash,
-    from_address: user.wallet_address,
-    to_address: '0x8417C9a00249Da8e4ff7414c5992C08511c28328'.toLowerCase(),
-    amount: parseFloat(amount).toFixed(2),
-    block_number: 0,
-    confirmations: 0,
-    status: 'pending',
-  }).onConflict('tx_hash').ignore();
-  res.json({ status: 'pending', message: 'Deposit tracked. Balance will be credited after confirmation.' });
-});
-
-// GET /api/client/deposits — deposit history
-router.get('/deposits', async (req, res) => {
+// GET /api/client/purchases — pending/confirmed purchase history
+router.get('/purchases', async (req, res) => {
   const userId = req.user.id;
   const page = parseInt(req.query.page || '1', 10);
   const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
   const offset = (page - 1) * limit;
 
-  const deposits = await db('deposits')
+  const purchases = await db('pending_purchases')
     .where({ user_id: userId })
     .orderBy('created_at', 'desc')
     .limit(limit)
     .offset(offset);
 
-  res.json({ page, limit, deposits });
+  res.json({ page, limit, purchases });
 });
 
 module.exports = router;

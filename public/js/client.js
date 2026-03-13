@@ -239,7 +239,7 @@
       renderFarm();
       loadSpecies();
       loadLedger();
-      loadDeposits();
+      loadPurchases();
       loadFertileEggs();
       loadChickFeedSelect();
       loadDeadChickens();
@@ -253,7 +253,7 @@
     try {
       const species = await API.client.species();
       el.speciesSelect.innerHTML = species.map(s =>
-        `<option value="${s.id}">${s.name} — ${parseFloat(s.purchase_price).toFixed(2)} USDT (${parseFloat(s.eggs_per_day)} eggs/day)</option>`
+        `<option value="${s.id}" data-price="${parseFloat(s.purchase_price)}">${s.name} — ${parseFloat(s.purchase_price).toFixed(2)} USDT (${parseFloat(s.eggs_per_day)} eggs/day)</option>`
       ).join('');
     } catch (_) { /* ignore */ }
   }
@@ -277,6 +277,32 @@
     } catch (_) { /* ignore */ }
   }
 
+  // ── Purchase History ───────────────────────────
+  const purchasesBody = $('purchases-body');
+
+  async function loadPurchases() {
+    if (!purchasesBody || !API.isLoggedIn()) return;
+    try {
+      const { purchases } = await API.client.purchases(1);
+      if (purchases.length === 0) {
+        purchasesBody.innerHTML = '<tr><td colspan="5" class="text-soft">No purchases yet.</td></tr>';
+      } else {
+        purchasesBody.innerHTML = purchases.slice(0, 10).map(p => {
+          const statusClass = p.status === 'confirmed' ? 'ok' : p.status === 'failed' ? 'danger' : 'warn';
+          const txShort = p.tx_hash ? p.tx_hash.slice(0, 10) + '...' : '';
+          const typeLabel = p.purchase_type === 'feed' ? 'Ração' : 'Galinha';
+          return `<tr>
+            <td>${new Date(p.created_at).toLocaleString()}</td>
+            <td>${typeLabel}</td>
+            <td>${parseFloat(p.expected_amount).toFixed(2)} USDT</td>
+            <td><span class="status-pill ${statusClass}">${p.status}</span></td>
+            <td title="${p.tx_hash || ''}">${txShort}</td>
+          </tr>`;
+        }).join('');
+      }
+    } catch (_) { /* ignore */ }
+  }
+
   // ── Actions ────────────────────────────────────
   el.collectBtn?.addEventListener('click', async () => {
     el.collectBtn.disabled = true;
@@ -288,18 +314,33 @@
     el.collectBtn.disabled = false;
   });
 
+  // Buy Feed — pay directly via MetaMask
   el.feedBtn?.addEventListener('click', async () => {
-    if (farmData && farmData.balance_usdt <= 0) {
-      toast('Saldo insuficiente para comprar ração', true);
-      return;
-    }
     el.feedBtn.disabled = true;
+    el.feedBtn.textContent = 'Loading...';
     try {
-      const r = await API.client.buyFeed(10);
-      toast(`Bought 10 feed for ${r.cost.toFixed(2)} USDT`);
+      const { feed_unit_price } = await API.client.feedPrice();
+      const quantity = 10;
+      const cost = parseFloat((quantity * feed_unit_price).toFixed(2));
+
+      el.feedBtn.textContent = `Pay ${cost} USDT...`;
+      const txHash = await API.sendPayment(cost);
+
+      el.feedBtn.textContent = 'Confirming...';
+      toast('Transaction sent! Feed will be credited after blockchain confirmation.');
+
+      await API.client.buyFeed(quantity, txHash);
       loadFarm();
-    } catch (e) { toast(e.message, true); }
-    el.feedBtn.disabled = false;
+    } catch (e) {
+      if (e.code === 4001) {
+        toast('Transaction cancelled.', true);
+      } else {
+        toast(e.message, true);
+      }
+    } finally {
+      el.feedBtn.disabled = false;
+      el.feedBtn.textContent = 'Buy Feed';
+    }
   });
 
   el.autoBtn?.addEventListener('click', async () => {
@@ -311,16 +352,35 @@
     } catch (e) { toast(e.message, true); }
   });
 
+  // Buy Chicken — pay directly via MetaMask
   el.buyChickenBtn?.addEventListener('click', async () => {
     const speciesId = parseInt(el.speciesSelect?.value, 10);
     if (!speciesId) return;
+
     el.buyChickenBtn.disabled = true;
+    el.buyChickenBtn.textContent = 'Loading...';
     try {
-      const r = await API.client.buyChicken(speciesId);
-      toast(`Bought ${r.species} chicken!`);
+      const selectedOpt = el.speciesSelect.options[el.speciesSelect.selectedIndex];
+      const price = parseFloat(selectedOpt.dataset.price);
+
+      el.buyChickenBtn.textContent = `Pay ${price.toFixed(2)} USDT...`;
+      const txHash = await API.sendPayment(price);
+
+      el.buyChickenBtn.textContent = 'Confirming...';
+      toast('Transaction sent! Chicken will be added after blockchain confirmation.');
+
+      await API.client.buyChicken(speciesId, txHash);
       loadFarm();
-    } catch (e) { toast(e.message, true); }
-    el.buyChickenBtn.disabled = false;
+    } catch (e) {
+      if (e.code === 4001) {
+        toast('Transaction cancelled.', true);
+      } else {
+        toast(e.message, true);
+      }
+    } finally {
+      el.buyChickenBtn.disabled = false;
+      el.buyChickenBtn.textContent = 'Buy';
+    }
   });
 
   el.withdrawBtn?.addEventListener('click', async () => {
@@ -423,300 +483,9 @@
     } catch (_) { /* ignore */ }
   }
 
-  // ── Top Up (Deposit via MetaMask) ──────────────
-  const PLATFORM_WALLET = '0x8417C9a00249Da8e4ff7414c5992C08511c28328';
-  const USDT_BEP20 = '0x55d398326f99059fF775485246999027B3197955';
-  const topupBtn = $('topup-btn');
-  const topupAmount = $('topup-amount');
-  const topupStatus = $('topup-status');
-  const depositsBody = $('deposits-body');
-
-  function showTopupStatus(msg, isError) {
-    if (!topupStatus) return;
-    topupStatus.textContent = msg;
-    topupStatus.className = 'topup-status ' + (isError ? 'topup-error' : 'topup-ok');
-    topupStatus.style.display = '';
-  }
-
-  topupBtn?.addEventListener('click', async () => {
-    const amount = parseFloat(topupAmount?.value);
-    if (!amount || amount <= 0) { toast('Enter a valid amount', true); return; }
-
-    if (typeof window.ethereum === 'undefined') {
-      toast('MetaMask not detected. Please install MetaMask.', true);
-      return;
-    }
-
-    topupBtn.disabled = true;
-    topupBtn.textContent = 'Waiting...';
-    showTopupStatus('Opening MetaMask...', false);
-
-    try {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const from = accounts[0];
-
-      // Ensure BSC network (chainId 0x38 = 56)
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-      if (chainId !== '0x38') {
-        try {
-          await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x38' }] });
-        } catch (switchErr) {
-          showTopupStatus('Please switch to BSC network in MetaMask.', true);
-          return;
-        }
-      }
-
-      // Encode ERC20 transfer(address,uint256)
-      const amountWei = '0x' + (BigInt(Math.round(amount * 1e18))).toString(16);
-      const transferData = '0xa9059cbb'
-        + PLATFORM_WALLET.slice(2).toLowerCase().padStart(64, '0')
-        + amountWei.slice(2).padStart(64, '0');
-
-      showTopupStatus('Confirm the transaction in MetaMask...', false);
-
-      const txHash = await window.ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from,
-          to: USDT_BEP20,
-          data: transferData,
-          value: '0x0',
-        }],
-      });
-
-      showTopupStatus('Transaction sent! Waiting for confirmation...', false);
-      toast('Transaction sent! Your balance will be credited after confirmation.');
-      topupAmount.value = '';
-
-      // Notify backend about the pending deposit
-      try { await API.client.notifyDeposit(txHash, amount); } catch (_) { /* monitor will pick it up */ }
-
-      // Reload deposits after a short delay
-      setTimeout(() => loadDeposits(), 15000);
-
-    } catch (err) {
-      if (err.code === 4001) {
-        showTopupStatus('Transaction cancelled.', true);
-      } else {
-        showTopupStatus('Transaction failed: ' + (err.message || 'Unknown error'), true);
-      }
-    } finally {
-      topupBtn.disabled = false;
-      topupBtn.textContent = 'Top Up';
-    }
-  });
-
-  async function loadDeposits() {
-    if (!depositsBody || !API.isLoggedIn()) return;
-    try {
-      const { deposits } = await API.client.deposits(1);
-      if (deposits.length === 0) {
-        depositsBody.innerHTML = '<tr><td colspan="4" class="text-soft">No deposits yet.</td></tr>';
-      } else {
-        depositsBody.innerHTML = deposits.slice(0, 10).map(d => {
-          const statusClass = d.status === 'confirmed' ? 'ok' : d.status === 'failed' ? 'danger' : 'warn';
-          const txShort = d.tx_hash ? d.tx_hash.slice(0, 10) + '...' : '';
-          return `<tr>
-            <td>${new Date(d.created_at).toLocaleString()}</td>
-            <td>${parseFloat(d.amount).toFixed(2)} USDT</td>
-            <td><span class="status-pill ${statusClass}">${d.status} (${d.confirmations} conf)</span></td>
-            <td title="${d.tx_hash || ''}">${txShort}</td>
-          </tr>`;
-        }).join('');
-      }
-    } catch (_) { /* ignore */ }
-  }
-
-  // ── P2P Marketplace ────────────────────────────
-  const mktTabs = {
-    browse: { btn: $('tab-browse'), panel: $('panel-browse') },
-    sell: { btn: $('tab-sell'), panel: $('panel-sell') },
-    myOrders: { btn: $('tab-my-orders'), panel: $('panel-my-orders') },
-  };
-  const myFeeLabel = $('my-fee');
-  const listingsBody = $('listings-body');
-  const listingsPag = $('listings-pagination');
-  const marketType = $('market-type');
-  const marketSort = $('market-sort');
-  const marketRefresh = $('market-refresh');
-  const sellEggBtn = $('sell-egg-btn');
-  const sellChickenBtn = $('sell-chicken-btn');
-  const sellChickenSelect = $('sell-chicken-select');
-  const mySellingBody = $('my-selling-body');
-  const myBoughtBody = $('my-bought-body');
-
-  let marketPage = 1;
-
-  function switchMarketTab(name) {
-    Object.entries(mktTabs).forEach(([key, { btn, panel }]) => {
-      if (!btn) return;
-      if (key === name) {
-        btn.classList.add('active');
-        if (panel) panel.style.display = '';
-      } else {
-        btn.classList.remove('active');
-        if (panel) panel.style.display = 'none';
-      }
-    });
-    if (name === 'browse') loadListings();
-    if (name === 'sell') populateSellChickens();
-    if (name === 'myOrders') loadMyOrders();
-  }
-
-  mktTabs.browse.btn?.addEventListener('click', () => switchMarketTab('browse'));
-  mktTabs.sell.btn?.addEventListener('click', () => switchMarketTab('sell'));
-  mktTabs.myOrders.btn?.addEventListener('click', () => switchMarketTab('myOrders'));
-
-  marketType?.addEventListener('change', () => { marketPage = 1; loadListings(); });
-  marketSort?.addEventListener('change', () => { marketPage = 1; loadListings(); });
-  marketRefresh?.addEventListener('click', () => loadListings());
-
-  async function loadMyFee() {
-    if (!myFeeLabel) return;
-    try {
-      const { fee_percent } = await API.marketplace.myFee();
-      myFeeLabel.textContent = `Fee: ${fee_percent}`;
-    } catch (_) { /* ignore */ }
-  }
-
-  async function loadListings() {
-    if (!listingsBody || !API.isLoggedIn()) return;
-    try {
-      const type = marketType?.value || 'egg';
-      const sort = marketSort?.value || 'price_asc';
-      const data = await API.marketplace.listings(type, marketPage, sort);
-
-      if (data.listings.length === 0) {
-        listingsBody.innerHTML = `<tr><td colspan="5" class="text-soft">No ${type} listings available.</td></tr>`;
-      } else {
-        listingsBody.innerHTML = data.listings.map(l => {
-          const itemLabel = l.item_type === 'chicken' && l.species_name ? `${l.species_name} Chicken` : 'Egg';
-          return `<tr>
-            <td>${itemLabel}</td>
-            <td title="${l.seller_wallet}">${shortWallet(l.seller_wallet)}</td>
-            <td>${parseFloat(l.price).toFixed(2)} USDT</td>
-            <td>${new Date(l.created_at).toLocaleDateString()}</td>
-            <td><button class="btn btn-primary btn-sm p2p-buy" data-id="${l.id}">Buy</button></td>
-          </tr>`;
-        }).join('');
-
-        listingsBody.querySelectorAll('.p2p-buy').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            btn.disabled = true;
-            try {
-              const r = await API.marketplace.buy(btn.dataset.id);
-              toast(`Bought ${r.item_type} for ${r.price.toFixed(2)} USDT (fee ${r.fee.toFixed(2)})`);
-              loadListings();
-              loadFarm();
-            } catch (e) { toast(e.message, true); }
-            btn.disabled = false;
-          });
-        });
-      }
-
-      if (listingsPag) {
-        const totalPages = Math.ceil(data.total / data.limit);
-        listingsPag.innerHTML = totalPages > 1
-          ? Array.from({ length: totalPages }, (_, i) =>
-              `<button class="btn ${i + 1 === marketPage ? 'btn-primary' : 'btn-ghost'} btn-sm pag-btn" data-p="${i + 1}">${i + 1}</button>`
-            ).join('')
-          : '';
-        listingsPag.querySelectorAll('.pag-btn').forEach(btn => {
-          btn.addEventListener('click', () => { marketPage = parseInt(btn.dataset.p, 10); loadListings(); });
-        });
-      }
-    } catch (e) { toast(e.message, true); }
-  }
-
-  function populateSellChickens() {
-    if (!sellChickenSelect || !farmData) return;
-    sellChickenSelect.innerHTML = farmData.chickens.map(c =>
-      `<option value="${c.id}">${c.species} #${c.id}</option>`
-    ).join('');
-    if (farmData.chickens.length === 0) {
-      sellChickenSelect.innerHTML = '<option disabled>No chickens available</option>';
-    }
-  }
-
-  sellEggBtn?.addEventListener('click', async () => {
-    const price = parseFloat($('sell-egg-price')?.value);
-    const qty = parseInt($('sell-egg-qty')?.value || '1', 10);
-    if (!price || price <= 0) { toast('Enter a valid price', true); return; }
-    sellEggBtn.disabled = true;
-    try {
-      const r = await API.marketplace.listEgg(price, qty);
-      toast(`Listed ${r.listed} egg(s) at ${price.toFixed(2)} USDT each (fee ${(r.fee_rate * 100).toFixed(1)}%)`);
-      $('sell-egg-price').value = '';
-      loadFarm();
-    } catch (e) { toast(e.message, true); }
-    sellEggBtn.disabled = false;
-  });
-
-  sellChickenBtn?.addEventListener('click', async () => {
-    const chickenId = parseInt(sellChickenSelect?.value, 10);
-    const price = parseFloat($('sell-chicken-price')?.value);
-    if (!chickenId || !price || price <= 0) { toast('Select a chicken and enter a valid price', true); return; }
-    sellChickenBtn.disabled = true;
-    try {
-      const r = await API.marketplace.listChicken(chickenId, price);
-      toast(`Chicken listed for ${price.toFixed(2)} USDT (fee ${(r.fee_rate * 100).toFixed(1)}%)`);
-      $('sell-chicken-price').value = '';
-      loadFarm();
-    } catch (e) { toast(e.message, true); }
-    sellChickenBtn.disabled = false;
-  });
-
-  async function loadMyOrders() {
-    if (!mySellingBody || !API.isLoggedIn()) return;
-    try {
-      const data = await API.marketplace.myOrders();
-
-      const active = data.selling.filter(o => o.status === 'listed');
-      if (active.length === 0) {
-        mySellingBody.innerHTML = '<tr><td colspan="5" class="text-soft">No active listings.</td></tr>';
-      } else {
-        mySellingBody.innerHTML = active.map(o => `
-          <tr>
-            <td>#${o.id}</td>
-            <td>${o.item_type}</td>
-            <td>${parseFloat(o.price).toFixed(2)} USDT</td>
-            <td><span class="status-pill ok">Listed</span></td>
-            <td><button class="btn btn-ghost btn-sm p2p-cancel" data-id="${o.id}">Cancel</button></td>
-          </tr>
-        `).join('');
-
-        mySellingBody.querySelectorAll('.p2p-cancel').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            try {
-              await API.marketplace.cancel(btn.dataset.id);
-              toast('Listing cancelled');
-              loadMyOrders();
-              loadFarm();
-            } catch (e) { toast(e.message, true); }
-          });
-        });
-      }
-
-      if (data.bought.length === 0) {
-        myBoughtBody.innerHTML = '<tr><td colspan="4" class="text-soft">No purchases yet.</td></tr>';
-      } else {
-        myBoughtBody.innerHTML = data.bought.map(o => `
-          <tr>
-            <td>#${o.id}</td>
-            <td>${o.item_type}</td>
-            <td>${parseFloat(o.price).toFixed(2)} USDT</td>
-            <td>${new Date(o.sold_at).toLocaleDateString()}</td>
-          </tr>
-        `).join('');
-      }
-    } catch (e) { toast(e.message, true); }
-  }
-
   // ── Auto-refresh ───────────────────────────────
   if (API.isLoggedIn()) {
     loadFarm();
-    loadMyFee();
-    loadListings();
     setInterval(loadFarm, 30000);
   }
 })();

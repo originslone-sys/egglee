@@ -31,7 +31,7 @@ try {
   console.error('[BOOT] Cannot list frontend dir:', e.message);
 }
 
-let authRoutes, clientRoutes, adminRoutes, marketplaceRoutes, runProductionCycle, scanDeposits;
+let authRoutes, clientRoutes, adminRoutes, runProductionCycle, scanDeposits, scanPurchases;
 
 try {
   authRoutes = require('./routes/auth');
@@ -58,21 +58,15 @@ try {
 }
 
 try {
-  marketplaceRoutes = require('./routes/marketplace');
-  console.log('[BOOT] marketplace routes loaded');
-} catch (e) {
-  console.error('[BOOT] FAILED to load marketplace routes:', e.message);
-  marketplaceRoutes = require('express').Router();
-}
-
-try {
   ({ runProductionCycle } = require('./jobs/production'));
   ({ scanDeposits } = require('./jobs/depositMonitor'));
+  ({ scanPurchases } = require('./jobs/purchaseMonitor'));
   console.log('[BOOT] jobs loaded');
 } catch (e) {
   console.error('[BOOT] FAILED to load jobs:', e.message);
   runProductionCycle = async () => ({ skipped: true });
   scanDeposits = async () => ({ skipped: true, found: 0, credited: 0 });
+  scanPurchases = async () => ({ checked: 0, confirmed: 0, failed: 0 });
 }
 
 const app = express();
@@ -98,7 +92,6 @@ app.use('/api/', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/marketplace', marketplaceRoutes);
 
 // Serve static frontend files from public/
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -158,6 +151,18 @@ cron.schedule('*/2 * * * *', async () => {
     }
   } catch (err) {
     console.error('[CRON] Deposit scan error:', err.message);
+  }
+});
+
+// Purchase monitor cron — every 2 minutes
+cron.schedule('*/2 * * * *', async () => {
+  try {
+    const result = await scanPurchases();
+    if (result.confirmed > 0 || result.failed > 0) {
+      console.log(`[CRON] Purchase scan:`, result);
+    }
+  } catch (err) {
+    console.error('[CRON] Purchase scan error:', err.message);
   }
 });
 

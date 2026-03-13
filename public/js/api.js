@@ -7,6 +7,9 @@ const API = (() => {
   let token = localStorage.getItem('gf_token');
   let currentUser = JSON.parse(localStorage.getItem('gf_user') || 'null');
 
+  const PLATFORM_WALLET = '0x8417C9a00249Da8e4ff7414c5992C08511c28328';
+  const USDT_BEP20 = '0x55d398326f99059fF775485246999027B3197955';
+
   function headers() {
     const h = { 'Content-Type': 'application/json' };
     if (token) h['Authorization'] = `Bearer ${token}`;
@@ -63,19 +66,63 @@ const API = (() => {
   function getUser() { return currentUser; }
   function isAdmin() { return currentUser?.role === 'admin'; }
 
+  // ── MetaMask Payment Helper ──────────────────────────
+  async function ensureBSC() {
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+    if (chainId !== '0x38') {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: '0x38' }],
+      });
+    }
+  }
+
+  /**
+   * Send USDT BEP20 payment via MetaMask.
+   * Returns the tx_hash on success.
+   */
+  async function sendPayment(amountUSDT) {
+    if (typeof window.ethereum === 'undefined') {
+      throw new Error('MetaMask not detected. Please install MetaMask.');
+    }
+
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const from = accounts[0];
+
+    await ensureBSC();
+
+    // Encode ERC20 transfer(address,uint256)
+    const amountWei = '0x' + (BigInt(Math.round(amountUSDT * 1e18))).toString(16);
+    const transferData = '0xa9059cbb'
+      + PLATFORM_WALLET.slice(2).toLowerCase().padStart(64, '0')
+      + amountWei.slice(2).padStart(64, '0');
+
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from,
+        to: USDT_BEP20,
+        data: transferData,
+        value: '0x0',
+      }],
+    });
+
+    return txHash;
+  }
+
   // ── Client API ─────────────────────────────────────
 
   const client = {
     farm:          () => request('GET', '/client/farm'),
     collectEggs:   () => request('POST', '/client/collect-eggs'),
-    buyFeed:       (qty) => request('POST', '/client/buy-feed', { quantity: qty }),
+    feedPrice:     () => request('GET', '/client/feed-price'),
+    buyFeed:       (qty, txHash) => request('POST', '/client/buy-feed', { quantity: qty, tx_hash: txHash }),
     toggleAutoFeed:() => request('POST', '/client/toggle-auto-feed'),
-    buyChicken:    (speciesId) => request('POST', '/client/buy-chicken', { species_id: speciesId }),
+    buyChicken:    (speciesId, txHash) => request('POST', '/client/buy-chicken', { species_id: speciesId, tx_hash: txHash }),
     withdraw:      (amount) => request('POST', '/client/withdraw', { amount }),
     species:       () => request('GET', '/client/species'),
     ledger:        (page) => request('GET', `/client/ledger?page=${page || 1}`),
-    notifyDeposit: (txHash, amount) => request('POST', '/client/notify-deposit', { tx_hash: txHash, amount }),
-    deposits:      (page) => request('GET', `/client/deposits?page=${page || 1}`),
+    purchases:     (page) => request('GET', `/client/purchases?page=${page || 1}`),
     fertileEggs:   () => request('GET', '/client/fertile-eggs'),
     incubateEgg:   (eggId) => request('POST', '/client/incubate-egg', { egg_id: eggId }),
     feedChick:     (chickId, amount) => request('POST', '/client/feed-chick', { chick_id: chickId, amount }),
@@ -102,18 +149,6 @@ const API = (() => {
     deleteSpecies:    (id) => request('DELETE', `/admin/species/${id}`),
   };
 
-  // ── Marketplace API ────────────────────────────────
-
-  const marketplace = {
-    listings:     (type, page, sort) => request('GET', `/marketplace/listings?type=${type || 'egg'}&page=${page || 1}&sort=${sort || 'price_asc'}`),
-    myOrders:     (status) => request('GET', `/marketplace/my-orders${status ? '?status=' + status : ''}`),
-    myFee:        () => request('GET', '/marketplace/my-fee'),
-    listEgg:      (price, qty) => request('POST', '/marketplace/list-egg', { price, quantity: qty }),
-    listChicken:  (chickenId, price) => request('POST', '/marketplace/list-chicken', { chicken_id: chickenId, price }),
-    buy:          (orderId) => request('POST', `/marketplace/buy/${orderId}`),
-    cancel:       (orderId) => request('POST', `/marketplace/cancel/${orderId}`),
-  };
-
   async function adminLogin(username, password) {
     const data = await request('POST', '/auth/admin-login', { username, password });
     token = data.token;
@@ -123,5 +158,5 @@ const API = (() => {
     return data;
   }
 
-  return { connectMetaMask, adminLogin, logout, isLoggedIn, getUser, isAdmin, client, admin, marketplace };
+  return { connectMetaMask, adminLogin, logout, isLoggedIn, getUser, isAdmin, sendPayment, client, admin };
 })();
