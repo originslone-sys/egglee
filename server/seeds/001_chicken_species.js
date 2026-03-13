@@ -9,22 +9,25 @@ exports.seed = async function (knex) {
       feed_per_day: 0.8,
       lifespan_days: 183,
       hatch_probability: 0.7000,
+      species_weight: 0.7000,
     },
     {
-      name: 'Caipira Melhorada',
+      name: 'Premium',
       purchase_price: 3.00,
       eggs_per_day: 2.3,
       feed_per_day: 1.4,
       lifespan_days: 210,
       hatch_probability: 0.2500,
+      species_weight: 0.2500,
     },
     {
-      name: 'Poedeira Premium',
+      name: 'Rare',
       purchase_price: 7.00,
       eggs_per_day: 5.5,
       feed_per_day: 3.5,
       lifespan_days: 270,
       hatch_probability: 0.0500,
+      species_weight: 0.0500,
     },
   ]);
 };

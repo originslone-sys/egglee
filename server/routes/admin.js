@@ -258,7 +258,7 @@ router.get('/species', async (req, res) => {
 
 // POST /api/admin/species — create a new species
 router.post('/species', async (req, res) => {
-  const { name, purchase_price, eggs_per_day, feed_per_day, lifespan_days, hatch_probability } = req.body;
+  const { name, purchase_price, eggs_per_day, feed_per_day, lifespan_days, hatch_probability, species_weight } = req.body;
 
   if (!name || !purchase_price || !eggs_per_day || !feed_per_day || !lifespan_days) {
     return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
@@ -276,6 +276,7 @@ router.post('/species', async (req, res) => {
     feed_per_day: parseFloat(feed_per_day),
     lifespan_days: parseInt(lifespan_days, 10),
     hatch_probability: parseFloat(hatch_probability || 0),
+    species_weight: parseFloat(species_weight || 0),
   });
 
   const created = await db('chicken_species').where({ id }).first();
@@ -285,7 +286,7 @@ router.post('/species', async (req, res) => {
 // PUT /api/admin/species/:id — update a species
 router.put('/species/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, purchase_price, eggs_per_day, feed_per_day, lifespan_days, hatch_probability, is_active } = req.body;
+  const { name, purchase_price, eggs_per_day, feed_per_day, lifespan_days, hatch_probability, species_weight, is_active } = req.body;
 
   const species = await db('chicken_species').where({ id }).first();
   if (!species) {
@@ -299,6 +300,7 @@ router.put('/species/:id', async (req, res) => {
   if (feed_per_day !== undefined) updates.feed_per_day = parseFloat(feed_per_day);
   if (lifespan_days !== undefined) updates.lifespan_days = parseInt(lifespan_days, 10);
   if (hatch_probability !== undefined) updates.hatch_probability = parseFloat(hatch_probability);
+  if (species_weight !== undefined) updates.species_weight = parseFloat(species_weight);
   if (is_active !== undefined) updates.is_active = !!is_active;
 
   await db('chicken_species').where({ id }).update(updates);
