@@ -310,6 +310,7 @@ router.get('/ledger', async (req, res) => {
 
 // POST /api/client/incubate-egg — start incubating an egg
 router.post('/incubate-egg', async (req, res) => {
+  try {
   const userId = req.user.id;
   const { egg_id } = req.body;
 
@@ -318,6 +319,9 @@ router.post('/incubate-egg', async (req, res) => {
   }
 
   const eggFeedCost = await EconomyConfig.getNumber('egg_to_chick_feed');
+  if (!eggFeedCost || eggFeedCost <= 0) {
+    return res.status(500).json({ error: 'Incubation feed cost not configured' });
+  }
 
   const result = await db.transaction(async (trx) => {
     const egg = await trx('eggs')
@@ -341,6 +345,13 @@ router.post('/incubate-egg', async (req, res) => {
   });
 
   res.json(result);
+  } catch (err) {
+    console.error('[CLIENT] POST /incubate-egg error:', err.message);
+    const msg = err.message === 'Insufficient feed' ? 'Insufficient feed for incubation'
+      : err.message === 'Egg not found or not available' ? err.message
+      : 'Failed to incubate egg';
+    res.status(400).json({ error: msg });
+  }
 });
 
 // GET /api/client/eggs-for-incubation — list eggs available for incubation
