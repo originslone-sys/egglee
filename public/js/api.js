@@ -1,5 +1,5 @@
 /**
- * api.js — HTTP client layer for Galinha Farm
+ * api.js — HTTP client layer for Egglee
  * Handles auth token, MetaMask connection, and all API calls.
  */
 const API = (() => {

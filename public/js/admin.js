@@ -1,5 +1,5 @@
 /**
- * admin.js — Admin Panel Controller for Galinha Farm
+ * admin.js — Admin Panel Controller for Egglee
  */
 (function () {
   // ── Helpers ─────────────────────────────────────

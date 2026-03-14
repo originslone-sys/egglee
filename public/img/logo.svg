@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" fill="none">
+  <defs>
+    <linearGradient id="egg-grad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#69f0ae"/>
+      <stop offset="100%" stop-color="#47d18f"/>
+    </linearGradient>
+    <linearGradient id="dollar-grad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#062112"/>
+      <stop offset="100%" stop-color="#0a3a20"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Egg shape -->
+  <ellipse cx="60" cy="78" rx="48" ry="58" fill="url(#egg-grad)" filter="url(#glow)"/>
+  <!-- Inner shadow for depth -->
+  <ellipse cx="60" cy="78" rx="42" ry="52" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+  <!-- Highlight reflection -->
+  <ellipse cx="44" cy="54" rx="14" ry="20" fill="rgba(255,255,255,0.18)" transform="rotate(-15 44 54)"/>
+  <!-- Dollar sign $ -->
+  <text x="60" y="96" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="60" fill="url(#dollar-grad)">$</text>
+</svg>

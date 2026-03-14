@@ -1,5 +1,5 @@
 /**
- * client.js — Client Dashboard Controller for Galinha Farm
+ * client.js — Client Dashboard Controller for Egglee
  */
 (function () {
   // ── Helpers ─────────────────────────────────────
