@@ -166,10 +166,27 @@ cron.schedule('*/2 * * * *', async () => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`[SERVER] Egglee running on port ${PORT}`);
-  console.log(`[SERVER] Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log('[SERVER] Server is ready to accept requests');
-});
+// Run migrations automatically before accepting requests
+const db = require('./config/database');
+db.migrate.latest()
+  .then(([batch, log]) => {
+    if (log.length > 0) {
+      console.log(`[BOOT] Migrations ran (batch ${batch}):`, log.join(', '));
+    } else {
+      console.log('[BOOT] Migrations up to date');
+    }
+    app.listen(PORT, () => {
+      console.log(`[SERVER] Egglee running on port ${PORT}`);
+      console.log(`[SERVER] Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log('[SERVER] Server is ready to accept requests');
+    });
+  })
+  .catch((err) => {
+    console.error('[BOOT] Migration failed:', err.message);
+    // Start server anyway so Cloud Run health checks don't kill the container
+    app.listen(PORT, () => {
+      console.log(`[SERVER] Egglee running on port ${PORT} (migration failed)`);
+    });
+  });
 
 module.exports = app;
