@@ -505,18 +505,54 @@
 
         <!-- ── Users Section ───────────────────── -->
         <div id="section-users" class="admin-section">
-          <div class="section-header">
+          <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem">
             <h2>Registered Users</h2>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <input type="text" id="user-search" class="input" placeholder="Search wallet..." style="width:220px" />
+              <button class="btn btn-ghost btn-sm" id="user-search-btn">Search</button>
+            </div>
           </div>
-          <div class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr><th>Wallet</th><th>Balance</th><th>Feed</th><th>Last Login</th><th>Actions</th></tr>
-              </thead>
-              <tbody id="user-body">
-                <tr><td colspan="5" class="text-soft">Connect as admin to view users.</td></tr>
-              </tbody>
-            </table>
+
+          <div id="users-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;margin-bottom:1rem">
+            <div class="metric-card"><p class="metric-label">Total Users</p><p class="metric metric-sm" id="users-total">&mdash;</p></div>
+            <div class="metric-card"><p class="metric-label">Total Balance (USDT)</p><p class="metric metric-sm" id="users-total-balance">&mdash;</p></div>
+            <div class="metric-card"><p class="metric-label">Total Chickens Alive</p><p class="metric metric-sm" id="users-total-chickens">&mdash;</p></div>
+            <div class="metric-card"><p class="metric-label">Total Withdrawn</p><p class="metric metric-sm" id="users-total-withdrawn">&mdash;</p></div>
+          </div>
+
+          <div id="user-list" style="display:flex;flex-direction:column;gap:.8rem">
+            <p class="text-soft">Connect as admin to view users.</p>
+          </div>
+
+          <div id="user-pagination" class="pagination-row" style="margin-top:1rem"></div>
+
+          <!-- Bonus Modal -->
+          <div id="bonus-modal" class="terms-overlay" style="display:none">
+            <div class="terms-box" style="max-width:440px">
+              <h2 id="bonus-modal-title">Give Bonus</h2>
+              <div style="margin:1rem 0">
+                <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:.3rem">Bonus Type</label>
+                <select id="bonus-type" class="input" style="width:100%;margin-bottom:.8rem">
+                  <option value="feed">Feed (units)</option>
+                  <option value="eggs">Eggs</option>
+                  <option value="chicken">Chicken</option>
+                </select>
+
+                <div id="bonus-qty-wrap">
+                  <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:.3rem">Quantity</label>
+                  <input type="number" id="bonus-qty" class="input" min="1" value="1" style="width:100%" />
+                </div>
+
+                <div id="bonus-species-wrap" style="display:none;margin-top:.8rem">
+                  <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:.3rem">Species</label>
+                  <select id="bonus-species" class="input" style="width:100%"></select>
+                </div>
+              </div>
+              <div style="display:flex;gap:.5rem">
+                <button id="bonus-confirm" class="btn btn-primary" style="flex:1">Confirm</button>
+                <button id="bonus-cancel" class="btn btn-ghost" style="flex:1">Cancel</button>
+              </div>
+            </div>
           </div>
         </div>
 
