@@ -117,8 +117,8 @@
       <a href="#incubation"><span class="toc-icon">&#x1F525;</span> Incubation &amp; Hatching</a>
       <a href="#chicks"><span class="toc-icon">&#x1F423;</span> Chick Growth</a>
       <a href="#death"><span class="toc-icon">&#x1F480;</span> Death Mechanics</a>
-      <a href="#marketplace"><span class="toc-icon">&#x1F4B1;</span> Marketplace</a>
       <a href="#wallet"><span class="toc-icon">&#x1F4B0;</span> Wallet &amp; Withdrawals</a>
+      <a href="#reference"><span class="toc-icon">&#x1F4CB;</span> Quick Reference</a>
     </nav>
 
     <!-- ════════ GETTING STARTED ════════ -->
@@ -136,8 +136,8 @@
         <table class="doc-table">
           <thead><tr><th>Item</th><th>Quantity</th><th>Details</th></tr></thead>
           <tbody>
-            <tr><td>Common Chicken</td><td class="highlight-cell">1</td><td>Produces 1 egg/day, lives 183 days, consumes 0.8 feed/day</td></tr>
-            <tr><td>Feed</td><td class="highlight-cell">5 units</td><td>Enough to feed your starter chicken for ~6 days</td></tr>
+            <tr><td>Common Chicken</td><td class="highlight-cell">1</td><td>Produces 1 egg/day, lives 183 days, consumes 1 feed/day</td></tr>
+            <tr><td>Feed</td><td class="highlight-cell">5 units</td><td>Enough to feed your starter chicken for 5 days</td></tr>
           </tbody>
         </table>
       </div>
@@ -149,7 +149,7 @@
       <ul>
         <li><strong>Overview:</strong> See your chickens, eggs, feed stock, and USDT balance at a glance</li>
         <li><strong>Farm:</strong> Incubate eggs, feed chicks, view hatch history, and manage your flock</li>
-        <li><strong>Wallet:</strong> Buy feed/chickens, request withdrawals, and view transaction history</li>
+        <li><strong>Wallet:</strong> Buy feed/chickens/eggs, request withdrawals, and view transaction history</li>
       </ul>
     </section>
 
@@ -166,26 +166,26 @@
           <tbody>
             <tr>
               <td><strong>Common</strong></td>
-              <td>$1.20</td>
-              <td>1.0</td>
-              <td>0.8</td>
+              <td>$1.00</td>
+              <td>1</td>
+              <td>1</td>
               <td>183 days</td>
               <td class="highlight-cell">70%</td>
             </tr>
             <tr>
               <td><strong>Premium</strong></td>
-              <td>$3.00</td>
-              <td>2.3</td>
-              <td>1.4</td>
-              <td>210 days</td>
+              <td>$10.00</td>
+              <td>3</td>
+              <td>2</td>
+              <td>221 days</td>
               <td class="highlight-cell">25%</td>
             </tr>
             <tr>
               <td><strong>Rare</strong></td>
-              <td>$7.00</td>
-              <td>5.5</td>
-              <td>3.5</td>
-              <td>270 days</td>
+              <td>$20.00</td>
+              <td>5</td>
+              <td>3</td>
+              <td>269 days</td>
               <td class="highlight-cell">5%</td>
             </tr>
           </tbody>
@@ -194,7 +194,7 @@
 
       <div class="info-card">
         <h4>&#x1F4CA; Understanding Hatch Chance</h4>
-        <p>The "Hatch Chance" column shows the probability that a newly hatched chick will become this species. When an egg hatches, the species is randomly selected using these weights: 70% Common, 25% Premium, 5% Rare. This means hatching eggs is the only way to potentially get a Rare chicken without buying one directly.</p>
+        <p>The "Hatch Chance" column shows the probability that a newly hatched chick will become this species. When an egg hatches successfully, the species is randomly selected using these weights: 70% Common, 25% Premium, 5% Rare. This means incubating eggs is the only way to potentially get a Rare or Premium chicken without buying one directly.</p>
       </div>
 
       <h3>Profitability Comparison</h3>
@@ -206,35 +206,73 @@
           <tbody>
             <tr>
               <td>Common</td>
-              <td>1.0</td>
+              <td>1</td>
+              <td>$0.12</td>
               <td>$0.10</td>
-              <td>$0.096</td>
-              <td class="highlight-cell">$0.004</td>
-              <td>~300 days</td>
+              <td class="highlight-cell">$0.02</td>
+              <td>~50 days</td>
             </tr>
             <tr>
               <td>Premium</td>
-              <td>2.3</td>
-              <td>$0.23</td>
-              <td>$0.168</td>
-              <td class="highlight-cell">$0.062</td>
-              <td>~48 days</td>
+              <td>3</td>
+              <td>$0.36</td>
+              <td>$0.20</td>
+              <td class="highlight-cell">$0.16</td>
+              <td>~63 days</td>
             </tr>
             <tr>
               <td>Rare</td>
-              <td>5.5</td>
-              <td>$0.55</td>
-              <td>$0.42</td>
-              <td class="highlight-cell">$0.13</td>
-              <td>~54 days</td>
+              <td>5</td>
+              <td>$0.60</td>
+              <td>$0.30</td>
+              <td class="highlight-cell">$0.30</td>
+              <td>~67 days</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <p><em>Revenue calculated at system egg price of $0.10/egg. Feed cost calculated at $0.12/unit.</em></p>
+      <p><em>Revenue calculated at system egg sell price of $0.12/egg. Feed cost calculated at $0.10/unit.</em></p>
 
-      <div class="tip-box"><strong>Strategy:</strong> Premium chickens offer the fastest ROI. Rare chickens have the highest absolute daily profit but cost more upfront. Start with Premiums to build capital, then diversify into Rare for maximum earnings.</div>
+      <h3>Lifetime Profit</h3>
+      <p>Total net profit over the entire lifespan of each chicken:</p>
+
+      <div class="doc-table-wrap">
+        <table class="doc-table">
+          <thead><tr><th>Species</th><th>Purchase</th><th>Lifespan</th><th>Total Eggs</th><th>Total Revenue</th><th>Total Feed Cost</th><th>Net Lifetime Profit</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Common</td>
+              <td>$1.00</td>
+              <td>183 days</td>
+              <td>~183</td>
+              <td>$21.96</td>
+              <td>$18.30</td>
+              <td class="highlight-cell">+$2.66</td>
+            </tr>
+            <tr>
+              <td>Premium</td>
+              <td>$10.00</td>
+              <td>221 days</td>
+              <td>~663</td>
+              <td>$79.56</td>
+              <td>$44.20</td>
+              <td class="highlight-cell">+$25.36</td>
+            </tr>
+            <tr>
+              <td>Rare</td>
+              <td>$20.00</td>
+              <td>269 days</td>
+              <td>~1,345</td>
+              <td>$161.40</td>
+              <td>$80.70</td>
+              <td class="highlight-cell">+$60.70</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tip-box"><strong>Strategy:</strong> Common chickens have the fastest ROI (50 days) but lowest absolute profit. Premium and Rare have similar ROI periods (~63-67 days) but much higher total earnings. Start with Common chickens to build capital, then upgrade to Premium and Rare for maximum lifetime profit.</div>
     </section>
 
     <!-- ════════ EGG PRODUCTION ════════ -->
@@ -247,49 +285,57 @@
 
       <div class="formula">probability_per_cycle = eggs_per_day / 144</div>
 
-      <p>For example, a Common chicken (1.0 egg/day) has a <strong>0.69% chance</strong> per cycle to produce an egg. Over 144 cycles, this averages out to ~1 egg per day. Production is probabilistic, so daily output may vary slightly.</p>
+      <p>For example, a Common chicken (1 egg/day) has a <strong>0.69% chance</strong> per cycle to produce an egg. Over 144 cycles, this averages out to ~1 egg per day. Production is probabilistic, so daily output may vary slightly.</p>
 
       <h3>Egg Statuses</h3>
       <div class="doc-table-wrap">
         <table class="doc-table">
           <thead><tr><th>Status</th><th>Description</th><th>Actions Available</th></tr></thead>
           <tbody>
-            <tr><td><strong>Available</strong></td><td>Freshly produced, sitting in your farm</td><td>Collect (sell to system), Incubate, List on marketplace</td></tr>
-            <tr><td><strong>Incubating</strong></td><td>Placed in incubator, waiting to hatch</td><td>Wait for hatching result</td></tr>
+            <tr><td><strong>Available</strong></td><td>Freshly produced or purchased, sitting in your farm</td><td>Sell to system ($0.12) or Incubate</td></tr>
+            <tr><td><strong>Incubating</strong></td><td>Placed in incubator, waiting to hatch</td><td>Wait for hatching result (72 hours)</td></tr>
             <tr><td><strong>Hatched</strong></td><td>Successfully hatched into a chick</td><td>None (chick is now growing)</td></tr>
             <tr><td><strong>Failed</strong></td><td>Incubation failed, no chick produced</td><td>None (egg is consumed)</td></tr>
-            <tr><td><strong>Sold (System)</strong></td><td>Collected and sold to the system</td><td>None (USDT credited)</td></tr>
+            <tr><td><strong>Sold (System)</strong></td><td>Collected and sold to the system</td><td>None ($0.12 USDT credited)</td></tr>
             <tr><td><strong>Expired</strong></td><td>Not collected within 7 days</td><td>None (egg is lost)</td></tr>
           </tbody>
         </table>
       </div>
 
-      <div class="warn-box"><strong>Warning:</strong> Eggs expire after <strong>7 days</strong> if not collected, incubated, or listed. Check your farm regularly to avoid losing production!</div>
+      <div class="warn-box"><strong>Warning:</strong> Produced eggs expire after <strong>7 days</strong> if not collected or incubated. Check your farm regularly to avoid losing production!</div>
 
-      <h3>Collecting Eggs</h3>
-      <p>Click <strong>"Collect Eggs"</strong> to sell all available eggs to the system at the current price of <strong>$0.10 per egg</strong>. The USDT is instantly added to your wallet balance.</p>
+      <h3>Selling Eggs</h3>
+      <p>Click <strong>"Collect Eggs"</strong> to sell all available eggs to the system at the fixed price of <strong>$0.12 per egg</strong>. The USDT is instantly added to your wallet balance.</p>
+
+      <h3>Buying Eggs</h3>
+      <p>You can also <strong>buy eggs directly</strong> from the system for <strong>$0.20 per egg</strong> via MetaMask (USDT/BEP-20). Purchased eggs can be incubated just like produced eggs, with the same 30% hatch success rate and species probabilities.</p>
+
+      <div class="info-card">
+        <h4>&#x1F4A1; Why Buy Eggs?</h4>
+        <p>Buying eggs to incubate is a strategy to rapidly expand your flock. Although you pay $0.20 per egg (vs. $0.12 selling value), a successful hatch gives you a chicken worth $1-$20. With a 30% success rate and weighted species chances, the expected value makes it a worthwhile investment for growth.</p>
+      </div>
     </section>
 
     <!-- ════════ FEED SYSTEM ════════ -->
     <section id="feed" class="doc-section">
       <h2><span class="icon">&#x1F33E;</span> Feed System</h2>
-      <p class="section-desc">Feed is the fuel that keeps your farm running. Without it, your chickens stop producing and eventually die.</p>
+      <p class="section-desc">Feed is the fuel that keeps your farm running. Without it, your chickens stop producing and will die within 72 hours.</p>
 
       <h3>How Feed Works</h3>
       <p>Every production cycle (every 10 minutes), the system calculates the <strong>total feed needed</strong> by all your alive chickens:</p>
 
       <div class="formula">feed_per_cycle = SUM(each_chicken.feed_per_day) / 144</div>
 
-      <p>If you have enough feed, it's automatically deducted and your chickens produce normally. If not, <strong>all your chickens enter starvation mode</strong>.</p>
+      <p>If you have enough feed, it's automatically deducted and your chickens produce normally. If not, <strong>all your chickens enter starvation mode</strong> — they stop producing eggs and a 72-hour death timer begins.</p>
 
       <h3>Feed Pricing</h3>
       <div class="doc-table-wrap">
         <table class="doc-table">
           <thead><tr><th>Item</th><th>Price</th><th>Feeds Common Chicken For</th></tr></thead>
           <tbody>
-            <tr><td>1 Feed Unit</td><td class="highlight-cell">$0.12</td><td>~1.25 days (0.8 feed/day)</td></tr>
-            <tr><td>10 Feed Units</td><td>$1.20</td><td>~12.5 days</td></tr>
-            <tr><td>50 Feed Units</td><td>$6.00</td><td>~62.5 days</td></tr>
+            <tr><td>1 Feed Unit</td><td class="highlight-cell">$0.10</td><td>1 day (1 feed/day)</td></tr>
+            <tr><td>10 Feed Units</td><td>$1.00</td><td>10 days</td></tr>
+            <tr><td>50 Feed Units</td><td>$5.00</td><td>50 days</td></tr>
           </tbody>
         </table>
       </div>
@@ -299,9 +345,9 @@
         <table class="doc-table">
           <thead><tr><th>Species</th><th>Feed/Day</th><th>Feed/Cycle (10 min)</th><th>Monthly Feed Cost</th></tr></thead>
           <tbody>
-            <tr><td>Common</td><td>0.8</td><td>~0.0056</td><td class="highlight-cell">$2.88</td></tr>
-            <tr><td>Premium</td><td>1.4</td><td>~0.0097</td><td class="highlight-cell">$5.04</td></tr>
-            <tr><td>Rare</td><td>3.5</td><td>~0.0243</td><td class="highlight-cell">$12.60</td></tr>
+            <tr><td>Common</td><td>1</td><td>~0.0069</td><td class="highlight-cell">$3.00</td></tr>
+            <tr><td>Premium</td><td>2</td><td>~0.0139</td><td class="highlight-cell">$6.00</td></tr>
+            <tr><td>Rare</td><td>3</td><td>~0.0208</td><td class="highlight-cell">$9.00</td></tr>
           </tbody>
         </table>
       </div>
@@ -312,17 +358,15 @@
     <!-- ════════ INCUBATION & HATCHING ════════ -->
     <section id="incubation" class="doc-section">
       <h2><span class="icon">&#x1F525;</span> Incubation &amp; Hatching</h2>
-      <p class="section-desc">Incubation lets you turn eggs into new chickens — the only way to grow your flock without buying directly.</p>
+      <p class="section-desc">Incubation lets you turn eggs into new chickens — the only way to grow your flock without buying directly. Both produced and purchased eggs can be incubated.</p>
 
       <h3>The Incubation Process</h3>
       <div class="flow">
-        <span class="flow-step">&#x1F95A; Available Egg</span>
+        <span class="flow-step">&#x1F95A; Egg (produced or bought)</span>
         <span class="flow-arrow">&rarr;</span>
-        <span class="flow-step">&#x1F33E; Pay 0.7 Feed</span>
+        <span class="flow-step">&#x23F3; Incubate 72h (0.5 feed/day)</span>
         <span class="flow-arrow">&rarr;</span>
-        <span class="flow-step">&#x23F3; Incubate (72h)</span>
-        <span class="flow-arrow">&rarr;</span>
-        <span class="flow-step">&#x1F3B2; Hatch Roll (30%)</span>
+        <span class="flow-step">&#x1F3B2; Hatch Roll (30% success)</span>
         <span class="flow-arrow">&rarr;</span>
         <span class="flow-step">&#x1F423; Chick!</span>
       </div>
@@ -332,29 +376,38 @@
         <table class="doc-table">
           <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
           <tbody>
-            <tr><td>Feed cost to start incubation</td><td class="highlight-cell">0.7 units ($0.084)</td></tr>
             <tr><td>Incubation duration</td><td class="highlight-cell">72 hours (3 days)</td></tr>
+            <tr><td>Feed consumption during incubation</td><td class="highlight-cell">0.5 feed/day (1.5 total)</td></tr>
+            <tr><td>Incubation feed cost</td><td class="highlight-cell">$0.15 (1.5 units &times; $0.10)</td></tr>
             <tr><td>Hatch success rate</td><td class="highlight-cell">30%</td></tr>
-            <tr><td>Species on success (Common)</td><td>70% chance</td></tr>
-            <tr><td>Species on success (Premium)</td><td>25% chance</td></tr>
-            <tr><td>Species on success (Rare)</td><td>5% chance</td></tr>
+            <tr><td>Hatch failure rate</td><td>70% (egg is lost)</td></tr>
+            <tr><td>Species on success: Common</td><td>70% chance</td></tr>
+            <tr><td>Species on success: Premium</td><td>25% chance</td></tr>
+            <tr><td>Species on success: Rare</td><td>5% chance</td></tr>
           </tbody>
         </table>
       </div>
 
-      <div class="warn-box"><strong>Important:</strong> The 0.7 feed and the egg are consumed when you start incubation. If the hatch fails (70% chance), you lose both. Incubation is a gamble — only incubate eggs you can afford to lose.</div>
+      <div class="warn-box"><strong>Important:</strong> Incubation consumes 0.5 feed per day for 3 days (1.5 feed total). The egg is also consumed. If the hatch fails (70% chance), you lose both the egg and the feed spent. Only incubate eggs you can afford to lose.</div>
+
+      <h3>What Eggs Can Be Incubated?</h3>
+      <p><strong>All eggs</strong> — whether produced by your chickens or purchased from the system — can be incubated. They all have the same 30% success rate and the same species probabilities.</p>
 
       <h3>Expected Value Analysis</h3>
-      <p>The expected value of incubating one egg:</p>
-      <div class="formula">EV = 0.30 &times; (0.70 &times; $1.20 + 0.25 &times; $3.00 + 0.05 &times; $7.00) - $0.084 - $0.10</div>
-      <div class="formula">EV = 0.30 &times; $1.94 - $0.184 = $0.582 - $0.184 = <strong>+$0.398</strong></div>
-      <p>On average, each incubation attempt has a <strong>positive expected value of ~$0.40</strong>, making it a worthwhile strategy long-term, despite the 70% failure rate per attempt.</p>
+      <p>The expected value of incubating one <strong>produced</strong> egg (opportunity cost = $0.12 sell price):</p>
+      <div class="formula">EV chicken value = 0.70 &times; $1.00 + 0.25 &times; $10.00 + 0.05 &times; $20.00 = $4.20</div>
+      <div class="formula">EV = 0.30 &times; $4.20 - $0.12 (egg) - $0.15 (incub. feed) = $1.26 - $0.27 = <strong>+$0.99</strong></div>
+
+      <p>The expected value of incubating one <strong>purchased</strong> egg ($0.20 cost):</p>
+      <div class="formula">EV = 0.30 &times; $4.20 - $0.20 (egg) - $0.15 (incub. feed) = $1.26 - $0.35 = <strong>+$0.91</strong></div>
+
+      <p>Both scenarios have strong <strong>positive expected value</strong>, making incubation a worthwhile strategy long-term despite the 70% failure rate per attempt. Note: this EV does not include the chick growth feed cost ($0.60), which brings net EV to approximately <strong>+$0.39</strong> (produced) or <strong>+$0.31</strong> (purchased) per attempt.</p>
     </section>
 
     <!-- ════════ CHICK GROWTH ════════ -->
     <section id="chicks" class="doc-section">
       <h2><span class="icon">&#x1F423;</span> Chick Growth</h2>
-      <p class="section-desc">When an egg hatches successfully, a chick is born. Chicks must be fed and raised before they become productive adult chickens.</p>
+      <p class="section-desc">When an egg hatches successfully, a chick is born. Chicks must be fed daily before they become productive adult chickens.</p>
 
       <h3>Growth Requirements</h3>
       <p>A chick becomes an adult chicken when <strong>both conditions</strong> are met:</p>
@@ -363,34 +416,42 @@
           <thead><tr><th>Condition</th><th>Requirement</th></tr></thead>
           <tbody>
             <tr><td>Time elapsed since hatch</td><td class="highlight-cell">12 days minimum</td></tr>
-            <tr><td>Total feed consumed</td><td class="highlight-cell">2.0 units minimum</td></tr>
+            <tr><td>Feed consumption rate</td><td class="highlight-cell">0.5 feed per day</td></tr>
+            <tr><td>Total feed consumed</td><td class="highlight-cell">6.0 units (12 days &times; 0.5/day)</td></tr>
           </tbody>
         </table>
       </div>
 
-      <h3>Feeding Chicks</h3>
-      <p>Unlike adult chickens (which consume feed automatically), chicks must be <strong>manually fed</strong> by the player:</p>
-      <ul>
-        <li>Go to the <strong>Farm</strong> tab and find the <strong>"Growing Chicks"</strong> section</li>
-        <li>Choose how much feed to give (between 0.1 and 5.0 units per feeding)</li>
-        <li>Feed is deducted from your feed balance and added to the chick's <code>feed_consumed</code> counter</li>
-        <li>You cannot over-feed beyond the required 2.0 units</li>
-      </ul>
+      <h3>Growth Cost</h3>
+      <div class="formula">growth_cost = 12 days &times; 0.5 feed/day &times; $0.10/unit = $0.60</div>
+
+      <h3>Full Incubation + Growth Cost</h3>
+      <p>The total cost to go from egg to adult chicken:</p>
+      <div class="doc-table-wrap">
+        <table class="doc-table">
+          <thead><tr><th>Stage</th><th>Duration</th><th>Feed Used</th><th>Cost</th></tr></thead>
+          <tbody>
+            <tr><td>Egg (produced)</td><td>—</td><td>—</td><td>$0.12 (opportunity cost)</td></tr>
+            <tr><td>Egg (purchased)</td><td>—</td><td>—</td><td>$0.20</td></tr>
+            <tr><td>Incubation</td><td>3 days</td><td>1.5 units</td><td>$0.15</td></tr>
+            <tr><td>Chick Growth</td><td>12 days</td><td>6.0 units</td><td>$0.60</td></tr>
+            <tr><td><strong>Total (produced egg)</strong></td><td><strong>15 days</strong></td><td><strong>7.5 units</strong></td><td class="highlight-cell"><strong>$0.87</strong></td></tr>
+            <tr><td><strong>Total (purchased egg)</strong></td><td><strong>15 days</strong></td><td><strong>7.5 units</strong></td><td class="highlight-cell"><strong>$0.95</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
 
       <div class="flow">
-        <span class="flow-step">&#x1F423; Chick hatches</span>
+        <span class="flow-step">&#x1F95A; Egg</span>
         <span class="flow-arrow">&rarr;</span>
-        <span class="flow-step">&#x1F33E; Feed 2.0 units manually</span>
+        <span class="flow-step">&#x23F3; Incubate 3 days (1.5 feed)</span>
         <span class="flow-arrow">&rarr;</span>
-        <span class="flow-step">&#x23F3; Wait 12 days</span>
+        <span class="flow-step">&#x1F423; Chick grows 12 days (6.0 feed)</span>
         <span class="flow-arrow">&rarr;</span>
         <span class="flow-step">&#x1F414; Adult chicken!</span>
       </div>
 
-      <h3>Growth Cost</h3>
-      <div class="formula">total_cost = 2.0 feed units &times; $0.12 = $0.24</div>
-
-      <div class="tip-box"><strong>Tip:</strong> Feed your chicks early! The 12-day timer starts at hatch, but the feed requirement must also be met. If you delay feeding, the chick will just sit there even after 12 days.</div>
+      <div class="tip-box"><strong>Tip:</strong> The total cost of $0.87-$0.95 per attempt (with only 30% success) means on average you spend ~$2.90-$3.17 per successful chicken. This is much cheaper than buying a Premium ($10) or Rare ($20) directly, but you're more likely to get a Common (70%).</div>
     </section>
 
     <!-- ════════ DEATH MECHANICS ════════ -->
@@ -402,11 +463,11 @@
       <p>Every chicken has a <strong>fixed lifespan</strong> determined by its species. When the lifespan expires, the chicken dies automatically at the next production cycle.</p>
       <div class="doc-table-wrap">
         <table class="doc-table">
-          <thead><tr><th>Species</th><th>Lifespan</th><th>Total Eggs (theoretical)</th><th>Total Revenue</th></tr></thead>
+          <thead><tr><th>Species</th><th>Lifespan</th><th>Total Eggs (theoretical)</th><th>Gross Revenue</th></tr></thead>
           <tbody>
-            <tr><td>Common</td><td>183 days</td><td>~183 eggs</td><td class="highlight-cell">~$18.30</td></tr>
-            <tr><td>Premium</td><td>210 days</td><td>~483 eggs</td><td class="highlight-cell">~$48.30</td></tr>
-            <tr><td>Rare</td><td>270 days</td><td>~1,485 eggs</td><td class="highlight-cell">~$148.50</td></tr>
+            <tr><td>Common</td><td>183 days</td><td>~183 eggs</td><td class="highlight-cell">~$21.96</td></tr>
+            <tr><td>Premium</td><td>221 days</td><td>~663 eggs</td><td class="highlight-cell">~$79.56</td></tr>
+            <tr><td>Rare</td><td>269 days</td><td>~1,345 eggs</td><td class="highlight-cell">~$161.40</td></tr>
           </tbody>
         </table>
       </div>
@@ -425,7 +486,7 @@
       <div class="flow">
         <span class="flow-step">&#x1F33E; Feed runs out</span>
         <span class="flow-arrow">&rarr;</span>
-        <span class="flow-step">&#x26A0;&#xFE0F; Starvation starts</span>
+        <span class="flow-step">&#x26A0;&#xFE0F; Starvation starts (no eggs)</span>
         <span class="flow-arrow">&rarr;</span>
         <span class="flow-step">&#x23F0; 72h countdown</span>
         <span class="flow-arrow">&rarr;</span>
@@ -433,67 +494,32 @@
       </div>
     </section>
 
-    <!-- ════════ MARKETPLACE ════════ -->
-    <section id="marketplace" class="doc-section">
-      <h2><span class="icon">&#x1F4B1;</span> Marketplace</h2>
-      <p class="section-desc">The marketplace allows player-to-player (P2P) trading of eggs and chickens.</p>
-
-      <h3>What You Can Trade</h3>
-      <div class="doc-table-wrap">
-        <table class="doc-table">
-          <thead><tr><th>Item</th><th>Can Sell</th><th>Can Buy</th><th>Notes</th></tr></thead>
-          <tbody>
-            <tr><td>Eggs</td><td>Yes</td><td>Yes</td><td>Only "available" eggs can be listed</td></tr>
-            <tr><td>Chickens</td><td>Yes</td><td>Yes</td><td>Only alive chickens can be listed</td></tr>
-            <tr><td>Feed</td><td>No</td><td>System only</td><td>Buy from the system at $0.12/unit</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3>P2P Fee Structure</h3>
-      <p>Marketplace fees are tiered based on the seller's <strong>30-day sales volume</strong>:</p>
-      <div class="doc-table-wrap">
-        <table class="doc-table">
-          <thead><tr><th>30-Day Volume</th><th>Fee Rate</th></tr></thead>
-          <tbody>
-            <tr><td>$0 — $100</td><td class="highlight-cell">8.0%</td></tr>
-            <tr><td>$100 — $500</td><td class="highlight-cell">6.0%</td></tr>
-            <tr><td>$500 — $1,500</td><td class="highlight-cell">4.5%</td></tr>
-            <tr><td>$1,500+</td><td class="highlight-cell">3.5%</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3>Direct System Purchases</h3>
-      <p>You can also buy directly from the system using MetaMask (USDT on BSC):</p>
-      <div class="doc-table-wrap">
-        <table class="doc-table">
-          <thead><tr><th>Item</th><th>Price</th><th>Payment</th></tr></thead>
-          <tbody>
-            <tr><td>1 Feed Unit</td><td>$0.12</td><td>MetaMask (USDT/BEP-20)</td></tr>
-            <tr><td>1 Egg</td><td>$0.15</td><td>MetaMask (USDT/BEP-20)</td></tr>
-            <tr><td>Common Chicken</td><td>$1.20</td><td>MetaMask (USDT/BEP-20)</td></tr>
-            <tr><td>Premium Chicken</td><td>$3.00</td><td>MetaMask (USDT/BEP-20)</td></tr>
-            <tr><td>Rare Chicken</td><td>$7.00</td><td>MetaMask (USDT/BEP-20)</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <p>All direct purchases require <strong>12 blockchain confirmations</strong> on BNB Smart Chain before the asset is credited to your account.</p>
-    </section>
-
     <!-- ════════ WALLET & WITHDRAWALS ════════ -->
     <section id="wallet" class="doc-section">
       <h2><span class="icon">&#x1F4B0;</span> Wallet &amp; Withdrawals</h2>
-      <p class="section-desc">Your wallet holds two balances: USDT (from selling eggs) and Feed (for your chickens).</p>
+      <p class="section-desc">Your wallet holds two balances: USDT (from selling eggs) and Feed (for your chickens and incubation).</p>
 
       <h3>Earning USDT</h3>
       <p>You earn USDT by:</p>
       <ul>
-        <li><strong>Selling eggs to the system:</strong> $0.10 per egg (instant)</li>
-        <li><strong>Selling on the marketplace:</strong> Set your own price for eggs or chickens (P2P)</li>
+        <li><strong>Selling eggs to the system:</strong> $0.12 per egg (instant)</li>
         <li><strong>Depositing USDT:</strong> Send USDT (BEP-20) directly to the platform wallet</li>
       </ul>
+
+      <h3>Spending USDT</h3>
+      <p>You spend USDT by purchasing via MetaMask (USDT on BSC):</p>
+      <div class="doc-table-wrap">
+        <table class="doc-table">
+          <thead><tr><th>Item</th><th>Price</th></tr></thead>
+          <tbody>
+            <tr><td>1 Feed Unit</td><td class="highlight-cell">$0.10</td></tr>
+            <tr><td>1 Egg</td><td class="highlight-cell">$0.20</td></tr>
+            <tr><td>Common Chicken</td><td class="highlight-cell">$1.00</td></tr>
+            <tr><td>Premium Chicken</td><td class="highlight-cell">$10.00</td></tr>
+            <tr><td>Rare Chicken</td><td class="highlight-cell">$20.00</td></tr>
+          </tbody>
+        </table>
+      </div>
 
       <h3>Withdrawals</h3>
       <div class="doc-table-wrap">
@@ -538,7 +564,7 @@
     </section>
 
     <!-- ════════ QUICK REFERENCE ════════ -->
-    <section class="doc-section">
+    <section id="reference" class="doc-section">
       <h2><span class="icon">&#x1F4CB;</span> Quick Reference</h2>
       <p class="section-desc">All key numbers in one place.</p>
 
@@ -548,14 +574,17 @@
           <tbody>
             <tr><td>Production cycle frequency</td><td class="highlight-cell">Every 10 minutes</td></tr>
             <tr><td>Cycles per day</td><td>144</td></tr>
-            <tr><td>Egg system sell price</td><td class="highlight-cell">$0.10</td></tr>
-            <tr><td>Feed price per unit</td><td class="highlight-cell">$0.12</td></tr>
+            <tr><td>Egg sell price (to system)</td><td class="highlight-cell">$0.12</td></tr>
+            <tr><td>Egg buy price (from system)</td><td class="highlight-cell">$0.20</td></tr>
+            <tr><td>Feed price per unit</td><td class="highlight-cell">$0.10</td></tr>
             <tr><td>Egg expiration</td><td>7 days</td></tr>
-            <tr><td>Incubation duration</td><td>72 hours</td></tr>
-            <tr><td>Incubation feed cost</td><td>0.7 units</td></tr>
+            <tr><td>Incubation duration</td><td>72 hours (3 days)</td></tr>
+            <tr><td>Incubation feed consumption</td><td>0.5 feed/day (1.5 total)</td></tr>
             <tr><td>Hatch success rate</td><td>30%</td></tr>
             <tr><td>Chick growth period</td><td>12 days</td></tr>
-            <tr><td>Chick feed requirement</td><td>2.0 units</td></tr>
+            <tr><td>Chick feed consumption</td><td>0.5 feed/day (6.0 total)</td></tr>
+            <tr><td>Total egg-to-chicken time</td><td>15 days</td></tr>
+            <tr><td>Total egg-to-chicken feed</td><td>7.5 units ($0.75)</td></tr>
             <tr><td>Starvation death timer</td><td>72 hours</td></tr>
             <tr><td>Withdrawal fee</td><td>3%</td></tr>
             <tr><td>Max withdrawals per day</td><td>1</td></tr>
@@ -580,7 +609,7 @@
         <a href="privacy.html">Privacy Policy</a>
         <a href="client.html">Play Now</a>
       </div>
-      <div class="footer-copy">&copy; 2025 Egglee. All rights reserved.</div>
+      <div class="footer-copy">&copy; 2026 Egglee. All rights reserved.</div>
     </div>
   </footer>
 </body>
