@@ -167,7 +167,7 @@ cron.schedule('*/2 * * * *', async () => {
 });
 
 app.listen(PORT, () => {
-  console.log(`[SERVER] Galinha Farm running on port ${PORT}`);
+  console.log(`[SERVER] Egglee running on port ${PORT}`);
   console.log(`[SERVER] Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log('[SERVER] Server is ready to accept requests');
 });

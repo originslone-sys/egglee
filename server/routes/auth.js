@@ -40,7 +40,7 @@ router.get('/nonce', async (req, res) => {
 
   res.json({
     nonce,
-    message: `Sign this message to authenticate with Galinha Farm:\n\nNonce: ${nonce}`,
+    message: `Sign this message to authenticate with Egglee:\n\nNonce: ${nonce}`,
   });
 });
 
@@ -58,7 +58,7 @@ router.post('/verify', async (req, res) => {
     return res.status(404).json({ error: 'Request a nonce first' });
   }
 
-  const message = `Sign this message to authenticate with Galinha Farm:\n\nNonce: ${user.auth_nonce}`;
+  const message = `Sign this message to authenticate with Egglee:\n\nNonce: ${user.auth_nonce}`;
 
   try {
     const recovered = ethers.verifyMessage(message, signature).toLowerCase();

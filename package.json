@@ -1,7 +1,7 @@
 {
-  "name": "galinha-farm",
+  "name": "egglee",
   "version": "1.0.0",
-  "description": "Galinha Farm — Smart Poultry Simulation Platform",
+  "description": "Egglee — Hatch Your Earnings",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
