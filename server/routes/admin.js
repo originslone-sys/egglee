@@ -356,6 +356,7 @@ router.put('/withdrawals/:id/reject', async (req, res) => {
 
 // GET /api/admin/users — list users with full stats
 router.get('/users', async (req, res) => {
+  try {
   const page = parseInt(req.query.page || '1', 10);
   const limit = Math.min(parseInt(req.query.limit || '20', 10), 100);
   const offset = (page - 1) * limit;
@@ -432,6 +433,10 @@ router.get('/users', async (req, res) => {
   }));
 
   res.json({ page, limit, total: parseInt(totalRow.count, 10), users: enriched });
+  } catch (err) {
+    console.error('[ADMIN] GET /users error:', err.message);
+    res.status(500).json({ error: 'Failed to load users' });
+  }
 });
 
 // PUT /api/admin/users/:id/ban — ban/unban a user
@@ -445,6 +450,7 @@ router.put('/users/:id/ban', async (req, res) => {
 
 // POST /api/admin/users/:id/bonus — give bonus feed, eggs, or chicken
 router.post('/users/:id/bonus', async (req, res) => {
+  try {
   const userId = parseInt(req.params.id, 10);
   const { type, quantity, species_id } = req.body;
 
@@ -452,6 +458,7 @@ router.post('/users/:id/bonus', async (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   const now = new Date();
+  const balanceAfter = parseFloat(user.balance_usdt);
 
   if (type === 'feed') {
     const qty = parseFloat(quantity);
@@ -459,6 +466,7 @@ router.post('/users/:id/bonus', async (req, res) => {
     await db('users').where({ id: userId }).increment('feed_balance', qty);
     await db('wallet_ledger').insert({
       user_id: userId, type: 'admin_bonus', amount: 0,
+      balance_after: balanceAfter,
       description: `Admin bonus: ${qty} feed units`, created_at: now,
     });
     return res.json({ success: true, type: 'feed', quantity: qty });
@@ -474,6 +482,7 @@ router.post('/users/:id/bonus', async (req, res) => {
     await db('eggs').insert(eggsToInsert);
     await db('wallet_ledger').insert({
       user_id: userId, type: 'admin_bonus', amount: 0,
+      balance_after: balanceAfter,
       description: `Admin bonus: ${qty} eggs`, created_at: now,
     });
     return res.json({ success: true, type: 'eggs', quantity: qty });
@@ -490,12 +499,17 @@ router.post('/users/:id/bonus', async (req, res) => {
     });
     await db('wallet_ledger').insert({
       user_id: userId, type: 'admin_bonus', amount: 0,
+      balance_after: balanceAfter,
       description: `Admin bonus: 1x ${species.name} chicken`, created_at: now,
     });
     return res.json({ success: true, type: 'chicken', species: species.name });
   }
 
   return res.status(400).json({ error: 'Invalid bonus type. Use: feed, eggs, or chicken' });
+  } catch (err) {
+    console.error('[ADMIN] POST /users/:id/bonus error:', err.message);
+    res.status(500).json({ error: 'Failed to give bonus' });
+  }
 });
 
 // GET /api/admin/deposits — deposit monitoring dashboard
