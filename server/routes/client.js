@@ -18,10 +18,13 @@ router.get('/farm', async (req, res) => {
       .join('chicken_species', 'chickens.species_id', 'chicken_species.id')
       .select(
         'chickens.id',
+        'chickens.name',
         'chicken_species.name as species',
         'chickens.born_at',
         'chickens.dies_at',
-        'chickens.starvation_started_at'
+        'chickens.starvation_started_at',
+        'chickens.total_feed_consumed',
+        'chickens.total_eggs_produced'
       ),
     db('eggs').where({ user_id: userId, status: 'available' }).count('id as count').first(),
     db('chicks')
@@ -406,6 +409,30 @@ router.post('/feed-chick', async (req, res) => {
   res.json(result);
 });
 
+// PATCH /api/client/chicken/:id/name — rename a chicken
+router.patch('/chicken/:id/name', async (req, res) => {
+  const userId = req.user.id;
+  const chickenId = parseInt(req.params.id, 10);
+  const { name } = req.body;
+
+  if (!name || typeof name !== 'string') {
+    return res.status(400).json({ error: 'Name is required' });
+  }
+
+  const trimmed = name.trim().slice(0, 30);
+  if (trimmed.length === 0) {
+    return res.status(400).json({ error: 'Name cannot be empty' });
+  }
+
+  const chicken = await db('chickens').where({ id: chickenId, user_id: userId }).first();
+  if (!chicken) {
+    return res.status(404).json({ error: 'Chicken not found' });
+  }
+
+  await db('chickens').where({ id: chickenId }).update({ name: trimmed });
+  res.json({ id: chickenId, name: trimmed });
+});
+
 // GET /api/client/dead-chickens — deceased chickens history
 router.get('/dead-chickens', async (req, res) => {
   const userId = req.user.id;
@@ -418,10 +445,13 @@ router.get('/dead-chickens', async (req, res) => {
     .join('chicken_species', 'chickens.species_id', 'chicken_species.id')
     .select(
       'chickens.id',
+      'chickens.name',
       'chicken_species.name as species',
       'chickens.born_at',
       'chickens.died_at',
-      'chickens.death_cause'
+      'chickens.death_cause',
+      'chickens.total_feed_consumed',
+      'chickens.total_eggs_produced'
     )
     .orderBy('chickens.died_at', 'desc')
     .limit(limit)
