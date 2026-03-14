@@ -216,34 +216,98 @@
 /* ── Chicken List ────────────────────────────── */
 .chicken-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: .8rem;
 }
 
-.chicken-item {
+.chicken-card {
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: .9rem 1rem;
+  transition: border-color var(--transition);
+}
+.chicken-card:hover { border-color: var(--stroke-strong); }
+
+.chicken-card-header {
   display: flex;
   align-items: center;
-  gap: .8rem;
-  padding: .7rem .9rem;
-  border: 1px solid var(--stroke);
-  border-radius: 10px;
-  background: var(--surface);
-  font-size: .85rem;
+  gap: .7rem;
+  margin-bottom: .6rem;
 }
 
-.chicken-item .chicken-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+.chicken-card .chicken-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: grid;
   place-content: center;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   flex-shrink: 0;
 }
 
-.chicken-item .chicken-info { flex: 1; }
-.chicken-item .chicken-name { font-weight: 600; font-size: .85rem; }
-.chicken-item .chicken-meta { font-size: .75rem; color: var(--text-soft); }
+.chicken-card-title { flex: 1; min-width: 0; }
+.chicken-card-title .chicken-display-name {
+  font-weight: 700;
+  font-size: .9rem;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.chicken-card-title .chicken-species-tag {
+  font-size: .72rem;
+  color: var(--text-soft);
+}
+
+.chicken-name-edit {
+  background: none;
+  border: none;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: .75rem;
+  padding: .1rem .2rem;
+  opacity: .5;
+  transition: opacity .2s;
+}
+.chicken-name-edit:hover { opacity: 1; color: var(--primary); }
+
+.chicken-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .4rem;
+  margin-bottom: .5rem;
+}
+
+.chicken-stat {
+  text-align: center;
+  padding: .35rem .3rem;
+  background: rgba(255,255,255,.03);
+  border-radius: 8px;
+}
+.chicken-stat-value { font-weight: 700; font-size: .88rem; }
+.chicken-stat-label { font-size: .65rem; color: var(--text-soft); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+
+.chicken-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .75rem;
+  color: var(--text-soft);
+}
+
+/* Name edit inline input */
+.chicken-name-input {
+  background: var(--bg);
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: .82rem;
+  font-weight: 600;
+  padding: .15rem .4rem;
+  width: 120px;
+  outline: none;
+}
 
 /* ── Buy Section ─────────────────────────────── */
 .buy-section {

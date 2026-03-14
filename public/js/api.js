@@ -127,6 +127,7 @@ const API = (() => {
     eggsForIncubation: () => request('GET', '/client/eggs-for-incubation'),
     incubateEgg:   (eggId) => request('POST', '/client/incubate-egg', { egg_id: eggId }),
     feedChick:     (chickId, amount) => request('POST', '/client/feed-chick', { chick_id: chickId, amount }),
+    renameChicken: (id, name) => request('PATCH', `/client/chicken/${id}/name`, { name }),
     deadChickens:  (page) => request('GET', `/client/dead-chickens?page=${page || 1}`),
     eggHistory:    (page) => request('GET', `/client/egg-history?page=${page || 1}`),
     chickHistory:  (page) => request('GET', `/client/chick-history?page=${page || 1}`),

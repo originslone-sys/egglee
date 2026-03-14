@@ -174,12 +174,16 @@
         const status = c.starvation_started_at
           ? '<span class="status-pill danger">Starving</span>'
           : '<span class="status-pill ok">Healthy</span>';
+        const displayName = c.name || c.species;
         entityDetails.innerHTML = `
           <div class="entity-details-grid">
+            <div class="entity-detail"><span class="detail-label">Name</span><span class="detail-value">${displayName}</span></div>
             <div class="entity-detail"><span class="detail-label">Species</span><span class="detail-value">${c.species}</span></div>
             <div class="entity-detail"><span class="detail-label">ID</span><span class="detail-value">#${c.id}</span></div>
             <div class="entity-detail"><span class="detail-label">Status</span><span class="detail-value">${status}</span></div>
             <div class="entity-detail"><span class="detail-label">Days Left</span><span class="detail-value">${daysLeft}d</span></div>
+            <div class="entity-detail"><span class="detail-label">Eggs Produced</span><span class="detail-value">${parseInt(c.total_eggs_produced || 0, 10)}</span></div>
+            <div class="entity-detail"><span class="detail-label">Feed Consumed</span><span class="detail-value">${parseFloat(c.total_feed_consumed || 0).toFixed(1)}</span></div>
             <div class="entity-detail"><span class="detail-label">Born</span><span class="detail-value">${new Date(c.born_at).toLocaleDateString()}</span></div>
           </div>`;
       } else if (entity.type === 'chick') {
@@ -241,11 +245,38 @@
           const starving = c.starvation_started_at;
           const bg = starving ? 'var(--danger-dim)' : 'var(--success-dim)';
           const daysLeft = Math.max(0, Math.ceil((new Date(c.dies_at) - Date.now()) / 86400000));
-          return `<div class="chicken-item">
-            <div class="chicken-avatar" style="background:${bg}">&#x1f414;</div>
-            <div class="chicken-info">
-              <div class="chicken-name">${c.species} ${starving ? '<span class="status-pill danger">Starving</span>' : ''}</div>
-              <div class="chicken-meta">${daysLeft}d left</div>
+          const displayName = c.name || c.species;
+          const feedConsumed = parseFloat(c.total_feed_consumed || 0).toFixed(1);
+          const eggsProduced = parseInt(c.total_eggs_produced || 0, 10);
+          return `<div class="chicken-card">
+            <div class="chicken-card-header">
+              <div class="chicken-avatar" style="background:${bg}">&#x1f414;</div>
+              <div class="chicken-card-title">
+                <div class="chicken-display-name">
+                  <span id="cname-${c.id}">${displayName}</span>
+                  <button class="chicken-name-edit" onclick="window.__renameChicken(${c.id})" title="Rename">&#x270F;&#xFE0F;</button>
+                  ${starving ? '<span class="status-pill danger">Starving</span>' : ''}
+                </div>
+                <div class="chicken-species-tag">${c.species} &middot; #${c.id}</div>
+              </div>
+            </div>
+            <div class="chicken-card-stats">
+              <div class="chicken-stat">
+                <div class="chicken-stat-value">${eggsProduced}</div>
+                <div class="chicken-stat-label">Eggs</div>
+              </div>
+              <div class="chicken-stat">
+                <div class="chicken-stat-value">${feedConsumed}</div>
+                <div class="chicken-stat-label">Feed Used</div>
+              </div>
+              <div class="chicken-stat">
+                <div class="chicken-stat-value">${daysLeft}d</div>
+                <div class="chicken-stat-label">Life Left</div>
+              </div>
+            </div>
+            <div class="chicken-card-footer">
+              <span>Born ${new Date(c.born_at).toLocaleDateString()}</span>
+              <span class="status-pill ${starving ? 'danger' : 'ok'}">${starving ? 'Starving' : 'Healthy'}</span>
             </div>
           </div>`;
         }).join('') + '</div>';
@@ -738,14 +769,17 @@
     try {
       const { chickens } = await API.client.deadChickens(1);
       if (chickens.length === 0) {
-        deadChickensBody.innerHTML = '<tr><td colspan="5" class="text-soft">Nenhuma galinha falecida.</td></tr>';
+        deadChickensBody.innerHTML = '<tr><td colspan="7" class="text-soft">No deceased chickens.</td></tr>';
       } else {
         deadChickensBody.innerHTML = chickens.map(c => {
-          const causeLabel = c.death_cause === 'starvation' ? 'Fome' : c.death_cause === 'lifespan' ? 'Idade' : c.death_cause || 'Desconhecido';
+          const causeLabel = c.death_cause === 'starvation' ? 'Starvation' : c.death_cause === 'lifespan' ? 'Lifespan' : c.death_cause || 'Unknown';
           const causeClass = c.death_cause === 'starvation' ? 'danger' : 'warn';
+          const displayName = c.name || c.species;
           return `<tr>
-            <td>#${c.id}</td>
+            <td>${displayName}</td>
             <td>${c.species}</td>
+            <td>${parseInt(c.total_eggs_produced || 0, 10)}</td>
+            <td>${parseFloat(c.total_feed_consumed || 0).toFixed(1)}</td>
             <td>${new Date(c.born_at).toLocaleDateString()}</td>
             <td>${c.died_at ? new Date(c.died_at).toLocaleDateString() : ''}</td>
             <td><span class="status-pill ${causeClass}">${causeLabel}</span></td>
@@ -754,6 +788,38 @@
       }
     } catch (_) { /* ignore */ }
   }
+
+  // ── Rename Chicken (global handler) ───────────
+  window.__renameChicken = async function(id) {
+    const nameEl = document.getElementById('cname-' + id);
+    if (!nameEl) return;
+    const currentName = nameEl.textContent;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'chicken-name-input';
+    input.value = currentName;
+    input.maxLength = 30;
+    nameEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    async function save() {
+      const newName = input.value.trim();
+      if (newName && newName !== currentName) {
+        try {
+          await API.client.renameChicken(id, newName);
+          toast('Chicken renamed!');
+        } catch (e) { toast(e.message, true); }
+      }
+      loadFarm();
+    }
+
+    input.addEventListener('blur', save, { once: true });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+    });
+  };
 
   // ── Auto-refresh ───────────────────────────────
   if (API.isLoggedIn()) {

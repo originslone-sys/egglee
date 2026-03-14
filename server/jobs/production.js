@@ -108,6 +108,13 @@ async function processUserFarm(userId, now) {
         .whereNotNull('starvation_started_at')
         .update({ starvation_started_at: null });
 
+      // Track feed consumed per chicken
+      for (const c of chickens) {
+        const feedThisCycle = parseFloat(c.feed_per_day) / cyclesPerDay;
+        await trx('chickens').where({ id: c.id })
+          .increment('total_feed_consumed', parseFloat(feedThisCycle.toFixed(4)));
+      }
+
       const eggsToInsert = [];
       for (const c of chickens) {
         const eggsThisCycle = parseFloat(c.eggs_per_day) / cyclesPerDay;
@@ -123,6 +130,10 @@ async function processUserFarm(userId, now) {
 
       if (eggsToInsert.length > 0) {
         await trx('eggs').insert(eggsToInsert);
+        // Track eggs produced per chicken
+        for (const egg of eggsToInsert) {
+          await trx('chickens').where({ id: egg.chicken_id }).increment('total_eggs_produced', 1);
+        }
       }
     } else {
       await trx('chickens')
