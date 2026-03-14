@@ -354,21 +354,70 @@ router.put('/withdrawals/:id/reject', async (req, res) => {
   res.json({ withdrawal_id: parseInt(id, 10), status: 'rejected' });
 });
 
-// GET /api/admin/users — list users with summary
+// GET /api/admin/users — list users with full stats
 router.get('/users', async (req, res) => {
   const page = parseInt(req.query.page || '1', 10);
   const limit = Math.min(parseInt(req.query.limit || '20', 10), 100);
   const offset = (page - 1) * limit;
+  const search = (req.query.search || '').trim().toLowerCase();
 
-  const users = await db('users')
-    .select('id', 'wallet_address', 'role', 'is_banned', 'balance_usdt', 'feed_balance', 'auto_feed_enabled', 'last_login_at', 'created_at')
-    .orderBy('created_at', 'desc')
-    .limit(limit)
-    .offset(offset);
+  let query = db('users')
+    .select('id', 'wallet_address', 'role', 'is_banned', 'balance_usdt', 'feed_balance', 'auto_feed_enabled', 'last_login_at', 'created_at');
 
-  const totalRow = await db('users').count('id as count').first();
+  let countQuery = db('users');
 
-  res.json({ page, limit, total: parseInt(totalRow.count, 10), users });
+  if (search) {
+    query = query.where('wallet_address', 'like', `%${search}%`);
+    countQuery = countQuery.where('wallet_address', 'like', `%${search}%`);
+  }
+
+  const users = await query.orderBy('created_at', 'desc').limit(limit).offset(offset);
+  const totalRow = await countQuery.count('id as count').first();
+
+  // Enrich each user with aggregated stats
+  const enriched = await Promise.all(users.map(async (u) => {
+    const [chickenStats, eggStats, purchaseStats, withdrawalStats] = await Promise.all([
+      // Chicken counts
+      db('chickens').where({ user_id: u.id })
+        .select(
+          db.raw("SUM(CASE WHEN status = 'alive' THEN 1 ELSE 0 END) as alive"),
+          db.raw("SUM(CASE WHEN status = 'dead' THEN 1 ELSE 0 END) as dead"),
+          db.raw('COUNT(*) as total')
+        ).first(),
+      // Egg counts
+      db('eggs').where({ user_id: u.id })
+        .select(
+          db.raw("SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available"),
+          db.raw('COUNT(*) as total')
+        ).first(),
+      // Total spent on purchases
+      db('pending_purchases').where({ user_id: u.id, status: 'confirmed' })
+        .select(db.raw('COALESCE(SUM(amount_usdt), 0) as total_spent'))
+        .first(),
+      // Withdrawal stats
+      db('withdrawals').where({ user_id: u.id })
+        .select(
+          db.raw("COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as total_withdrawn"),
+          db.raw('COUNT(*) as total_requests')
+        ).first(),
+    ]);
+
+    return {
+      ...u,
+      balance_usdt: parseFloat(u.balance_usdt),
+      feed_balance: parseFloat(u.feed_balance),
+      chickens_alive: parseInt(chickenStats?.alive || 0, 10),
+      chickens_dead: parseInt(chickenStats?.dead || 0, 10),
+      chickens_total: parseInt(chickenStats?.total || 0, 10),
+      eggs_available: parseInt(eggStats?.available || 0, 10),
+      eggs_total: parseInt(eggStats?.total || 0, 10),
+      total_spent: parseFloat(purchaseStats?.total_spent || 0),
+      total_withdrawn: parseFloat(withdrawalStats?.total_withdrawn || 0),
+      withdrawal_requests: parseInt(withdrawalStats?.total_requests || 0, 10),
+    };
+  }));
+
+  res.json({ page, limit, total: parseInt(totalRow.count, 10), users: enriched });
 });
 
 // PUT /api/admin/users/:id/ban — ban/unban a user
@@ -378,6 +427,61 @@ router.put('/users/:id/ban', async (req, res) => {
 
   await db('users').where({ id }).update({ is_banned: !!banned });
   res.json({ user_id: parseInt(id, 10), is_banned: !!banned });
+});
+
+// POST /api/admin/users/:id/bonus — give bonus feed, eggs, or chicken
+router.post('/users/:id/bonus', async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  const { type, quantity, species_id } = req.body;
+
+  const user = await db('users').where({ id: userId }).first();
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const now = new Date();
+
+  if (type === 'feed') {
+    const qty = parseFloat(quantity);
+    if (!qty || qty <= 0 || qty > 10000) return res.status(400).json({ error: 'Invalid feed quantity (1-10000)' });
+    await db('users').where({ id: userId }).increment('feed_balance', qty);
+    await db('wallet_ledger').insert({
+      user_id: userId, type: 'admin_bonus', amount: 0,
+      description: `Admin bonus: ${qty} feed units`, created_at: now,
+    });
+    return res.json({ success: true, type: 'feed', quantity: qty });
+  }
+
+  if (type === 'eggs') {
+    const qty = parseInt(quantity, 10);
+    if (!qty || qty <= 0 || qty > 1000) return res.status(400).json({ error: 'Invalid egg quantity (1-1000)' });
+    const eggsToInsert = [];
+    for (let i = 0; i < qty; i++) {
+      eggsToInsert.push({ user_id: userId, is_fertile: true, produced_at: now });
+    }
+    await db('eggs').insert(eggsToInsert);
+    await db('wallet_ledger').insert({
+      user_id: userId, type: 'admin_bonus', amount: 0,
+      description: `Admin bonus: ${qty} eggs`, created_at: now,
+    });
+    return res.json({ success: true, type: 'eggs', quantity: qty });
+  }
+
+  if (type === 'chicken') {
+    const speciesId = parseInt(species_id, 10);
+    if (!speciesId) return res.status(400).json({ error: 'species_id required' });
+    const species = await db('chicken_species').where({ id: speciesId }).first();
+    if (!species) return res.status(404).json({ error: 'Species not found' });
+    const diesAt = new Date(now.getTime() + species.lifespan_days * 86400000);
+    await db('chickens').insert({
+      user_id: userId, species_id: speciesId, born_at: now, dies_at: diesAt,
+    });
+    await db('wallet_ledger').insert({
+      user_id: userId, type: 'admin_bonus', amount: 0,
+      description: `Admin bonus: 1x ${species.name} chicken`, created_at: now,
+    });
+    return res.json({ success: true, type: 'chicken', species: species.name });
+  }
+
+  return res.status(400).json({ error: 'Invalid bonus type. Use: feed, eggs, or chicken' });
 });
 
 // GET /api/admin/deposits — deposit monitoring dashboard

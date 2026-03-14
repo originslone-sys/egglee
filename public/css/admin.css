@@ -433,4 +433,86 @@
   .dashboard-counters { grid-template-columns: repeat(2, 1fr); }
   .config-row { flex-wrap: wrap; }
   .config-row .input { width: 100%; }
+  #users-summary { grid-template-columns: repeat(2, 1fr) !important; }
+  .user-card-stats { grid-template-columns: repeat(3, 1fr) !important; }
+}
+
+/* ── Admin User Cards ───────────────────────── */
+.user-card {
+  border: 1px solid var(--stroke);
+  background: linear-gradient(180deg, var(--surface-soft), var(--surface));
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.2rem;
+  transition: border-color var(--transition);
+}
+.user-card:hover { border-color: var(--stroke-strong); }
+.user-card.banned { border-color: rgba(255,143,143,.3); }
+
+.user-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .8rem;
+  flex-wrap: wrap;
+}
+
+.user-card-wallet {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.user-card-wallet .wallet-addr {
+  font-weight: 700;
+  font-size: .9rem;
+  font-family: 'Courier New', monospace;
+  cursor: pointer;
+}
+.user-card-wallet .wallet-addr:hover { color: var(--primary); }
+
+.user-card-badges {
+  display: flex;
+  gap: .4rem;
+  align-items: center;
+}
+
+.user-card-stats {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: .5rem;
+  margin-bottom: .8rem;
+}
+
+.user-stat {
+  text-align: center;
+  padding: .4rem .2rem;
+  background: rgba(255,255,255,.03);
+  border-radius: 8px;
+}
+.user-stat-value { font-weight: 700; font-size: .88rem; }
+.user-stat-label { font-size: .62rem; color: var(--text-soft); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+
+.user-card-actions {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.user-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  flex-wrap: wrap;
+  padding-top: .6rem;
+  border-top: 1px solid var(--stroke);
+}
+
+.user-card-meta {
+  font-size: .72rem;
+  color: var(--text-soft);
+  display: flex;
+  gap: 1rem;
 }

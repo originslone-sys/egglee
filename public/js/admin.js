@@ -142,7 +142,9 @@
   const alertBadge = $('p1-badge');
   const economyForm = $('economy-form');
   const withdrawalBody = $('withdrawal-body');
-  const userBody = $('user-body');
+  const userList = $('user-list');
+  let usersCurrentPage = 1;
+  let usersSearchTerm = '';
   const wdStatusFilter = $('wd-status-filter');
 
   async function loadAdmin() {
@@ -412,28 +414,169 @@
   }
 
   // ── Users ──────────────────────────────────────
-  async function loadUsers() {
-    if (!userBody) return;
-    try {
-      const data = await API.admin.getUsers(1);
-      if (data.users.length === 0) {
-        userBody.innerHTML = '<tr><td colspan="5" class="text-soft">No users yet.</td></tr>';
-      } else {
-        userBody.innerHTML = data.users.map(u => `
-          <tr>
-            <td title="${u.wallet_address}">${shortWallet(u.wallet_address)}</td>
-            <td>${parseFloat(u.balance_usdt).toFixed(2)}</td>
-            <td>${parseFloat(u.feed_balance).toFixed(1)}</td>
-            <td>${u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : 'Never'}</td>
-            <td>
-              <button class="btn ${u.is_banned ? 'btn-primary' : 'btn-danger'} btn-sm user-ban" data-id="${u.id}" data-banned="${u.is_banned}">
-                ${u.is_banned ? 'Unban' : 'Ban'}
-              </button>
-            </td>
-          </tr>
-        `).join('');
 
-        userBody.querySelectorAll('.user-ban').forEach(btn => {
+  // Search handlers
+  const userSearchInput = $('user-search');
+  const userSearchBtn = $('user-search-btn');
+  if (userSearchBtn) {
+    userSearchBtn.addEventListener('click', () => {
+      usersSearchTerm = (userSearchInput?.value || '').trim();
+      usersCurrentPage = 1;
+      loadUsers();
+    });
+  }
+  if (userSearchInput) {
+    userSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { userSearchBtn?.click(); }
+    });
+  }
+
+  // Bonus modal logic
+  const bonusModal = $('bonus-modal');
+  const bonusType = $('bonus-type');
+  const bonusQty = $('bonus-qty');
+  const bonusQtyWrap = $('bonus-qty-wrap');
+  const bonusSpeciesWrap = $('bonus-species-wrap');
+  const bonusSpecies = $('bonus-species');
+  const bonusConfirm = $('bonus-confirm');
+  const bonusCancel = $('bonus-cancel');
+  const bonusTitle = $('bonus-modal-title');
+  let bonusUserId = null;
+
+  if (bonusType) {
+    bonusType.addEventListener('change', () => {
+      if (bonusType.value === 'chicken') {
+        hide(bonusQtyWrap);
+        show(bonusSpeciesWrap);
+      } else {
+        show(bonusQtyWrap);
+        hide(bonusSpeciesWrap);
+      }
+    });
+  }
+  if (bonusCancel) bonusCancel.addEventListener('click', () => hide(bonusModal));
+  if (bonusConfirm) {
+    bonusConfirm.addEventListener('click', async () => {
+      if (!bonusUserId) return;
+      const t = bonusType.value;
+      const data = { type: t };
+      if (t === 'chicken') {
+        data.species_id = parseInt(bonusSpecies.value, 10);
+      } else {
+        data.quantity = parseFloat(bonusQty.value);
+      }
+      try {
+        bonusConfirm.disabled = true;
+        await API.admin.giveBonus(bonusUserId, data);
+        toast(`Bonus sent: ${t}`);
+        hide(bonusModal);
+        loadUsers();
+      } catch (e) { toast(e.message, true); }
+      finally { bonusConfirm.disabled = false; }
+    });
+  }
+
+  async function openBonusModal(userId, walletShort) {
+    bonusUserId = userId;
+    if (bonusTitle) bonusTitle.textContent = `Give Bonus — ${walletShort}`;
+    if (bonusType) bonusType.value = 'feed';
+    if (bonusQty) bonusQty.value = '1';
+    show(bonusQtyWrap);
+    hide(bonusSpeciesWrap);
+
+    // Load species into dropdown
+    if (bonusSpecies && bonusSpecies.options.length <= 1) {
+      try {
+        const species = await API.admin.getSpecies();
+        bonusSpecies.innerHTML = species.map(s =>
+          `<option value="${s.id}">${s.name} ($${parseFloat(s.purchase_price).toFixed(2)})</option>`
+        ).join('');
+      } catch (_) {}
+    }
+
+    show(bonusModal);
+  }
+
+  async function loadUsers() {
+    if (!userList) return;
+    try {
+      const data = await API.admin.getUsers(usersCurrentPage, usersSearchTerm);
+
+      // Summary stats
+      const totalUsers = $('users-total');
+      if (totalUsers) totalUsers.textContent = data.total;
+
+      if (data.users.length > 0) {
+        const sumBalance = data.users.reduce((s, u) => s + u.balance_usdt, 0);
+        const sumChickens = data.users.reduce((s, u) => s + u.chickens_alive, 0);
+        const sumWithdrawn = data.users.reduce((s, u) => s + u.total_withdrawn, 0);
+        const tb = $('users-total-balance');
+        const tc = $('users-total-chickens');
+        const tw = $('users-total-withdrawn');
+        if (tb) tb.textContent = '$' + sumBalance.toFixed(2);
+        if (tc) tc.textContent = sumChickens;
+        if (tw) tw.textContent = '$' + sumWithdrawn.toFixed(2);
+      }
+
+      if (data.users.length === 0) {
+        userList.innerHTML = '<p class="text-soft">No users found.</p>';
+      } else {
+        userList.innerHTML = data.users.map(u => {
+          const ws = shortWallet(u.wallet_address);
+          const bannedClass = u.is_banned ? ' banned' : '';
+          return `<div class="user-card${bannedClass}">
+            <div class="user-card-header">
+              <div class="user-card-wallet">
+                <span class="wallet-addr" title="${u.wallet_address}" onclick="navigator.clipboard.writeText('${u.wallet_address}');this.style.color='var(--primary)'">${ws}</span>
+                <span class="status-pill ${u.is_banned ? 'danger' : 'ok'}">${u.is_banned ? 'Banned' : 'Active'}</span>
+                ${u.role === 'admin' ? '<span class="status-pill info">Admin</span>' : ''}
+              </div>
+              <div class="user-card-actions">
+                <button class="btn btn-ghost btn-sm user-bonus" data-id="${u.id}" data-wallet="${ws}">Bonus</button>
+                <button class="btn ${u.is_banned ? 'btn-primary' : 'btn-danger'} btn-sm user-ban-btn" data-id="${u.id}" data-banned="${u.is_banned}">
+                  ${u.is_banned ? 'Unban' : 'Ban'}
+                </button>
+              </div>
+            </div>
+            <div class="user-card-stats">
+              <div class="user-stat">
+                <div class="user-stat-value">$${u.balance_usdt.toFixed(2)}</div>
+                <div class="user-stat-label">Balance</div>
+              </div>
+              <div class="user-stat">
+                <div class="user-stat-value">${u.feed_balance.toFixed(1)}</div>
+                <div class="user-stat-label">Feed</div>
+              </div>
+              <div class="user-stat">
+                <div class="user-stat-value">${u.chickens_alive}</div>
+                <div class="user-stat-label">Chickens</div>
+              </div>
+              <div class="user-stat">
+                <div class="user-stat-value">${u.eggs_available}</div>
+                <div class="user-stat-label">Eggs</div>
+              </div>
+              <div class="user-stat">
+                <div class="user-stat-value">$${u.total_spent.toFixed(2)}</div>
+                <div class="user-stat-label">Spent</div>
+              </div>
+              <div class="user-stat">
+                <div class="user-stat-value">$${u.total_withdrawn.toFixed(2)}</div>
+                <div class="user-stat-label">Withdrawn</div>
+              </div>
+            </div>
+            <div class="user-card-footer">
+              <div class="user-card-meta">
+                <span>Joined ${new Date(u.created_at).toLocaleDateString()}</span>
+                <span>Last login: ${u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : 'Never'}</span>
+                <span>Chickens total: ${u.chickens_total} (${u.chickens_dead} dead)</span>
+                <span>Withdrawals: ${u.withdrawal_requests}</span>
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+
+        // Ban button handlers
+        userList.querySelectorAll('.user-ban-btn').forEach(btn => {
           btn.addEventListener('click', async () => {
             const newBanned = btn.dataset.banned !== 'true';
             try {
@@ -443,6 +586,42 @@
             } catch (e) { toast(e.message, true); }
           });
         });
+
+        // Bonus button handlers
+        userList.querySelectorAll('.user-bonus').forEach(btn => {
+          btn.addEventListener('click', () => {
+            openBonusModal(parseInt(btn.dataset.id, 10), btn.dataset.wallet);
+          });
+        });
+      }
+
+      // Pagination
+      const paginationEl = $('user-pagination');
+      if (paginationEl) {
+        const totalPages = Math.ceil(data.total / data.limit);
+        if (totalPages <= 1) {
+          paginationEl.innerHTML = '';
+        } else {
+          let html = '';
+          if (usersCurrentPage > 1) {
+            html += `<button class="btn btn-ghost btn-sm" data-page="${usersCurrentPage - 1}">&laquo; Prev</button>`;
+          }
+          const startPage = Math.max(1, usersCurrentPage - 2);
+          const endPage = Math.min(totalPages, usersCurrentPage + 2);
+          for (let p = startPage; p <= endPage; p++) {
+            html += `<button class="btn ${p === usersCurrentPage ? 'btn-primary' : 'btn-ghost'} btn-sm" data-page="${p}">${p}</button>`;
+          }
+          if (usersCurrentPage < totalPages) {
+            html += `<button class="btn btn-ghost btn-sm" data-page="${usersCurrentPage + 1}">Next &raquo;</button>`;
+          }
+          paginationEl.innerHTML = html;
+          paginationEl.querySelectorAll('button[data-page]').forEach(btn => {
+            btn.addEventListener('click', () => {
+              usersCurrentPage = parseInt(btn.dataset.page, 10);
+              loadUsers();
+            });
+          });
+        }
       }
     } catch (e) { toast(e.message, true); }
   }
