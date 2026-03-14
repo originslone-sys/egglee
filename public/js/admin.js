@@ -215,12 +215,18 @@
       const editableKeys = [
         { key: 'egg_system_price', label: 'Egg Sell Price (USDT)', type: 'number' },
         { key: 'egg_purchase_price', label: 'Egg Buy Price (USDT)', type: 'number' },
-        { key: 'egg_hatch_success_rate', label: 'Hatch Success Rate (0-1)', type: 'number' },
         { key: 'feed_unit_price', label: 'Feed Unit Price (USDT)', type: 'number' },
+        { key: 'egg_to_chick_feed', label: 'Incubation Feed Cost', type: 'number' },
+        { key: 'egg_incubation_hours', label: 'Incubation Duration (hours)', type: 'number' },
+        { key: 'egg_hatch_success_rate', label: 'Hatch Success Rate (0-1)', type: 'number' },
+        { key: 'chick_growth_days', label: 'Chick Growth (days)', type: 'number' },
+        { key: 'chick_to_adult_feed', label: 'Chick to Adult Feed Cost', type: 'number' },
+        { key: 'starvation_death_hours', label: 'Starvation Death (hours)', type: 'number' },
         { key: 'withdrawal_fee_rate', label: 'Withdrawal Fee Rate', type: 'number' },
         { key: 'withdrawal_min_amount', label: 'Min Withdrawal (USDT)', type: 'number' },
-        { key: 'starvation_death_hours', label: 'Starvation Death (hours)', type: 'number' },
+        { key: 'max_withdrawals_per_day', label: 'Max Withdrawals/Day', type: 'number' },
         { key: 'onboarding_free_feed', label: 'Onboarding Free Feed', type: 'number' },
+        { key: 'bep20_confirmations', label: 'BEP20 Confirmations', type: 'number' },
         { key: 'allow_new_registrations', label: 'Allow New Registrations', type: 'toggle' },
       ];
 
