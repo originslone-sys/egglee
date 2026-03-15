@@ -28,8 +28,8 @@ const FarmMap = (() => {
   // Chicken species colors — distinct
   const SPCOL = {
     'Comum':   {body:'#f5f0e8',wing:'#e0d8c8',comb:'#cc2020',beak:'#e89020',legs:'#d08828',outline:'#c0b090'},
-    'Premium': {body:'#ffd030',wing:'#cc9818',comb:'#ff1838',beak:'#ff8c00',legs:'#c89028',outline:'#a87810',shimmer:true},
-    'Rare':    {body:'#2848a0',wing:'#1a3078',comb:'#dd1818',beak:'#e88820',legs:'#907040',outline:'#182860',shimmer:true,rareGlow:true},
+    'Premium': {body:'#ffd030',wing:'#cc9818',comb:'#ff1838',beak:'#ff8c00',legs:'#c89028',outline:'#a87810'},
+    'Rare':    {body:'#2848a0',wing:'#1a3078',comb:'#dd1818',beak:'#e88820',legs:'#907040',outline:'#182860'},
   };
   const DCOL = {body:'#ddd',wing:'#bbb',comb:'#c33',beak:'#da0',legs:'#d90',outline:'#aaa'};
   const RCOL = {body:'#1a4828',wing:'#0e3018',comb:'#ee1818',beak:'#ff8800',legs:'#b87020',outline:'#0a2810',
@@ -577,10 +577,6 @@ const FarmMap = (() => {
       ctx.fillStyle=c.comb;ctx.beginPath();ctx.ellipse(hx+2.5*d*s,hy+2.5*s,1.2*s,2*s,0,0,Math.PI*2);ctx.fill();
       if(e.state===S.EAT&&hD>1.2*s){ctx.fillStyle='#d8a838';ctx.beginPath();ctx.arc(hx+5.5*d*s,hy+1*s,0.8*s,0,Math.PI*2);ctx.fill();}
     }
-    if(c.shimmer){const sh=0.06+Math.sin(a*3)*0.04;ctx.fillStyle=`rgba(255,255,180,${sh})`;ctx.beginPath();ctx.ellipse(x,y+bS,10*s,8*s,0,0,Math.PI*2);ctx.fill();}
-    if(c.rareGlow){const rg2=ctx.createRadialGradient(x,y+bS,3*s,x,y+bS,14*s);const ga=0.08+Math.sin(a*2)*0.04;rg2.addColorStop(0,`rgba(80,120,255,${ga})`);rg2.addColorStop(1,'rgba(80,120,255,0)');ctx.fillStyle=rg2;ctx.beginPath();ctx.arc(x,y+bS,14*s,0,Math.PI*2);ctx.fill();
-      // Sparkle particles
-      for(let sp=0;sp<3;sp++){const sa2=gt*1.5+sp*2.1,sx2=x+Math.cos(sa2)*10*s,sy2=y-4*s+Math.sin(sa2)*7*s,so2=0.3+Math.sin(sa2*3)*0.25;ctx.fillStyle=`rgba(180,200,255,${so2})`;ctx.beginPath();ctx.arc(sx2,sy2,1*s,0,Math.PI*2);ctx.fill();}}
     if(e.starving){const p=0.5+Math.sin(a*4)*0.3;ctx.fillStyle=`rgba(220,40,40,${p})`;ctx.beginPath();ctx.arc(x,y-14*s,5*s,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font=`bold ${7*s|0}px sans-serif`;ctx.textAlign='center';ctx.fillText('!',x,y-11.5*s);}
     if(sel){ctx.strokeStyle='rgba(105,240,174,0.6)';ctx.lineWidth=1.2;ctx.setLineDash([3,2]);ctx.beginPath();ctx.ellipse(x,y,13*s,10*s,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
       const lb=`${e.data.species} #${e.data.id}`;ctx.font=`bold ${6*s|0}px monospace`;const tw=ctx.measureText(lb).width+6;ctx.fillStyle='rgba(0,0,0,0.65)';rr2(x-tw/2,y-24*s,tw,11*s,3);ctx.fill();ctx.fillStyle='#69f0ae';ctx.textAlign='center';ctx.fillText(lb,x,y-16*s);}
