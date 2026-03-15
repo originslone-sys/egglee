@@ -354,6 +354,64 @@ router.post('/incubate-egg', async (req, res) => {
   }
 });
 
+// POST /api/client/incubate-all-eggs — incubate all available eggs at once
+router.post('/incubate-all-eggs', async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const eggFeedCost = await EconomyConfig.getNumber('egg_to_chick_feed');
+    if (!eggFeedCost || eggFeedCost <= 0) {
+      return res.status(500).json({ error: 'Incubation feed cost not configured' });
+    }
+
+    const result = await db.transaction(async (trx) => {
+      const eggs = await trx('eggs')
+        .where({ user_id: userId, status: 'available' })
+        .forUpdate()
+        .select('id');
+
+      if (eggs.length === 0) {
+        throw new Error('No eggs available to incubate');
+      }
+
+      const user = await trx('users').where({ id: userId }).forUpdate().first();
+      const currentFeed = parseFloat(user.feed_balance);
+      const totalCost = eggFeedCost * eggs.length;
+      const maxAffordable = Math.floor(currentFeed / eggFeedCost);
+
+      if (maxAffordable <= 0) {
+        throw new Error('Insufficient feed');
+      }
+
+      const eggsToIncubate = eggs.slice(0, maxAffordable);
+      const eggIds = eggsToIncubate.map(e => e.id);
+      const actualCost = parseFloat((eggFeedCost * eggIds.length).toFixed(2));
+
+      await adjustFeed(trx, userId, -actualCost);
+
+      await trx('eggs').whereIn('id', eggIds).update({
+        status: 'incubating',
+        incubation_started_at: trx.fn.now(),
+      });
+
+      return {
+        incubated: eggIds.length,
+        total_available: eggs.length,
+        feed_consumed: actualCost,
+        egg_ids: eggIds,
+      };
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('[CLIENT] POST /incubate-all-eggs error:', err.message);
+    const msg = err.message === 'Insufficient feed' ? 'Ração insuficiente para incubar'
+      : err.message === 'No eggs available to incubate' ? 'Nenhum ovo disponível'
+      : 'Failed to incubate eggs';
+    res.status(400).json({ error: msg });
+  }
+});
+
 // GET /api/client/eggs-for-incubation — list eggs available for incubation
 router.get('/eggs-for-incubation', async (req, res) => {
   const userId = req.user.id;
@@ -418,6 +476,67 @@ router.post('/feed-chick', async (req, res) => {
   });
 
   res.json(result);
+});
+
+// POST /api/client/feed-all-chicks — feed all growing chicks to max
+router.post('/feed-all-chicks', async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const chickFeedNeeded = await EconomyConfig.getNumber('chick_to_adult_feed');
+
+    const result = await db.transaction(async (trx) => {
+      const chicks = await trx('chicks')
+        .where({ user_id: userId, status: 'growing' })
+        .forUpdate()
+        .select('id', 'feed_consumed');
+
+      if (chicks.length === 0) {
+        throw new Error('No growing chicks to feed');
+      }
+
+      const user = await trx('users').where({ id: userId }).forUpdate().first();
+      let remainingFeed = parseFloat(user.feed_balance);
+      let totalFed = 0;
+      const fedChicks = [];
+
+      for (const chick of chicks) {
+        const currentFeed = parseFloat(chick.feed_consumed);
+        const remaining = Math.max(0, chickFeedNeeded - currentFeed);
+        if (remaining <= 0) continue;
+
+        const actualFeed = Math.min(remaining, remainingFeed);
+        if (actualFeed <= 0) break;
+
+        const newChickFeed = parseFloat((currentFeed + actualFeed).toFixed(2));
+        await trx('chicks').where({ id: chick.id }).update({ feed_consumed: newChickFeed });
+
+        remainingFeed = parseFloat((remainingFeed - actualFeed).toFixed(2));
+        totalFed = parseFloat((totalFed + actualFeed).toFixed(2));
+        fedChicks.push({ chick_id: chick.id, fed: actualFeed, total_fed: newChickFeed });
+      }
+
+      if (totalFed <= 0) {
+        throw new Error('All chicks already fully fed or insufficient feed');
+      }
+
+      await adjustFeed(trx, userId, -totalFed);
+
+      return {
+        chicks_fed: fedChicks.length,
+        total_feed_used: totalFed,
+        details: fedChicks,
+      };
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('[CLIENT] POST /feed-all-chicks error:', err.message);
+    const msg = err.message === 'No growing chicks to feed' ? 'Nenhum pintinho para alimentar'
+      : err.message === 'All chicks already fully fed or insufficient feed' ? err.message
+      : 'Failed to feed chicks';
+    res.status(400).json({ error: msg });
+  }
 });
 
 // PATCH /api/client/chicken/:id/name — rename a chicken
