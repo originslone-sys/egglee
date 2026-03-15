@@ -27,9 +27,9 @@ const FarmMap = (() => {
 
   // Chicken species colors — distinct
   const SPCOL = {
-    'Comum':            {body:'#f5f0e8',wing:'#e8e0d0',comb:'#cc2020',beak:'#e89020',legs:'#d08828',outline:'#c8b898'},
-    'Caipira Melhorada':{body:'#985028',wing:'#783818',comb:'#cc2020',beak:'#c87820',legs:'#805020',outline:'#5a2810'},
-    'Poedeira Premium': {body:'#ffd838',wing:'#d4a020',comb:'#ff2040',beak:'#ff8c00',legs:'#c89028',outline:'#b08818',shimmer:true},
+    'Comum':   {body:'#f5f0e8',wing:'#e0d8c8',comb:'#cc2020',beak:'#e89020',legs:'#d08828',outline:'#c0b090'},
+    'Premium': {body:'#ffd030',wing:'#cc9818',comb:'#ff1838',beak:'#ff8c00',legs:'#c89028',outline:'#a87810',shimmer:true},
+    'Rare':    {body:'#2848a0',wing:'#1a3078',comb:'#dd1818',beak:'#e88820',legs:'#907040',outline:'#182860',shimmer:true,rareGlow:true},
   };
   const DCOL = {body:'#ddd',wing:'#bbb',comb:'#c33',beak:'#da0',legs:'#d90',outline:'#aaa'};
   const RCOL = {body:'#1a4828',wing:'#0e3018',comb:'#ee1818',beak:'#ff8800',legs:'#b87020',outline:'#0a2810',
@@ -202,7 +202,7 @@ const FarmMap = (() => {
     farmer.phase+=dt;
     if(!farmer.active){
       farmer.feedTimer=(farmer.feedTimer||0)+dt;
-      if(farmer.feedTimer>90){farmer.feedTimer=0;farmer.active=true;farmer.x=-30;farmer.y=H*PATH_Y;farmer.dir=1;farmer.state='walkIn';farmer.walkTarget=W*TROUGH.xR;farmer.phase=0;farmer.wp=0;}
+      if(farmer.feedTimer>3600){farmer.feedTimer=0;farmer.active=true;farmer.x=-30;farmer.y=H*PATH_Y;farmer.dir=1;farmer.state='walkIn';farmer.walkTarget=W*TROUGH.xR;farmer.phase=0;farmer.wp=0;}
       return;
     }
     switch(farmer.state){
@@ -578,6 +578,9 @@ const FarmMap = (() => {
       if(e.state===S.EAT&&hD>1.2*s){ctx.fillStyle='#d8a838';ctx.beginPath();ctx.arc(hx+5.5*d*s,hy+1*s,0.8*s,0,Math.PI*2);ctx.fill();}
     }
     if(c.shimmer){const sh=0.06+Math.sin(a*3)*0.04;ctx.fillStyle=`rgba(255,255,180,${sh})`;ctx.beginPath();ctx.ellipse(x,y+bS,10*s,8*s,0,0,Math.PI*2);ctx.fill();}
+    if(c.rareGlow){const rg2=ctx.createRadialGradient(x,y+bS,3*s,x,y+bS,14*s);const ga=0.08+Math.sin(a*2)*0.04;rg2.addColorStop(0,`rgba(80,120,255,${ga})`);rg2.addColorStop(1,'rgba(80,120,255,0)');ctx.fillStyle=rg2;ctx.beginPath();ctx.arc(x,y+bS,14*s,0,Math.PI*2);ctx.fill();
+      // Sparkle particles
+      for(let sp=0;sp<3;sp++){const sa2=gt*1.5+sp*2.1,sx2=x+Math.cos(sa2)*10*s,sy2=y-4*s+Math.sin(sa2)*7*s,so2=0.3+Math.sin(sa2*3)*0.25;ctx.fillStyle=`rgba(180,200,255,${so2})`;ctx.beginPath();ctx.arc(sx2,sy2,1*s,0,Math.PI*2);ctx.fill();}}
     if(e.starving){const p=0.5+Math.sin(a*4)*0.3;ctx.fillStyle=`rgba(220,40,40,${p})`;ctx.beginPath();ctx.arc(x,y-14*s,5*s,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font=`bold ${7*s|0}px sans-serif`;ctx.textAlign='center';ctx.fillText('!',x,y-11.5*s);}
     if(sel){ctx.strokeStyle='rgba(105,240,174,0.6)';ctx.lineWidth=1.2;ctx.setLineDash([3,2]);ctx.beginPath();ctx.ellipse(x,y,13*s,10*s,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
       const lb=`${e.data.species} #${e.data.id}`;ctx.font=`bold ${6*s|0}px monospace`;const tw=ctx.measureText(lb).width+6;ctx.fillStyle='rgba(0,0,0,0.65)';rr2(x-tw/2,y-24*s,tw,11*s,3);ctx.fill();ctx.fillStyle='#69f0ae';ctx.textAlign='center';ctx.fillText(lb,x,y-16*s);}
@@ -674,34 +677,102 @@ const FarmMap = (() => {
 
   // ── Farmer Drawing ─────────────────────────────
   function drawFarmerSprite() {
-    const x=farmer.x|0,y=farmer.y|0,a=farmer.phase,s=SC*0.85;
-    const wc=farmer.state!=='feed'?Math.sin((farmer.wp||0)*2)*2*s:0;
+    const x=farmer.x|0,y=farmer.y|0,a=farmer.phase,s=SC*1.15;
+    const wc=farmer.state!=='feed'?Math.sin((farmer.wp||0)*2)*2.5*s:0;
     ctx.save();
-    ctx.fillStyle='rgba(0,0,0,0.12)';ctx.beginPath();ctx.ellipse(x,y+14*s,8*s,3*s,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#2a1808';ctx.fillRect(x-4.5*s,y+9*s+wc,4*s,4*s);ctx.fillRect(x+0.5*s,y+9*s-wc,4*s,4*s);
-    const jg=ctx.createLinearGradient(x-4*s,0,x+4*s,0);jg.addColorStop(0,'#284880');jg.addColorStop(1,'#3868a8');
-    ctx.fillStyle=jg;ctx.fillRect(x-4*s,y+s+wc,3.5*s,10*s);ctx.fillRect(x+0.5*s,y+s-wc,3.5*s,10*s);
-    const sg=ctx.createLinearGradient(x-5*s,0,x+5*s,0);sg.addColorStop(0,'#a03030');sg.addColorStop(0.5,'#cc3838');sg.addColorStop(1,'#b03030');
-    ctx.fillStyle=sg;ctx.fillRect(x-5*s,y-9*s,10*s,12*s);
-    ctx.strokeStyle='#c89060';ctx.lineWidth=2*s;
+    // Shadow
+    ctx.fillStyle='rgba(0,0,0,0.15)';ctx.beginPath();ctx.ellipse(x,y+18*s,10*s,4*s,0,0,Math.PI*2);ctx.fill();
+    // Boots with soles
+    ctx.fillStyle='#1a0e05';ctx.fillRect(x-6*s,y+14*s+wc,5.5*s,2*s);ctx.fillRect(x+0.5*s,y+14*s-wc,5.5*s,2*s);
+    ctx.fillStyle='#3a2010';ctx.fillRect(x-5.5*s,y+10*s+wc,5*s,5*s);ctx.fillRect(x+0.5*s,y+10*s-wc,5*s,5*s);
+    // Boot highlights
+    ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fillRect(x-5*s,y+10.5*s+wc,2*s,3*s);ctx.fillRect(x+1*s,y+10.5*s-wc,2*s,3*s);
+    // Jeans with belt
+    const jg=ctx.createLinearGradient(x-5.5*s,0,x+5.5*s,0);jg.addColorStop(0,'#1e3868');jg.addColorStop(0.4,'#2a5090');jg.addColorStop(1,'#1e3868');
+    ctx.fillStyle=jg;ctx.fillRect(x-5.5*s,y+1*s+wc,5*s,11*s);ctx.fillRect(x+0.5*s,y+1*s-wc,5*s,11*s);
+    // Belt
+    ctx.fillStyle='#3a2818';ctx.fillRect(x-6*s,y+0.5*s,12*s,2*s);
+    ctx.fillStyle='#c8a838';ctx.beginPath();ctx.arc(x,y+1.5*s,1.2*s,0,Math.PI*2);ctx.fill();
+    // Plaid shirt
+    const sg2=ctx.createLinearGradient(x-6.5*s,0,x+6.5*s,0);sg2.addColorStop(0,'#882020');sg2.addColorStop(0.3,'#cc3838');sg2.addColorStop(0.5,'#aa2828');sg2.addColorStop(0.7,'#cc3838');sg2.addColorStop(1,'#882020');
+    ctx.fillStyle=sg2;ctx.fillRect(x-6.5*s,y-12*s,13*s,14*s);
+    // Plaid lines
+    ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=0.6*s;
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(x-6.5*s,y-10*s+i*4*s);ctx.lineTo(x+6.5*s,y-10*s+i*4*s);ctx.stroke();}
+    ctx.strokeStyle='rgba(0,0,0,0.08)';
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(x-4.5*s+i*4*s,y-12*s);ctx.lineTo(x-4.5*s+i*4*s,y+2*s);ctx.stroke();}
+    // Collar
+    ctx.fillStyle='#fff8e8';ctx.beginPath();ctx.moveTo(x-2*s,y-12*s);ctx.lineTo(x,y-10*s);ctx.lineTo(x+2*s,y-12*s);ctx.lineTo(x+3*s,y-12.5*s);ctx.lineTo(x,y-9*s);ctx.lineTo(x-3*s,y-12.5*s);ctx.closePath();ctx.fill();
+    // Arms with hands
+    ctx.strokeStyle='#c89060';ctx.lineWidth=2.5*s;ctx.lineCap='round';
     if(farmer.state==='feed'){
-      ctx.beginPath();ctx.moveTo(x+5*s,y-5*s);ctx.lineTo(x+10*s+Math.sin(a*3)*3*s,y-2*s+Math.cos(a*4)*2*s);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x-5*s,y-5*s);ctx.lineTo(x-8*s,y-s);ctx.stroke();
-      const bg2=ctx.createLinearGradient(x-11*s,0,x-5*s,0);bg2.addColorStop(0,'#666');bg2.addColorStop(1,'#999');
-      ctx.fillStyle=bg2;ctx.fillRect(x-11*s,y-3*s,6*s,7*s);ctx.fillStyle='#555';ctx.fillRect(x-11*s,y-3*s,6*s,1.2*s);
-      ctx.fillStyle='#d8a838';ctx.fillRect(x-10*s,y-1.5*s,4*s,4*s);
+      // Right arm throwing feed
+      const throwX=x+12*s+Math.sin(a*3.5)*5*s;
+      const throwY=y-5*s+Math.cos(a*4)*3*s;
+      ctx.beginPath();ctx.moveTo(x+6.5*s,y-7*s);ctx.quadraticCurveTo(x+10*s,y-9*s,throwX,throwY);ctx.stroke();
+      // Hand
+      ctx.fillStyle='#c89060';ctx.beginPath();ctx.arc(throwX,throwY,1.8*s,0,Math.PI*2);ctx.fill();
+      // Feed grains flying from hand
+      if(canSpawn()&&Math.random()<0.15){particles.push({x:throwX,y:throwY,vx:rr(-20,20),vy:rr(-28,-10),life:0.8,color:'#d8a838',sz:2*s,g:40});}
+      // Left arm holding bucket
+      ctx.strokeStyle='#c89060';ctx.lineWidth=2.5*s;
+      ctx.beginPath();ctx.moveTo(x-6.5*s,y-7*s);ctx.quadraticCurveTo(x-9*s,y-3*s,x-10*s,y-1*s);ctx.stroke();
+      ctx.fillStyle='#c89060';ctx.beginPath();ctx.arc(x-10*s,y-1*s,1.5*s,0,Math.PI*2);ctx.fill();
+      // Bucket with handle
+      const bx=x-13*s,by=y-4*s;
+      ctx.strokeStyle='#555';ctx.lineWidth=0.8*s;ctx.beginPath();ctx.arc(bx+3.5*s,by-2*s,3*s,Math.PI,0);ctx.stroke();
+      const bg3=ctx.createLinearGradient(bx,0,bx+7*s,0);bg3.addColorStop(0,'#606060');bg3.addColorStop(0.5,'#909090');bg3.addColorStop(1,'#686868');
+      ctx.fillStyle=bg3;ctx.fillRect(bx,by,7*s,8*s);
+      ctx.fillStyle='#505050';ctx.fillRect(bx,by,7*s,1.5*s);
+      // Metal bands
+      ctx.fillStyle='#484848';ctx.fillRect(bx,by+3*s,7*s,0.8*s);ctx.fillRect(bx,by+6*s,7*s,0.8*s);
+      // Feed inside bucket
+      ctx.fillStyle='#d8a838';ctx.fillRect(bx+0.8*s,by+1.8*s,5.4*s,4*s);
     } else {
-      ctx.beginPath();ctx.moveTo(x+5*s,y-5*s);ctx.lineTo(x+6.5*s,y+s+wc*0.3);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x-5*s,y-5*s);ctx.lineTo(x-6.5*s,y+s-wc*0.3);ctx.stroke();
+      // Arms swinging while walking
+      ctx.beginPath();ctx.moveTo(x+6.5*s,y-7*s);ctx.lineTo(x+8*s,y+1*s+wc*0.4);ctx.stroke();
+      ctx.fillStyle='#c89060';ctx.beginPath();ctx.arc(x+8*s,y+1*s+wc*0.4,1.5*s,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.moveTo(x-6.5*s,y-7*s);ctx.lineTo(x-8*s,y+1*s-wc*0.4);ctx.stroke();
+      ctx.fillStyle='#c89060';ctx.beginPath();ctx.arc(x-8*s,y+1*s-wc*0.4,1.5*s,0,Math.PI*2);ctx.fill();
     }
-    const hg=ctx.createRadialGradient(x-0.5*s,y-13*s,0,x,y-12*s,4.5*s);
-    hg.addColorStop(0,'#e0b080');hg.addColorStop(1,'#b88858');
-    ctx.fillStyle=hg;ctx.beginPath();ctx.arc(x,y-12*s,4.5*s,0,Math.PI*2);ctx.fill();
-    const hatg=ctx.createLinearGradient(0,y-20*s,0,y-15*s);hatg.addColorStop(0,'#d0a040');hatg.addColorStop(1,'#a88028');
-    ctx.fillStyle=hatg;ctx.fillRect(x-6.5*s,y-18*s,13*s,2.5*s);ctx.fillRect(x-4*s,y-22*s,8*s,5*s);
-    ctx.fillStyle='#907020';ctx.fillRect(x-4*s,y-18*s,8*s,1.2*s);
-    ctx.fillStyle='#2a2a2a';ctx.beginPath();ctx.arc(x-1.5*s,y-12.5*s,0.8*s,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(x+1.5*s,y-12.5*s,0.8*s,0,Math.PI*2);ctx.fill();
+    ctx.lineCap='butt';
+    // Neck
+    ctx.fillStyle='#c89060';ctx.fillRect(x-1.5*s,y-14*s,3*s,3*s);
+    // Head with face
+    const hg2=ctx.createRadialGradient(x-s,y-18*s,0,x,y-17*s,5.5*s);
+    hg2.addColorStop(0,'#e0b080');hg2.addColorStop(0.7,'#c89060');hg2.addColorStop(1,'#b07848');
+    ctx.fillStyle=hg2;ctx.beginPath();ctx.arc(x,y-17*s,5.5*s,0,Math.PI*2);ctx.fill();
+    // Ears
+    ctx.fillStyle='#d0a068';ctx.beginPath();ctx.arc(x-5.2*s,y-17*s,1.5*s,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(x+5.2*s,y-17*s,1.5*s,0,Math.PI*2);ctx.fill();
+    // Eyes
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(x-2*s,y-18*s,1.5*s,1.2*s,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(x+2*s,y-18*s,1.5*s,1.2*s,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#2a1808';ctx.beginPath();ctx.arc(x-1.8*s,y-17.8*s,0.8*s,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(x+2.2*s,y-17.8*s,0.8*s,0,Math.PI*2);ctx.fill();
+    // Eyebrows
+    ctx.strokeStyle='#5a3818';ctx.lineWidth=0.8*s;
+    ctx.beginPath();ctx.moveTo(x-3*s,y-19.5*s);ctx.lineTo(x-1*s,y-19.8*s);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+1*s,y-19.8*s);ctx.lineTo(x+3*s,y-19.5*s);ctx.stroke();
+    // Nose
+    ctx.fillStyle='#c08050';ctx.beginPath();ctx.ellipse(x,y-16.5*s,1*s,0.8*s,0,0,Math.PI*2);ctx.fill();
+    // Mouth - slight smile
+    ctx.strokeStyle='#905838';ctx.lineWidth=0.6*s;
+    ctx.beginPath();ctx.arc(x,y-15*s,1.5*s,0.2,Math.PI-0.2);ctx.stroke();
+    // Straw hat with brim
+    const hatg2=ctx.createLinearGradient(0,y-27*s,0,y-21*s);hatg2.addColorStop(0,'#d8a840');hatg2.addColorStop(0.5,'#c89830');hatg2.addColorStop(1,'#b08828');
+    ctx.fillStyle=hatg2;
+    // Hat brim
+    ctx.beginPath();ctx.ellipse(x,y-22.5*s,9*s,2.5*s,0,0,Math.PI*2);ctx.fill();
+    // Hat crown
+    ctx.fillStyle=hatg2;ctx.fillRect(x-5*s,y-28*s,10*s,6.5*s);
+    // Hat top
+    ctx.beginPath();ctx.ellipse(x,y-28*s,5*s,1.5*s,0,0,Math.PI*2);ctx.fill();
+    // Hat band
+    ctx.fillStyle='#8a6020';ctx.fillRect(x-5*s,y-23.5*s,10*s,1.8*s);
+    // Straw texture
+    ctx.strokeStyle='rgba(160,120,40,0.2)';ctx.lineWidth=0.4*s;
+    for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(x-4*s,y-27*s+i*1.5*s);ctx.lineTo(x+4*s,y-27*s+i*1.5*s);ctx.stroke();}
     ctx.restore();
   }
 
