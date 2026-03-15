@@ -481,6 +481,8 @@
   const chickFeedSelect = $('chick-feed-select');
   const chickFeedAmount = $('chick-feed-amount');
   const feedChickBtn = $('feed-chick-btn');
+  const incubateAllBtn = $('incubate-all-btn');
+  const feedAllChicksBtn = $('feed-all-chicks-btn');
   const deadChickensBody = $('dead-chickens-body');
   let countdownInterval = null;
 
@@ -762,6 +764,26 @@
       loadFarm();
     } catch (e) { toast(e.message, true); }
     feedChickBtn.disabled = false;
+  });
+
+  incubateAllBtn?.addEventListener('click', async () => {
+    incubateAllBtn.disabled = true;
+    try {
+      const r = await API.client.incubateAll();
+      toast(`${r.incubated} ovo(s) incubando! Ração usada: ${r.feed_consumed}`);
+      loadFarm();
+    } catch (e) { toast(e.message, true); }
+    incubateAllBtn.disabled = false;
+  });
+
+  feedAllChicksBtn?.addEventListener('click', async () => {
+    feedAllChicksBtn.disabled = true;
+    try {
+      const r = await API.client.feedAllChicks();
+      toast(`${r.chicks_fed} pintinho(s) alimentado(s)! Ração usada: ${r.total_feed_used}`);
+      loadFarm();
+    } catch (e) { toast(e.message, true); }
+    feedAllChicksBtn.disabled = false;
   });
 
   async function loadDeadChickens() {
