@@ -274,84 +274,99 @@ router.get('/withdrawals', async (req, res) => {
 
 // PUT /api/admin/withdrawals/:id/process — approve and mark as processing
 router.put('/withdrawals/:id/process', async (req, res) => {
-  const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-  const withdrawal = await db('withdrawals').where({ id, status: 'pending' }).first();
-  if (!withdrawal) {
-    return res.status(404).json({ error: 'Pending withdrawal not found' });
+    const withdrawal = await db('withdrawals').where({ id, status: 'pending' }).first();
+    if (!withdrawal) {
+      return res.status(404).json({ error: 'Pending withdrawal not found' });
+    }
+
+    await db('withdrawals').where({ id }).update({
+      status: 'processing',
+      processed_by: req.user.id,
+      processed_at: db.fn.now(),
+    });
+
+    res.json({
+      withdrawal_id: parseInt(id, 10),
+      status: 'processing',
+      pay_to: withdrawal.wallet_address,
+      net_amount: withdrawal.net_amount,
+    });
+  } catch (err) {
+    console.error('[ADMIN] PUT /withdrawals/:id/process error:', err.message);
+    res.status(500).json({ error: 'Failed to process withdrawal' });
   }
-
-  await db('withdrawals').where({ id }).update({
-    status: 'processing',
-    processed_by: req.user.id,
-    processed_at: db.fn.now(),
-  });
-
-  res.json({
-    withdrawal_id: parseInt(id, 10),
-    status: 'processing',
-    pay_to: withdrawal.wallet_address,
-    net_amount: withdrawal.net_amount,
-  });
 });
 
 // PUT /api/admin/withdrawals/:id/complete — mark as completed with tx hash
 router.put('/withdrawals/:id/complete', async (req, res) => {
-  const { id } = req.params;
-  const { tx_hash } = req.body;
+  try {
+    const { id } = req.params;
+    const { tx_hash } = req.body;
 
-  if (!tx_hash) {
-    return res.status(400).json({ error: 'tx_hash required' });
+    if (!tx_hash) {
+      return res.status(400).json({ error: 'tx_hash required' });
+    }
+
+    const withdrawal = await db('withdrawals').where({ id, status: 'processing' }).first();
+    if (!withdrawal) {
+      return res.status(404).json({ error: 'Processing withdrawal not found' });
+    }
+
+    await db('withdrawals').where({ id }).update({
+      status: 'completed',
+      tx_hash,
+      processed_by: req.user.id,
+      processed_at: db.fn.now(),
+    });
+
+    res.json({ withdrawal_id: parseInt(id, 10), status: 'completed', tx_hash });
+  } catch (err) {
+    console.error('[ADMIN] PUT /withdrawals/:id/complete error:', err.message);
+    res.status(500).json({ error: 'Failed to complete withdrawal' });
   }
-
-  const withdrawal = await db('withdrawals').where({ id, status: 'processing' }).first();
-  if (!withdrawal) {
-    return res.status(404).json({ error: 'Processing withdrawal not found' });
-  }
-
-  await db('withdrawals').where({ id }).update({
-    status: 'completed',
-    tx_hash,
-    processed_by: req.user.id,
-    processed_at: db.fn.now(),
-  });
-
-  res.json({ withdrawal_id: parseInt(id, 10), status: 'completed', tx_hash });
 });
 
 // PUT /api/admin/withdrawals/:id/reject — reject a withdrawal and refund
 router.put('/withdrawals/:id/reject', async (req, res) => {
-  const { id } = req.params;
-  const { note } = req.body;
+  try {
+    const { id } = req.params;
+    const { note } = req.body;
 
-  const withdrawal = await db('withdrawals').where({ id }).whereIn('status', ['pending', 'processing']).first();
-  if (!withdrawal) {
-    return res.status(404).json({ error: 'Active withdrawal not found' });
+    const withdrawal = await db('withdrawals').where({ id }).whereIn('status', ['pending', 'processing']).first();
+    if (!withdrawal) {
+      return res.status(404).json({ error: 'Active withdrawal not found' });
+    }
+
+    await db.transaction(async (trx) => {
+      await trx('withdrawals').where({ id }).update({
+        status: 'rejected',
+        admin_note: note || null,
+        processed_by: req.user.id,
+        processed_at: trx.fn.now(),
+      });
+
+      // Refund the full amount
+      const user = await trx('users').where({ id: withdrawal.user_id }).forUpdate().first();
+      const newBalance = parseFloat(user.balance_usdt) + parseFloat(withdrawal.amount);
+      await trx('users').where({ id: withdrawal.user_id }).update({ balance_usdt: newBalance });
+      await trx('wallet_ledger').insert({
+        user_id: withdrawal.user_id,
+        type: 'admin_adjustment',
+        amount: parseFloat(withdrawal.amount),
+        balance_after: newBalance,
+        reference_id: `withdrawal:${id}`,
+        description: `Refund for rejected withdrawal #${id}`,
+      });
+    });
+
+    res.json({ withdrawal_id: parseInt(id, 10), status: 'rejected' });
+  } catch (err) {
+    console.error('[ADMIN] PUT /withdrawals/:id/reject error:', err.message);
+    res.status(500).json({ error: 'Failed to reject withdrawal' });
   }
-
-  await db.transaction(async (trx) => {
-    await trx('withdrawals').where({ id }).update({
-      status: 'rejected',
-      admin_note: note || null,
-      processed_by: req.user.id,
-      processed_at: trx.fn.now(),
-    });
-
-    // Refund the full amount
-    const user = await trx('users').where({ id: withdrawal.user_id }).forUpdate().first();
-    const newBalance = parseFloat(user.balance_usdt) + parseFloat(withdrawal.amount);
-    await trx('users').where({ id: withdrawal.user_id }).update({ balance_usdt: newBalance });
-    await trx('wallet_ledger').insert({
-      user_id: withdrawal.user_id,
-      type: 'admin_adjustment',
-      amount: parseFloat(withdrawal.amount),
-      balance_after: newBalance,
-      reference_id: `withdrawal:${id}`,
-      description: `Refund for rejected withdrawal #${id}`,
-    });
-  });
-
-  res.json({ withdrawal_id: parseInt(id, 10), status: 'rejected' });
 });
 
 // GET /api/admin/users — list users with full stats
@@ -599,12 +614,12 @@ router.post('/species', async (req, res) => {
   const { name, purchase_price, eggs_per_day, feed_per_day, lifespan_days, hatch_probability, species_weight } = req.body;
 
   if (!name || !purchase_price || !eggs_per_day || !feed_per_day || !lifespan_days) {
-    return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+    return res.status(400).json({ error: 'All fields are required' });
   }
 
   const existing = await db('chicken_species').where({ name }).first();
   if (existing) {
-    return res.status(409).json({ error: `Espécie "${name}" já existe` });
+    return res.status(409).json({ error: `Species "${name}" already exists` });
   }
 
   const [id] = await db('chicken_species').insert({
@@ -628,7 +643,7 @@ router.put('/species/:id', async (req, res) => {
 
   const species = await db('chicken_species').where({ id }).first();
   if (!species) {
-    return res.status(404).json({ error: 'Espécie não encontrada' });
+    return res.status(404).json({ error: 'Species not found' });
   }
 
   const updates = {};
@@ -658,7 +673,7 @@ router.delete('/species/:id', async (req, res) => {
   if (parseInt(activeChickens.count, 10) > 0) {
     // Don't delete, just deactivate
     await db('chicken_species').where({ id }).update({ is_active: false });
-    return res.json({ id: parseInt(id, 10), deactivated: true, reason: 'Existem galinhas vivas desta espécie' });
+    return res.json({ id: parseInt(id, 10), deactivated: true, reason: 'There are live chickens of this species' });
   }
 
   await db('chicken_species').where({ id }).update({ is_active: false });
