@@ -303,23 +303,31 @@ select.input { min-width: 160px; width: auto; }
 .tg-community-btn {
   display: inline-flex;
   align-items: center;
-  gap: .35rem;
-  padding: .4rem .9rem;
+  gap: .4rem;
+  padding: .45rem 1rem .45rem .7rem;
   border-radius: 99px;
   font-size: .78rem;
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, #2AABEE, #229ED9);
+  background: linear-gradient(135deg, #2AABEE, #1E96C8);
   text-decoration: none;
-  transition: transform .2s, box-shadow .2s, background .2s;
-  animation: tgGlow 2.5s ease-in-out infinite;
+  flex-shrink: 0;
+  transition: transform .25s, box-shadow .25s;
+  animation: tgPulse 2s ease-in-out infinite;
 }
+.tg-community-btn svg { flex-shrink: 0; }
 .tg-community-btn:hover {
-  transform: translateY(-1px) scale(1.04);
-  box-shadow: 0 4px 16px rgba(42, 171, 238, .5);
-  background: linear-gradient(135deg, #38b6f0, #2AABEE);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(42, 171, 238, .5);
 }
-@keyframes tgGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(42, 171, 238, .1); }
-  50% { box-shadow: 0 0 12px 4px rgba(42, 171, 238, .3); }
+@keyframes tgPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(42, 171, 238, .2); }
+  50% { box-shadow: 0 2px 16px rgba(42, 171, 238, .5), 0 0 0 4px rgba(42, 171, 238, .1); }
 }
+
+/* ── Footer Link (client dashboard) ─────────── */
+.footer-link {
+  color: var(--text-soft);
+  transition: color .2s;
+}
+.footer-link:hover { color: var(--text); }

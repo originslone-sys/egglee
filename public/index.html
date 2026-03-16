@@ -145,17 +145,16 @@
     .cta-banner p{color:var(--text-soft);margin-bottom:2rem;max-width:500px;margin-left:auto;margin-right:auto;}
 
     /* ── Footer ────────────────────────────────── */
-    .footer{border-top:1px solid var(--stroke);padding:2.5rem 0;margin-top:2rem;}
-    .footer-inner{display:flex;flex-direction:column;gap:1.2rem;align-items:center;}
-    .footer-top{display:flex;align-items:center;justify-content:space-between;width:100%;flex-wrap:wrap;gap:1rem;}
-    .footer-brand{display:flex;align-items:center;gap:.5rem;}
+    .footer{border-top:1px solid var(--stroke);padding:2rem 0;margin-top:2rem;}
+    .footer-inner{display:flex;flex-direction:column;gap:1.5rem;}
+    .footer-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+    .footer-brand{display:flex;align-items:center;gap:.5rem;flex-shrink:0;}
     .footer-brand img{width:28px;height:28px;}
     .footer-brand span{font-weight:700;font-size:.95rem;}
-    .footer-links{display:flex;gap:1.2rem;flex-wrap:wrap;justify-content:center;}
-    .footer-links a{color:var(--text-soft);font-size:.82rem;transition:color .2s;}
+    .footer-links{display:flex;gap:1rem;flex-wrap:wrap;align-items:center;}
+    .footer-links a{color:var(--text-soft);font-size:.82rem;transition:color .2s;white-space:nowrap;}
     .footer-links a:hover{color:var(--text);}
-    .footer-bottom{display:flex;align-items:center;justify-content:space-between;width:100%;flex-wrap:wrap;gap:.8rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.05);}
-    .footer-copy{color:var(--text-soft);font-size:.78rem;}
+    .footer-copy{color:var(--text-soft);font-size:.75rem;}
 
     /* ── Mobile Nav Overlay ───────────────────── */
     .mobile-nav{display:none;position:fixed;inset:0;z-index:200;background:rgba(6,8,15,0.95);backdrop-filter:blur(20px);flex-direction:column;align-items:center;justify-content:center;gap:2rem;}
@@ -181,8 +180,8 @@
       .features{grid-template-columns:1fr;}
       .proof-grid{grid-template-columns:1fr;}
       .section{padding:3.5rem 0;}
-      .footer-top{flex-direction:column;text-align:center;}
-      .footer-bottom{flex-direction:column;text-align:center;}
+      .footer-row{flex-direction:column;text-align:center;}
+      .footer-links{justify-content:center;}
     }
     @media(max-width:480px){
       .hero{padding:3rem 0 2rem;}
@@ -498,7 +497,7 @@
   <!-- Footer -->
   <footer class="footer">
     <div class="container footer-inner">
-      <div class="footer-top">
+      <div class="footer-row">
         <div class="footer-brand">
           <img src="img/logo.svg" alt="Egglee" />
           <span>Egglee</span>
@@ -513,14 +512,12 @@
           <a href="privacy.html">Privacy</a>
           <a href="client.html">Play Now</a>
         </div>
-      </div>
-      <div class="footer-bottom">
-        <div class="footer-copy">&copy; 2026 Egglee. All rights reserved.</div>
         <a href="https://t.me/egglee_community" target="_blank" rel="noopener" class="tg-community-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 1 0 24 12.056A12.013 12.013 0 0 0 11.944 0ZM16.906 7.224c.1-.002.321.039.465.178a.66.66 0 0 1 .193.442c0 .076-.007.152-.02.227-.204 2.138-.567 4.273-.567 4.273s-.026.19-.117.297a.471.471 0 0 1-.293.16c-.192.017-.425-.126-.594-.233-.265-.167-1.653-1.088-1.979-1.326a.282.282 0 0 1-.126-.197c-.012-.063.027-.142.027-.142s2.281-2.04 2.482-2.766c.015-.056-.043-.084-.125-.06-.502.163-2.946 1.86-4.174 2.697a.93.93 0 0 1-.466.152c-.225-.003-.646-.126-.963-.23-.387-.127-.695-.194-.668-.41.014-.112.17-.227.467-.345 1.834-.8 3.057-1.328 3.668-1.584 1.747-.734 2.11-.862 2.346-.866Z"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#2AABEE"/><path d="M17.2 7.6c.1 0 .3.04.43.17a.6.6 0 0 1 .17.4c0 .07-.01.14-.02.21-.19 2-.52 3.94-.52 3.94s-.02.18-.11.27a.43.43 0 0 1-.27.15c-.18.01-.39-.12-.55-.22-.24-.15-1.52-1-1.82-1.22a.26.26 0 0 1-.12-.18c-.01-.06.03-.13.03-.13s2.1-1.88 2.28-2.55c.01-.05-.04-.08-.12-.05-.46.15-2.71 1.71-3.84 2.48a.86.86 0 0 1-.43.14c-.2 0-.59-.12-.88-.21-.36-.12-.64-.18-.62-.38.01-.1.16-.21.43-.32 1.69-.74 2.81-1.22 3.37-1.46 1.61-.67 1.94-.79 2.16-.8Z" fill="#fff"/></svg>
           Join Community
         </a>
       </div>
+      <div class="footer-copy">&copy; 2026 Egglee. All rights reserved.</div>
     </div>
   </footer>
 </body>
