@@ -31,7 +31,7 @@ try {
   console.error('[BOOT] Cannot list frontend dir:', e.message);
 }
 
-let authRoutes, clientRoutes, adminRoutes, runProductionCycle, scanDeposits, scanPurchases;
+let authRoutes, clientRoutes, adminRoutes, marketplaceRoutes, runProductionCycle, scanDeposits, scanPurchases;
 
 try {
   authRoutes = require('./routes/auth');
@@ -55,6 +55,14 @@ try {
 } catch (e) {
   console.error('[BOOT] FAILED to load admin routes:', e.message);
   adminRoutes = require('express').Router();
+}
+
+try {
+  marketplaceRoutes = require('./routes/marketplace');
+  console.log('[BOOT] marketplace routes loaded');
+} catch (e) {
+  console.error('[BOOT] FAILED to load marketplace routes:', e.message);
+  marketplaceRoutes = require('express').Router();
 }
 
 try {
@@ -88,10 +96,25 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
+// Patch Express 4 to catch async route errors (prevents 503 from unhandled rejections)
+const Layer = require('express/lib/router/layer');
+const _handle = Layer.prototype.handle_request;
+Layer.prototype.handle_request = function (req, res, next) {
+  try {
+    const result = _handle.call(this, req, res, next);
+    if (result && typeof result.catch === 'function') {
+      result.catch(next);
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/marketplace', marketplaceRoutes);
 
 // Serve static frontend files from public/
 app.use(express.static(path.join(__dirname, '..', 'public')));
