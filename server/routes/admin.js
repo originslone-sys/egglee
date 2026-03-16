@@ -294,7 +294,7 @@ router.put('/withdrawals/:id/complete', async (req, res) => {
     await db('withdrawals').where({ id }).update({
       status: 'completed',
       tx_hash,
-      processed_by: req.user.id,
+      processed_by: req.user.id || null,
       processed_at: db.fn.now(),
     });
 
@@ -326,7 +326,7 @@ router.put('/withdrawals/:id/cancel', async (req, res) => {
       await trx('withdrawals').where({ id }).update({
         status: 'cancelled',
         admin_note: note || null,
-        processed_by: req.user.id,
+        processed_by: req.user.id || null,
         processed_at: trx.fn.now(),
       });
 
