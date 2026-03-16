@@ -27,8 +27,21 @@ const API = (() => {
 
   // ── MetaMask Auth ──────────────────────────────────
 
+  function isMobile() {
+    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+  }
+
+  function openInMetaMaskBrowser() {
+    const url = window.location.host + window.location.pathname + window.location.search;
+    window.location.href = 'https://metamask.app.link/dapp/' + url;
+  }
+
   async function connectMetaMask() {
     if (typeof window.ethereum === 'undefined') {
+      if (isMobile()) {
+        openInMetaMaskBrowser();
+        return;
+      }
       throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
     }
 
