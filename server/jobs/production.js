@@ -108,11 +108,21 @@ async function processUserFarm(userId, now) {
         .whereNotNull('starvation_started_at')
         .update({ starvation_started_at: null });
 
-      // Track feed consumed per chicken
+      // Track feed consumed per chicken (batch by species feed rate)
+      const feedByChicken = new Map();
       for (const c of chickens) {
-        const feedThisCycle = parseFloat(c.feed_per_day) / cyclesPerDay;
-        await trx('chickens').where({ id: c.id })
-          .increment('total_feed_consumed', parseFloat(feedThisCycle.toFixed(4)));
+        const feedThisCycle = parseFloat((parseFloat(c.feed_per_day) / cyclesPerDay).toFixed(4));
+        feedByChicken.set(c.id, feedThisCycle);
+      }
+      // Group chickens by feed amount for batch updates
+      const feedGroups = new Map();
+      for (const [id, feed] of feedByChicken) {
+        const key = feed.toString();
+        if (!feedGroups.has(key)) feedGroups.set(key, []);
+        feedGroups.get(key).push(id);
+      }
+      for (const [feed, ids] of feedGroups) {
+        await trx('chickens').whereIn('id', ids).increment('total_feed_consumed', parseFloat(feed));
       }
 
       const eggsToInsert = [];
@@ -130,9 +140,13 @@ async function processUserFarm(userId, now) {
 
       if (eggsToInsert.length > 0) {
         await trx('eggs').insert(eggsToInsert);
-        // Track eggs produced per chicken
+        // Track eggs produced per chicken (batch update)
+        const eggCountByChicken = new Map();
         for (const egg of eggsToInsert) {
-          await trx('chickens').where({ id: egg.chicken_id }).increment('total_eggs_produced', 1);
+          eggCountByChicken.set(egg.chicken_id, (eggCountByChicken.get(egg.chicken_id) || 0) + 1);
+        }
+        for (const [chickenId, count] of eggCountByChicken) {
+          await trx('chickens').where({ id: chickenId }).increment('total_eggs_produced', count);
         }
       }
     } else {
