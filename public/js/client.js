@@ -22,7 +22,7 @@
 
   function formatCountdown(targetMs) {
     const diff = targetMs - Date.now();
-    if (diff <= 0) return 'Pronto!';
+    if (diff <= 0) return 'Ready!';
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     const s = Math.floor((diff % 60000) / 1000);
@@ -33,7 +33,7 @@
 
   function formatCountdownDays(targetMs) {
     const diff = targetMs - Date.now();
-    if (diff <= 0) return 'Pronto!';
+    if (diff <= 0) return 'Ready!';
     const d = Math.floor(diff / 86400000);
     const h = Math.floor((diff % 86400000) / 3600000);
     if (d > 0) return `${d}d ${h}h`;
@@ -222,13 +222,13 @@
     // Status banner
     if (el.farmStatus) {
       if (farmData.feed_balance <= 0) {
-        el.farmStatus.textContent = 'Ração esgotada: sem alimentação as galinhas podem morrer.';
+        el.farmStatus.textContent = 'Feed depleted: chickens may die without food.';
         el.farmStatus.className = 'farm-status-banner warning';
       } else if (farmData.feed_balance <= 3) {
-        el.farmStatus.textContent = 'Ração baixa! Compre mais ração para manter a produção.';
+        el.farmStatus.textContent = 'Low feed! Buy more feed to maintain production.';
         el.farmStatus.className = 'farm-status-banner warning';
       } else {
-        el.farmStatus.textContent = 'Fazenda estável. Produção funcionando normalmente.';
+        el.farmStatus.textContent = 'Farm stable. Production running normally.';
         el.farmStatus.className = 'farm-status-banner ok';
       }
     }
@@ -347,7 +347,7 @@
         purchasesBody.innerHTML = purchases.slice(0, 10).map(p => {
           const statusClass = p.status === 'confirmed' ? 'ok' : p.status === 'failed' ? 'danger' : 'warn';
           const txShort = p.tx_hash ? p.tx_hash.slice(0, 10) + '...' : '';
-          const typeLabel = p.purchase_type === 'feed' ? 'Ração' : p.purchase_type === 'eggs' ? 'Ovos' : 'Galinha';
+          const typeLabel = p.purchase_type === 'feed' ? 'Feed' : p.purchase_type === 'eggs' ? 'Eggs' : 'Chicken';
           return `<tr>
             <td>${new Date(p.created_at).toLocaleString()}</td>
             <td>${typeLabel}</td>
@@ -491,10 +491,10 @@
     try {
       const data = await API.client.eggsForIncubation();
       if (data.eggs.length === 0) {
-        eggSelect.innerHTML = '<option disabled>Nenhum ovo disponível</option>';
+        eggSelect.innerHTML = '<option disabled>No eggs available</option>';
       } else {
         eggSelect.innerHTML = data.eggs.map(e =>
-          `<option value="${e.id}">Ovo #${e.id} — ${new Date(e.produced_at).toLocaleDateString()}</option>`
+          `<option value="${e.id}">Egg #${e.id} — ${new Date(e.produced_at).toLocaleDateString()}</option>`
         ).join('');
       }
     } catch (_) { /* ignore */ }
@@ -512,7 +512,7 @@
     if (badge) badge.textContent = String(eggs.length);
 
     if (eggs.length === 0) {
-      container.innerHTML = '<p class="text-soft">Nenhum ovo incubando no momento.</p>';
+      container.innerHTML = '<p class="text-soft">No eggs incubating at the moment.</p>';
       return;
     }
 
@@ -525,13 +525,13 @@
       return `<div class="farm-item-card ${isReady ? 'ready' : ''}">
         <div class="farm-item-icon">&#x1F95A;</div>
         <div class="farm-item-body">
-          <div class="farm-item-title">Ovo #${e.id}</div>
-          <div class="farm-item-meta">Incubando desde ${new Date(e.incubation_started_at).toLocaleString()}</div>
+          <div class="farm-item-title">Egg #${e.id}</div>
+          <div class="farm-item-meta">Incubating since ${new Date(e.incubation_started_at).toLocaleString()}</div>
           <div class="progress-bar-wrap">
             <div class="progress-bar" style="width:${progress}%"></div>
           </div>
           <div class="farm-item-countdown" data-end="${endMs}">
-            ${isReady ? '<span class="status-pill ok">Pronto para eclodir!</span>' : `<span class="countdown-timer">${formatCountdown(endMs)}</span> restantes`}
+            ${isReady ? '<span class="status-pill ok">Ready to hatch!</span>' : `<span class="countdown-timer">${formatCountdown(endMs)}</span> remaining`}
           </div>
         </div>
       </div>`;
@@ -551,7 +551,7 @@
     if (badge) badge.textContent = String(chicks.length);
 
     if (chicks.length === 0) {
-      container.innerHTML = '<p class="text-soft">Nenhum pintinho em crescimento.</p>';
+      container.innerHTML = '<p class="text-soft">No chicks growing.</p>';
       return;
     }
 
@@ -566,10 +566,10 @@
       return `<div class="farm-item-card ${isReady ? 'ready' : ''}">
         <div class="farm-item-icon">&#x1F423;</div>
         <div class="farm-item-body">
-          <div class="farm-item-title">Pintinho #${c.id} &rarr; ${c.target_species}</div>
-          <div class="farm-item-meta">Eclodiu em ${new Date(c.hatched_at).toLocaleString()}</div>
+          <div class="farm-item-title">Chick #${c.id} &rarr; ${c.target_species}</div>
+          <div class="farm-item-meta">Hatched on ${new Date(c.hatched_at).toLocaleString()}</div>
           <div class="farm-item-stats">
-            <span>Ração: ${parseFloat(c.feed_consumed).toFixed(1)}/${feedNeeded.toFixed(1)} (${fedPct}%)</span>
+            <span>Feed: ${parseFloat(c.feed_consumed).toFixed(1)}/${feedNeeded.toFixed(1)} (${fedPct}%)</span>
           </div>
           <div class="progress-bar-wrap">
             <div class="progress-bar ${feedReady ? 'complete' : ''}" style="width:${fedPct}%"></div>
@@ -577,9 +577,9 @@
           <div class="farm-item-countdown" data-end="${adultMs}">
             ${timeReady
               ? (feedReady
-                ? '<span class="status-pill ok">Pronto para virar adulto!</span>'
-                : '<span class="status-pill warn">Precisa de mais ração</span>')
-              : `<span class="countdown-timer">${formatCountdownDays(adultMs)}</span> para maturidade`}
+                ? '<span class="status-pill ok">Ready to become adult!</span>'
+                : '<span class="status-pill warn">Needs more feed</span>')
+              : `<span class="countdown-timer">${formatCountdownDays(adultMs)}</span> to maturity`}
           </div>
         </div>
       </div>`;
@@ -596,7 +596,7 @@
     if (badge) badge.textContent = String(eggs.length);
 
     if (eggs.length === 0) {
-      body.innerHTML = '<tr><td colspan="4" class="text-soft">Nenhum ovo eclodido ainda.</td></tr>';
+      body.innerHTML = '<tr><td colspan="4" class="text-soft">No eggs hatched yet.</td></tr>';
       return;
     }
 
@@ -606,14 +606,14 @@
         <td>#${e.id}</td>
         <td>${e.incubation_started_at ? new Date(e.incubation_started_at).toLocaleString() : '--'}</td>
         <td>${e.hatched_at ? new Date(e.hatched_at).toLocaleString() : '--'}</td>
-        <td><span class="status-pill ${isSuccess ? 'ok' : 'danger'}">${isSuccess ? 'Sucesso' : 'Fracassou'}</span></td>
+        <td><span class="status-pill ${isSuccess ? 'ok' : 'danger'}">${isSuccess ? 'Success' : 'Failed'}</span></td>
       </tr>`;
     }).join('');
 
     // If more than 20, show load more
     const pagination = $('hatch-history-pagination');
     if (pagination && eggs.length >= 20) {
-      pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-hatch">Ver mais</button>';
+      pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-hatch">Load more</button>';
       $('load-more-hatch')?.addEventListener('click', () => loadEggHistory(2));
     }
   }
@@ -632,7 +632,7 @@
           <td>#${e.id}</td>
           <td>${e.incubation_started_at ? new Date(e.incubation_started_at).toLocaleString() : '--'}</td>
           <td>${e.hatched_at ? new Date(e.hatched_at).toLocaleString() : '--'}</td>
-          <td><span class="status-pill ${isSuccess ? 'ok' : 'danger'}">${isSuccess ? 'Sucesso' : 'Fracassou'}</span></td>
+          <td><span class="status-pill ${isSuccess ? 'ok' : 'danger'}">${isSuccess ? 'Success' : 'Failed'}</span></td>
         </tr>`;
       }).join('');
 
@@ -644,7 +644,7 @@
         if (data.eggs.length < data.limit || page * data.limit >= data.total) {
           pagination.innerHTML = '';
         } else {
-          pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-hatch">Ver mais</button>';
+          pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-hatch">Load more</button>';
           $('load-more-hatch')?.addEventListener('click', () => loadEggHistory(page + 1));
         }
       }
@@ -659,7 +659,7 @@
     try {
       const data = await API.client.chickHistory(1);
       if (data.chicks.length === 0) {
-        body.innerHTML = '<tr><td colspan="5" class="text-soft">Nenhum pintinho promovido ainda.</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" class="text-soft">No chicks promoted yet.</td></tr>';
       } else {
         body.innerHTML = data.chicks.map(c => `
           <tr>
@@ -673,7 +673,7 @@
 
         const pagination = $('chick-history-pagination');
         if (pagination && data.total > data.limit) {
-          pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-chick-hist">Ver mais</button>';
+          pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-chick-hist">Load more</button>';
           $('load-more-chick-hist')?.addEventListener('click', () => loadMoreChickHistory(2));
         }
       }
@@ -702,7 +702,7 @@
         if (data.chicks.length < data.limit || page * data.limit >= data.total) {
           pagination.innerHTML = '';
         } else {
-          pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-chick-hist">Ver mais</button>';
+          pagination.innerHTML = '<button class="btn btn-ghost btn-sm" id="load-more-chick-hist">Load more</button>';
           $('load-more-chick-hist')?.addEventListener('click', () => loadMoreChickHistory(page + 1));
         }
       }
@@ -719,7 +719,7 @@
         const timer = el.querySelector('.countdown-timer');
         if (timer) {
           if (Date.now() >= endMs) {
-            el.innerHTML = '<span class="status-pill ok">Pronto!</span>';
+            el.innerHTML = '<span class="status-pill ok">Ready!</span>';
           } else {
             // Decide format based on time remaining
             const diff = endMs - Date.now();
@@ -732,11 +732,11 @@
 
   incubateBtn?.addEventListener('click', async () => {
     const eggId = parseInt(eggSelect?.value, 10);
-    if (!eggId) { toast('Selecione um ovo para incubar', true); return; }
+    if (!eggId) { toast('Select an egg to incubate', true); return; }
     incubateBtn.disabled = true;
     try {
       const r = await API.client.incubateEgg(eggId);
-      toast(`Ovo #${r.egg_id} está incubando (ração usada: ${r.feed_consumed})`);
+      toast(`Egg #${r.egg_id} is incubating (feed used: ${r.feed_consumed})`);
       loadFarm();
     } catch (e) { toast(e.message, true); }
     incubateBtn.disabled = false;
@@ -745,10 +745,10 @@
   function loadChickFeedSelect() {
     if (!chickFeedSelect || !farmData) return;
     if (farmData.chicks.length === 0) {
-      chickFeedSelect.innerHTML = '<option disabled>Nenhum pintinho</option>';
+      chickFeedSelect.innerHTML = '<option disabled>No chicks</option>';
     } else {
       chickFeedSelect.innerHTML = farmData.chicks.map(c =>
-        `<option value="${c.id}">Pintinho #${c.id} → ${c.target_species} (${parseFloat(c.feed_consumed).toFixed(1)}/${(farmData.chick_feed_needed || 2.0).toFixed(1)})</option>`
+        `<option value="${c.id}">Chick #${c.id} → ${c.target_species} (${parseFloat(c.feed_consumed).toFixed(1)}/${(farmData.chick_feed_needed || 2.0).toFixed(1)})</option>`
       ).join('');
     }
   }
@@ -756,11 +756,11 @@
   feedChickBtn?.addEventListener('click', async () => {
     const chickId = parseInt(chickFeedSelect?.value, 10);
     const amount = parseFloat(chickFeedAmount?.value || '0.5');
-    if (!chickId) { toast('Selecione um pintinho', true); return; }
+    if (!chickId) { toast('Select a chick', true); return; }
     feedChickBtn.disabled = true;
     try {
       const r = await API.client.feedChick(chickId, amount);
-      toast(`Pintinho #${r.chick_id} alimentado: ${r.fed} (${r.progress} completo)`);
+      toast(`Chick #${r.chick_id} fed: ${r.fed} (${r.progress} complete)`);
       loadFarm();
     } catch (e) { toast(e.message, true); }
     feedChickBtn.disabled = false;
@@ -770,7 +770,7 @@
     incubateAllBtn.disabled = true;
     try {
       const r = await API.client.incubateAll();
-      toast(`${r.incubated} ovo(s) incubando! Ração usada: ${r.feed_consumed}`);
+      toast(`${r.incubated} egg(s) incubating! Feed used: ${r.feed_consumed}`);
       loadFarm();
     } catch (e) { toast(e.message, true); }
     incubateAllBtn.disabled = false;
@@ -780,7 +780,7 @@
     feedAllChicksBtn.disabled = true;
     try {
       const r = await API.client.feedAllChicks();
-      toast(`${r.chicks_fed} pintinho(s) alimentado(s)! Ração usada: ${r.total_feed_used}`);
+      toast(`${r.chicks_fed} chick(s) fed! Feed used: ${r.total_feed_used}`);
       loadFarm();
     } catch (e) { toast(e.message, true); }
     feedAllChicksBtn.disabled = false;

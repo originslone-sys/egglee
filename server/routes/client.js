@@ -263,9 +263,15 @@ router.post('/withdraw', async (req, res) => {
     return res.status(429).json({ error: `Max ${maxPerDay} withdrawal(s) per day` });
   }
 
-  const feeRate = await EconomyConfig.getNumber('withdrawal_fee_rate');
+  let feeRate = await EconomyConfig.getNumber('withdrawal_fee_rate');
+  // Treat values >= 1 as percentage (e.g. 5 = 5%), convert to decimal
+  if (feeRate >= 1) feeRate = feeRate / 100;
   const feeAmount = parseFloat((amount * feeRate).toFixed(2));
   const netAmount = parseFloat((amount - feeAmount).toFixed(2));
+
+  if (netAmount <= 0) {
+    return res.status(400).json({ error: `Withdrawal amount too small to cover the fee (${(feeRate * 100).toFixed(1)}%)` });
+  }
 
   const user = await db('users').where({ id: userId }).first('wallet_address');
 

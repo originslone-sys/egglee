@@ -279,3 +279,22 @@ select.input { min-width: 160px; width: auto; }
   .btn { padding: .55rem .9rem; font-size: .82rem; }
   .card { padding: .9rem 1rem; }
 }
+
+@media (max-width: 480px) {
+  .toast {
+    left: .75rem;
+    right: .75rem;
+    max-width: none;
+    text-align: center;
+  }
+  .terms-box {
+    padding: 1.2rem;
+    max-height: 90vh;
+  }
+  .terms-box h2 { font-size: 1.1rem; }
+  .terms-content { max-height: 250px; font-size: .82rem; }
+  .terms-check { font-size: .78rem; }
+  select.input { min-width: 0; width: 100%; }
+  .table { font-size: .78rem; }
+  .table th, .table td { padding: .45rem .5rem; }
+}

@@ -435,6 +435,33 @@
   .config-row .input { width: 100%; }
   #users-summary { grid-template-columns: repeat(2, 1fr) !important; }
   .user-card-stats { grid-template-columns: repeat(3, 1fr) !important; }
+  .dashboard-grid { grid-template-columns: 1fr 1fr; }
+  .stats-grid-3 { grid-template-columns: 1fr; }
+  .stats-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .admin-topbar { padding: .6rem .75rem; }
+  .admin-topbar h1 { font-size: .95rem; }
+  .admin-content { padding: .75rem; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .dashboard-counters { grid-template-columns: 1fr 1fr; }
+  .stats-grid-4 { grid-template-columns: 1fr 1fr; }
+  .dash-card { padding: .8rem; gap: .6rem; }
+  .dash-card-icon { width: 36px; height: 36px; font-size: 1.1rem; }
+  .dash-card-value { font-size: 1rem; }
+  .counter-card { padding: .7rem .6rem; gap: .5rem; }
+  .counter-value { font-size: 1.1rem; }
+  .counter-icon { font-size: 1.2rem; }
+  .section-header h2 { font-size: 1.1rem; }
+  .user-card-stats { grid-template-columns: repeat(3, 1fr) !important; }
+  .user-stat-label { font-size: .58rem; }
+  .user-card-meta { flex-direction: column; gap: .2rem; }
+  .config-row { padding: .5rem .7rem; flex-wrap: wrap; }
+  .config-row label { font-size: .8rem; width: 100%; }
+  .config-row .input { width: 100%; }
+  #users-summary { grid-template-columns: 1fr 1fr !important; }
+  #species-form { grid-template-columns: 1fr !important; }
 }
 
 /* ── Admin User Cards ───────────────────────── */

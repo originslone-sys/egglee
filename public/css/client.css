@@ -450,6 +450,47 @@
 @media (max-width: 600px) {
   .overview-metrics { grid-template-columns: 1fr; }
   .farm-items-grid { grid-template-columns: 1fr; }
+  .chicken-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .client-topbar {
+    padding: .6rem .75rem;
+    flex-direction: column;
+    align-items: stretch;
+    height: auto;
+  }
+  .client-topbar .brand { justify-content: center; }
+  .client-nav {
+    justify-content: center;
+    width: 100%;
+  }
+  .client-nav button { padding: .4rem .7rem; font-size: .76rem; }
+  .topbar-right {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: .4rem;
+  }
+  .client-content { padding: .75rem; }
+  .action-card {
+    flex-direction: column;
+    text-align: center;
+    gap: .6rem;
+    padding: .8rem;
+  }
+  .action-card .action-icon { width: 36px; height: 36px; font-size: 1.1rem; margin: 0 auto; }
+  .action-card .action-body h3 { font-size: .85rem; }
+  .farm-status-banner { font-size: .8rem; padding: .6rem .8rem; }
+  .metric-card { padding: .8rem .9rem; }
+  .metric-card .metric { font-size: 1.2rem; }
+  .incub-card { padding: .9rem; }
+  .incub-card h3 { font-size: .85rem; }
+  .withdraw-form .input { width: 100%; }
+  .chicken-card { padding: .7rem .8rem; }
+  .chicken-card-stats { gap: .3rem; }
+  .chicken-stat { padding: .25rem .15rem; }
+  .chicken-stat-value { font-size: .8rem; }
+  .entity-details-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ── Farm Item Cards (Eggs, Chicks) ───────────── */
