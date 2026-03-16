@@ -272,35 +272,7 @@ router.get('/withdrawals', async (req, res) => {
   res.json({ page, limit, withdrawals, counts });
 });
 
-// PUT /api/admin/withdrawals/:id/process — approve and mark as processing
-router.put('/withdrawals/:id/process', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const withdrawal = await db('withdrawals').where({ id, status: 'pending' }).first();
-    if (!withdrawal) {
-      return res.status(404).json({ error: 'Pending withdrawal not found' });
-    }
-
-    await db('withdrawals').where({ id }).update({
-      status: 'processing',
-      processed_by: req.user.id,
-      processed_at: db.fn.now(),
-    });
-
-    res.json({
-      withdrawal_id: parseInt(id, 10),
-      status: 'processing',
-      pay_to: withdrawal.wallet_address,
-      net_amount: withdrawal.net_amount,
-    });
-  } catch (err) {
-    console.error('[ADMIN] PUT /withdrawals/:id/process error:', err.message);
-    res.status(500).json({ error: 'Failed to process withdrawal' });
-  }
-});
-
-// PUT /api/admin/withdrawals/:id/complete — mark as completed with tx hash
+// PUT /api/admin/withdrawals/:id/complete — pay and mark as completed
 router.put('/withdrawals/:id/complete', async (req, res) => {
   try {
     const { id } = req.params;
@@ -310,9 +282,9 @@ router.put('/withdrawals/:id/complete', async (req, res) => {
       return res.status(400).json({ error: 'tx_hash required' });
     }
 
-    const withdrawal = await db('withdrawals').where({ id, status: 'processing' }).first();
+    const withdrawal = await db('withdrawals').where({ id, status: 'pending' }).first();
     if (!withdrawal) {
-      return res.status(404).json({ error: 'Processing withdrawal not found' });
+      return res.status(404).json({ error: 'Pending withdrawal not found' });
     }
 
     await db('withdrawals').where({ id }).update({
@@ -322,27 +294,33 @@ router.put('/withdrawals/:id/complete', async (req, res) => {
       processed_at: db.fn.now(),
     });
 
-    res.json({ withdrawal_id: parseInt(id, 10), status: 'completed', tx_hash });
+    res.json({
+      withdrawal_id: parseInt(id, 10),
+      status: 'completed',
+      tx_hash,
+      pay_to: withdrawal.wallet_address,
+      net_amount: withdrawal.net_amount,
+    });
   } catch (err) {
     console.error('[ADMIN] PUT /withdrawals/:id/complete error:', err.message);
     res.status(500).json({ error: 'Failed to complete withdrawal' });
   }
 });
 
-// PUT /api/admin/withdrawals/:id/reject — reject a withdrawal and refund
-router.put('/withdrawals/:id/reject', async (req, res) => {
+// PUT /api/admin/withdrawals/:id/cancel — cancel a withdrawal and refund
+router.put('/withdrawals/:id/cancel', async (req, res) => {
   try {
     const { id } = req.params;
     const { note } = req.body;
 
-    const withdrawal = await db('withdrawals').where({ id }).whereIn('status', ['pending', 'processing']).first();
+    const withdrawal = await db('withdrawals').where({ id, status: 'pending' }).first();
     if (!withdrawal) {
-      return res.status(404).json({ error: 'Active withdrawal not found' });
+      return res.status(404).json({ error: 'Pending withdrawal not found' });
     }
 
     await db.transaction(async (trx) => {
       await trx('withdrawals').where({ id }).update({
-        status: 'rejected',
+        status: 'cancelled',
         admin_note: note || null,
         processed_by: req.user.id,
         processed_at: trx.fn.now(),
@@ -358,14 +336,14 @@ router.put('/withdrawals/:id/reject', async (req, res) => {
         amount: parseFloat(withdrawal.amount),
         balance_after: newBalance,
         reference_id: `withdrawal:${id}`,
-        description: `Refund for rejected withdrawal #${id}`,
+        description: `Refund for cancelled withdrawal #${id}`,
       });
     });
 
-    res.json({ withdrawal_id: parseInt(id, 10), status: 'rejected' });
+    res.json({ withdrawal_id: parseInt(id, 10), status: 'cancelled' });
   } catch (err) {
-    console.error('[ADMIN] PUT /withdrawals/:id/reject error:', err.message);
-    res.status(500).json({ error: 'Failed to reject withdrawal' });
+    console.error('[ADMIN] PUT /withdrawals/:id/cancel error:', err.message);
+    res.status(500).json({ error: 'Failed to cancel withdrawal' });
   }
 });
 
