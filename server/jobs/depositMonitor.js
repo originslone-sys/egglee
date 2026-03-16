@@ -53,20 +53,6 @@ async function scanDeposits() {
   const fromBlock = lastScannedBlock + 1;
   const toBlock = Math.min(safeBlock, fromBlock + 4999);
 
-  // Get all registered wallet addresses — map sender address → userId
-  const users = await db('users').select('id', 'wallet_address');
-  if (users.length === 0) {
-    lastScannedBlock = toBlock;
-    return { scanned: toBlock - fromBlock + 1, found: 0, credited: 0 };
-  }
-
-  const walletMap = new Map();
-  for (const u of users) {
-    if (u.wallet_address) {
-      walletMap.set(u.wallet_address.toLowerCase(), u.id);
-    }
-  }
-
   // Query Transfer events TO the platform wallet only
   let found = 0;
   let credited = 0;
@@ -77,8 +63,11 @@ async function scanDeposits() {
 
     for (const event of events) {
       const from = event.args.from.toLowerCase();
-      const userId = walletMap.get(from);
-      if (!userId) continue; // sender not a registered user
+
+      // Look up user by wallet address on-demand (indexed column)
+      const user = await db('users').where('wallet_address', from).first('id');
+      if (!user) continue; // sender not a registered user
+      const userId = user.id;
 
       const txHash = event.transactionHash;
 

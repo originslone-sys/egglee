@@ -48,6 +48,12 @@ module.exports = {
     seeds: {
       directory: path.resolve(__dirname, '../seeds'),
     },
-    pool: { min: 2, max: 20 },
+    pool: {
+      min: 5,
+      max: 50,
+      acquireTimeoutMillis: 30000,
+      idleTimeoutMillis: 30000,
+      reapIntervalMillis: 1000,
+    },
   },
 };

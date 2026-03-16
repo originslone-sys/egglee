@@ -368,62 +368,60 @@ router.get('/users', async (req, res) => {
   const users = await query.orderBy('created_at', 'desc').limit(limit).offset(offset);
   const totalRow = await countQuery.count('id as count').first();
 
-  // Enrich each user with aggregated stats
-  const enriched = await Promise.all(users.map(async (u) => {
-    let chickenStats = { alive: 0, dead: 0, total: 0 };
-    let eggStats = { available: 0, total: 0 };
-    let purchaseStats = { total_spent: 0 };
-    let withdrawalStats = { total_withdrawn: 0, total_requests: 0 };
+  // Enrich users with aggregated stats using batch queries (avoids N+1)
+  const userIds = users.map(u => u.id);
 
-    try {
-      const cs = await db('chickens').where({ user_id: u.id })
-        .select(
-          db.raw("SUM(CASE WHEN status = 'alive' THEN 1 ELSE 0 END) as alive"),
-          db.raw("SUM(CASE WHEN status = 'dead' THEN 1 ELSE 0 END) as dead"),
-          db.raw('COUNT(*) as total')
-        ).first();
-      if (cs) chickenStats = cs;
-    } catch (_) {}
+  const [chickenRows, eggRows, purchaseRows, withdrawalRows] = await Promise.all([
+    userIds.length ? db('chickens').whereIn('user_id', userIds)
+      .select('user_id')
+      .select(
+        db.raw("SUM(CASE WHEN status = 'alive' THEN 1 ELSE 0 END) as alive"),
+        db.raw("SUM(CASE WHEN status = 'dead' THEN 1 ELSE 0 END) as dead"),
+        db.raw('COUNT(*) as total')
+      ).groupBy('user_id') : [],
+    userIds.length ? db('eggs').whereIn('user_id', userIds)
+      .select('user_id')
+      .select(
+        db.raw("SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available"),
+        db.raw('COUNT(*) as total')
+      ).groupBy('user_id') : [],
+    userIds.length ? db('pending_purchases').whereIn('user_id', userIds).where({ status: 'confirmed' })
+      .select('user_id')
+      .select(db.raw('COALESCE(SUM(expected_amount), 0) as total_spent'))
+      .groupBy('user_id') : [],
+    userIds.length ? db('withdrawals').whereIn('user_id', userIds)
+      .select('user_id')
+      .select(
+        db.raw("COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as total_withdrawn"),
+        db.raw('COUNT(*) as total_requests')
+      ).groupBy('user_id') : [],
+  ]);
 
-    try {
-      const es = await db('eggs').where({ user_id: u.id })
-        .select(
-          db.raw("SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available"),
-          db.raw('COUNT(*) as total')
-        ).first();
-      if (es) eggStats = es;
-    } catch (_) {}
+  // Build lookup maps
+  const chickenMap = new Map(chickenRows.map(r => [r.user_id, r]));
+  const eggMap = new Map(eggRows.map(r => [r.user_id, r]));
+  const purchaseMap = new Map(purchaseRows.map(r => [r.user_id, r]));
+  const withdrawalMap = new Map(withdrawalRows.map(r => [r.user_id, r]));
 
-    try {
-      const ps = await db('pending_purchases').where({ user_id: u.id, status: 'confirmed' })
-        .select(db.raw('COALESCE(SUM(expected_amount), 0) as total_spent'))
-        .first();
-      if (ps) purchaseStats = ps;
-    } catch (_) {}
-
-    try {
-      const ws = await db('withdrawals').where({ user_id: u.id })
-        .select(
-          db.raw("COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as total_withdrawn"),
-          db.raw('COUNT(*) as total_requests')
-        ).first();
-      if (ws) withdrawalStats = ws;
-    } catch (_) {}
-
+  const enriched = users.map(u => {
+    const cs = chickenMap.get(u.id) || {};
+    const es = eggMap.get(u.id) || {};
+    const ps = purchaseMap.get(u.id) || {};
+    const ws = withdrawalMap.get(u.id) || {};
     return {
       ...u,
       balance_usdt: parseFloat(u.balance_usdt),
       feed_balance: parseFloat(u.feed_balance),
-      chickens_alive: parseInt(chickenStats.alive || 0, 10),
-      chickens_dead: parseInt(chickenStats.dead || 0, 10),
-      chickens_total: parseInt(chickenStats.total || 0, 10),
-      eggs_available: parseInt(eggStats.available || 0, 10),
-      eggs_total: parseInt(eggStats.total || 0, 10),
-      total_spent: parseFloat(purchaseStats.total_spent || 0),
-      total_withdrawn: parseFloat(withdrawalStats.total_withdrawn || 0),
-      withdrawal_requests: parseInt(withdrawalStats.total_requests || 0, 10),
+      chickens_alive: parseInt(cs.alive || 0, 10),
+      chickens_dead: parseInt(cs.dead || 0, 10),
+      chickens_total: parseInt(cs.total || 0, 10),
+      eggs_available: parseInt(es.available || 0, 10),
+      eggs_total: parseInt(es.total || 0, 10),
+      total_spent: parseFloat(ps.total_spent || 0),
+      total_withdrawn: parseFloat(ws.total_withdrawn || 0),
+      withdrawal_requests: parseInt(ws.total_requests || 0, 10),
     };
-  }));
+  });
 
   res.json({ page, limit, total: parseInt(totalRow.count, 10), users: enriched });
   } catch (err) {
