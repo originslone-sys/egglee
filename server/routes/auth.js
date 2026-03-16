@@ -166,14 +166,14 @@ router.post('/bootstrap', async (req, res) => {
 router.post('/admin-login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
-    return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
+    return res.status(400).json({ error: 'Username and password are required' });
   }
 
   const adminUser = process.env.ADMIN_USERNAME || 'admin';
   const adminPass = process.env.ADMIN_PASSWORD || 'Antonio@23';
 
   if (username !== adminUser || password !== adminPass) {
-    return res.status(401).json({ error: 'Usuário ou senha incorretos' });
+    return res.status(401).json({ error: 'Invalid username or password' });
   }
 
   const token = signToken({ id: 0, wallet_address: 'admin', role: 'admin' });

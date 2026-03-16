@@ -89,7 +89,11 @@ router.get('/purchases/stats', async (req, res) => {
   // Best selling species (chickens purchased)
   const topSpecies = await db('pending_purchases')
     .where({ status: 'confirmed', purchase_type: 'chicken' })
-    .select(db.raw("JSON_UNQUOTE(JSON_EXTRACT(purchase_data, '$.species_id')) as species_id"))
+    .select(db.raw(
+      db.client.config.client === 'better-sqlite3'
+        ? "json_extract(purchase_data, '$.species_id') as species_id"
+        : "JSON_UNQUOTE(JSON_EXTRACT(purchase_data, '$.species_id')) as species_id"
+    ))
     .count('id as count')
     .sum('expected_amount as total')
     .groupBy('species_id')

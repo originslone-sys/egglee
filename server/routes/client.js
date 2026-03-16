@@ -411,8 +411,8 @@ router.post('/incubate-all-eggs', async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('[CLIENT] POST /incubate-all-eggs error:', err.message);
-    const msg = err.message === 'Insufficient feed' ? 'Ração insuficiente para incubar'
-      : err.message === 'No eggs available to incubate' ? 'Nenhum ovo disponível'
+    const msg = err.message === 'Insufficient feed' ? 'Insufficient feed for incubation'
+      : err.message === 'No eggs available to incubate' ? err.message
       : 'Failed to incubate eggs';
     res.status(400).json({ error: msg });
   }
@@ -538,7 +538,7 @@ router.post('/feed-all-chicks', async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('[CLIENT] POST /feed-all-chicks error:', err.message);
-    const msg = err.message === 'No growing chicks to feed' ? 'Nenhum pintinho para alimentar'
+    const msg = err.message === 'No growing chicks to feed' ? err.message
       : err.message === 'All chicks already fully fed or insufficient feed' ? err.message
       : 'Failed to feed chicks';
     res.status(400).json({ error: msg });
