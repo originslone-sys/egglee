@@ -6,6 +6,7 @@
   function $(id) { return document.getElementById(id); }
   function show(el) { if (el) el.style.display = ''; }
   function hide(el) { if (el) el.style.display = 'none'; }
+  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
   function toast(msg, isError = false) {
     const t = document.createElement('div');
@@ -327,16 +328,16 @@
           return `
           <tr>
             <td>#${w.id}</td>
-            <td title="${w.wallet_address || w.user_wallet || ''}">${shortWallet(w.wallet_address || w.user_wallet)}</td>
+            <td title="${esc(w.wallet_address || w.user_wallet || '')}">${esc(shortWallet(w.wallet_address || w.user_wallet))}</td>
             <td>${fmtUSDT(w.amount)}</td>
             <td>${fmtUSDT(w.fee_amount)}</td>
             <td>${fmtUSDT(w.net_amount)}</td>
-            <td><span class="status-pill ${statusClass}">${w.status}</span></td>
-            <td>${new Date(w.created_at).toLocaleString()}</td>
+            <td><span class="status-pill ${esc(statusClass)}">${esc(w.status)}</span></td>
+            <td>${esc(new Date(w.created_at).toLocaleString())}</td>
             <td>
-              ${w.status === 'pending' ? `<button class="btn btn-primary btn-sm wd-pay" data-id="${w.id}" data-wallet="${w.wallet_address || w.user_wallet || ''}" data-amount="${w.net_amount}">Pay</button>
+              ${w.status === 'pending' ? `<button class="btn btn-primary btn-sm wd-pay" data-id="${w.id}" data-wallet="${esc(w.wallet_address || w.user_wallet || '')}" data-amount="${w.net_amount}">Pay</button>
               <button class="btn btn-danger btn-sm wd-cancel" data-id="${w.id}">Cancel</button>` : ''}
-              ${w.tx_hash ? `<span title="${w.tx_hash}" style="font-size:.75rem;color:var(--text-soft)">${w.tx_hash.slice(0, 10)}...</span>` : ''}
+              ${w.tx_hash ? `<span title="${esc(w.tx_hash)}" style="font-size:.75rem;color:var(--text-soft)">${esc(w.tx_hash.slice(0, 10))}...</span>` : ''}
             </td>
           </tr>`;
         }).join('');
@@ -514,7 +515,7 @@
           return `<div class="user-card${bannedClass}">
             <div class="user-card-header">
               <div class="user-card-wallet">
-                <span class="wallet-addr" title="${u.wallet_address}" onclick="navigator.clipboard.writeText('${u.wallet_address}');this.style.color='var(--primary)'">${ws}</span>
+                <span class="wallet-addr" title="${esc(u.wallet_address)}" onclick="navigator.clipboard.writeText('${esc(u.wallet_address)}');this.style.color='var(--primary)'">${esc(ws)}</span>
                 <span class="status-pill ${u.is_banned ? 'danger' : 'ok'}">${u.is_banned ? 'Banned' : 'Active'}</span>
                 ${u.role === 'admin' ? '<span class="status-pill info">Admin</span>' : ''}
               </div>

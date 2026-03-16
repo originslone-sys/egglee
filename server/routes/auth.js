@@ -169,10 +169,22 @@ router.post('/admin-login', (req, res) => {
     return res.status(400).json({ error: 'Username and password are required' });
   }
 
-  const adminUser = process.env.ADMIN_USERNAME || 'admin';
-  const adminPass = process.env.ADMIN_PASSWORD || 'Antonio@23';
+  const adminUser = process.env.ADMIN_USERNAME;
+  const adminPass = process.env.ADMIN_PASSWORD;
 
-  if (username !== adminUser || password !== adminPass) {
+  if (!adminUser || !adminPass) {
+    return res.status(503).json({ error: 'Admin login not configured' });
+  }
+
+  // Timing-safe comparison to prevent timing attacks
+  function safeEqual(a, b) {
+    const bufA = Buffer.from(String(a));
+    const bufB = Buffer.from(String(b));
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+  }
+
+  if (!safeEqual(username, adminUser) || !safeEqual(password, adminPass)) {
     return res.status(401).json({ error: 'Invalid username or password' });
   }
 

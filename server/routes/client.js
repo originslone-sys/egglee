@@ -128,23 +128,24 @@ router.post('/buy-eggs', async (req, res) => {
   }
   const cost = parseFloat((qty * eggPrice).toFixed(2));
 
-  // Check tx_hash not already used
-  const existing = await db('pending_purchases').where({ tx_hash }).first();
-  if (existing) {
-    return res.status(409).json({ error: 'Transaction already submitted' });
-  }
-
   const user = await db('users').where({ id: userId }).first('wallet_address');
 
-  await db('pending_purchases').insert({
-    user_id: userId,
-    tx_hash,
-    purchase_type: 'eggs',
-    purchase_data: JSON.stringify({ quantity: qty }),
-    expected_amount: cost,
-    from_address: user.wallet_address,
-    status: 'pending',
-  });
+  try {
+    await db('pending_purchases').insert({
+      user_id: userId,
+      tx_hash,
+      purchase_type: 'eggs',
+      purchase_data: JSON.stringify({ quantity: qty }),
+      expected_amount: cost,
+      from_address: user.wallet_address,
+      status: 'pending',
+    });
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.code === 'ER_DUP_ENTRY' || err.errno === 19) {
+      return res.status(409).json({ error: 'Transaction already submitted' });
+    }
+    throw err;
+  }
 
   res.json({ status: 'pending', tx_hash, cost, quantity: qty, message: 'Eggs will be credited after blockchain verification.' });
 });
@@ -167,23 +168,24 @@ router.post('/buy-feed', async (req, res) => {
   }
   const cost = parseFloat((quantity * feedPrice).toFixed(2));
 
-  // Check tx_hash not already used
-  const existing = await db('pending_purchases').where({ tx_hash }).first();
-  if (existing) {
-    return res.status(409).json({ error: 'Transaction already submitted' });
-  }
-
   const user = await db('users').where({ id: userId }).first('wallet_address');
 
-  await db('pending_purchases').insert({
-    user_id: userId,
-    tx_hash,
-    purchase_type: 'feed',
-    purchase_data: JSON.stringify({ quantity }),
-    expected_amount: cost,
-    from_address: user.wallet_address,
-    status: 'pending',
-  });
+  try {
+    await db('pending_purchases').insert({
+      user_id: userId,
+      tx_hash,
+      purchase_type: 'feed',
+      purchase_data: JSON.stringify({ quantity }),
+      expected_amount: cost,
+      from_address: user.wallet_address,
+      status: 'pending',
+    });
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.code === 'ER_DUP_ENTRY' || err.errno === 19) {
+      return res.status(409).json({ error: 'Transaction already submitted' });
+    }
+    throw err;
+  }
 
   res.json({ status: 'pending', tx_hash, cost, message: 'Purchase will be confirmed after blockchain verification.' });
 });
@@ -214,23 +216,24 @@ router.post('/buy-chicken', async (req, res) => {
     return res.status(404).json({ error: 'Species not found or inactive' });
   }
 
-  // Check tx_hash not already used
-  const existing = await db('pending_purchases').where({ tx_hash }).first();
-  if (existing) {
-    return res.status(409).json({ error: 'Transaction already submitted' });
-  }
-
   const user = await db('users').where({ id: userId }).first('wallet_address');
 
-  await db('pending_purchases').insert({
-    user_id: userId,
-    tx_hash,
-    purchase_type: 'chicken',
-    purchase_data: JSON.stringify({ species_id: species.id }),
-    expected_amount: parseFloat(species.purchase_price),
-    from_address: user.wallet_address,
-    status: 'pending',
-  });
+  try {
+    await db('pending_purchases').insert({
+      user_id: userId,
+      tx_hash,
+      purchase_type: 'chicken',
+      purchase_data: JSON.stringify({ species_id: species.id }),
+      expected_amount: parseFloat(species.purchase_price),
+      from_address: user.wallet_address,
+      status: 'pending',
+    });
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.code === 'ER_DUP_ENTRY' || err.errno === 19) {
+      return res.status(409).json({ error: 'Transaction already submitted' });
+    }
+    throw err;
+  }
 
   res.json({ status: 'pending', tx_hash, cost: parseFloat(species.purchase_price), species: species.name, message: 'Chicken will be added after blockchain verification.' });
 });

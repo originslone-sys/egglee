@@ -81,20 +81,47 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'", 'https://*.binance.org', 'wss://*'],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+}));
 
-app.use(cors());
+// CORS — restrict to known origins in production
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : undefined; // undefined = allow all in development
+app.use(cors(allowedOrigins ? { origin: allowedOrigins } : undefined));
 
 app.use(express.json());
 
-// Rate limiting
+// Rate limiting — general API
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
 });
 app.use('/api/', apiLimiter);
+
+// Stricter rate limiting on auth endpoints (prevent brute force)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many authentication attempts, try again later' },
+});
+app.use('/api/auth/', authLimiter);
 
 // Patch Express 4 to catch async route errors (prevents 503 from unhandled rejections)
 const Layer = require('express/lib/router/layer');
@@ -128,20 +155,28 @@ app.get('/api/health', (req, res) => {
     rootFiles = fs.readdirSync(frontendDir).filter(f => !f.startsWith('node_modules') && !f.startsWith('.'));
   } catch (e) { /* ignore */ }
 
-  const dbClient = db.client.config.client;
+  // Only expose detailed info when requested with admin token
+  const isAdmin = req.headers.authorization && (() => {
+    try {
+      const jwt = require('jsonwebtoken');
+      const t = req.headers.authorization.replace('Bearer ', '');
+      const p = jwt.verify(t, process.env.JWT_SECRET || 'dev-secret-change-me');
+      return p.role === 'admin';
+    } catch { return false; }
+  })();
 
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV,
-    port: process.env.PORT,
-    db_engine: dbClient,
-    db_configured: !!(process.env.DB_NAME && process.env.DB_USER),
-    cloud_sql: !!process.env.CLOUD_SQL_CONNECTION_NAME,
-    indexHtmlExists: indexExists,
-    frontendDir,
-    rootFiles,
-  });
+  const info = { status: 'ok', timestamp: new Date().toISOString() };
+
+  if (isAdmin) {
+    info.env = process.env.NODE_ENV;
+    info.db_engine = db.client.config.client;
+    info.db_configured = !!(process.env.DB_NAME && process.env.DB_USER);
+    info.cloud_sql = !!process.env.CLOUD_SQL_CONNECTION_NAME;
+    info.indexHtmlExists = indexExists;
+    info.rootFiles = rootFiles;
+  }
+
+  res.json(info);
 });
 
 // Catch-all: serve index.html for any non-API route
