@@ -366,7 +366,7 @@
                     + amountWei.replace('0x', '').padStart(64, '0');
                   const tx = await window.ethereum.request({
                     method: 'eth_sendTransaction',
-                    params: [{ from, to: USDT_CONTRACT, data: transferData }],
+                    params: [{ from, to: USDT_CONTRACT, data: transferData, value: '0x0' }],
                   });
                   txHash = tx;
                   toast(`TX sent: ${shortWallet(tx)}`);
