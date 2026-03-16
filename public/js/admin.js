@@ -355,6 +355,10 @@
                 try {
                   const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                   const from = accounts[0];
+
+                  // Switch MetaMask to BSC network before sending
+                  await API.ensureBSC();
+
                   const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
                   const amountWei = '0x' + BigInt(Math.round(netAmount * 1e18)).toString(16);
                   const transferData = '0xa9059cbb'
@@ -362,7 +366,7 @@
                     + amountWei.replace('0x', '').padStart(64, '0');
                   const tx = await window.ethereum.request({
                     method: 'eth_sendTransaction',
-                    params: [{ from, to: USDT_CONTRACT, data: transferData, chainId: '0x38' }],
+                    params: [{ from, to: USDT_CONTRACT, data: transferData }],
                   });
                   txHash = tx;
                   toast(`TX sent: ${shortWallet(tx)}`);

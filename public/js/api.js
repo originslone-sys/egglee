@@ -179,5 +179,5 @@ const API = (() => {
     return data;
   }
 
-  return { connectMetaMask, adminLogin, logout, isLoggedIn, getUser, isAdmin, sendPayment, client, admin };
+  return { connectMetaMask, adminLogin, logout, isLoggedIn, getUser, isAdmin, sendPayment, ensureBSC, client, admin };
 })();
