@@ -23,6 +23,19 @@
 
   function fmtUSDT(v) { return (parseFloat(v) || 0).toFixed(2) + ' USDT'; }
 
+  // Poll eth_getTransactionReceipt until the TX is mined (max ~2 min)
+  async function waitForTxReceipt(txHash, maxAttempts = 40) {
+    for (let i = 0; i < maxAttempts; i++) {
+      const receipt = await window.ethereum.request({
+        method: 'eth_getTransactionReceipt',
+        params: [txHash],
+      });
+      if (receipt) return receipt;
+      await new Promise(r => setTimeout(r, 3000)); // wait 3s between polls
+    }
+    return null; // timed out
+  }
+
   const purchaseTypeLabels = { chicken: 'Chicken', feed: 'Feed', eggs: 'Eggs' };
 
   // ── Auth ────────────────────────────────────────
@@ -351,6 +364,8 @@
               const netAmount = parseFloat(btn.dataset.amount);
 
               let txHash = null;
+              let confirmed = false;
+
               if (typeof window.ethereum !== 'undefined') {
                 try {
                   const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -369,6 +384,10 @@
                   const transferData = '0xa9059cbb'
                     + payTo.replace('0x', '').toLowerCase().padStart(64, '0')
                     + amountWei.replace('0x', '').padStart(64, '0');
+
+                  btn.disabled = true;
+                  btn.textContent = 'Sending...';
+
                   const tx = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
@@ -376,21 +395,40 @@
                       to: USDT_CONTRACT,
                       data: transferData,
                       value: '0x0',
-                      gas: '0x186A0',  // 100000 — enough for ERC20 transfer on BSC
+                      gas: '0x186A0',
                     }],
                   });
+
                   txHash = tx;
-                  toast(`TX sent: ${shortWallet(tx)}`);
+                  toast(`TX sent: ${shortWallet(tx)} — waiting for confirmation...`);
+                  btn.textContent = 'Confirming...';
+
+                  // Poll for transaction receipt until mined
+                  const receipt = await waitForTxReceipt(tx);
+
+                  if (receipt && receipt.status === '0x1') {
+                    confirmed = true;
+                    toast(`TX confirmed on-chain: ${shortWallet(tx)}`);
+                  } else {
+                    toast('Transaction FAILED on-chain. Withdrawal NOT marked as completed.', true);
+                    btn.disabled = false;
+                    btn.textContent = 'Pay';
+                    return;
+                  }
                 } catch (mmErr) {
-                  toast('MetaMask cancelled — enter TX hash manually', true);
+                  btn.disabled = false;
+                  btn.textContent = 'Pay';
+                  toast('MetaMask cancelled or transaction failed.', true);
                 }
               }
 
-              if (!txHash) {
-                txHash = prompt('Enter TX hash (after sending BEP20 USDT):');
+              // Manual fallback: admin already sent USDT outside the app
+              if (!confirmed && !txHash) {
+                txHash = prompt('MetaMask unavailable. Enter TX hash of an already confirmed BEP20 USDT transfer:');
+                if (txHash) confirmed = true;
               }
 
-              if (txHash) {
+              if (confirmed && txHash) {
                 const r = await API.admin.completeWithdrawal(wId, txHash);
                 toast(`Withdrawal #${r.withdrawal_id} completed`);
               }
