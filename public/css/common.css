@@ -298,3 +298,27 @@ select.input { min-width: 160px; width: auto; }
   .table { font-size: .78rem; }
   .table th, .table td { padding: .45rem .5rem; }
 }
+
+/* ── Telegram Community Button ──────────────── */
+.tg-community-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .45rem 1rem;
+  border-radius: 99px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #2AABEE, #229ED9);
+  text-decoration: none;
+  transition: transform .2s, box-shadow .2s;
+  animation: tgPulse 3s ease-in-out infinite;
+}
+.tg-community-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(42, 171, 238, .4);
+}
+@keyframes tgPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(42, 171, 238, 0); }
+  50% { box-shadow: 0 0 8px 2px rgba(42, 171, 238, .25); }
+}
