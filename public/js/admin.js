@@ -360,13 +360,24 @@
                   await API.ensureBSC();
 
                   const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
-                  const amountWei = '0x' + BigInt(Math.round(netAmount * 1e18)).toString(16);
+
+                  // Convert amount to wei using string math to avoid floating-point precision loss
+                  const [intPart, decPart = ''] = String(netAmount).split('.');
+                  const amountStr = intPart + decPart.padEnd(18, '0').slice(0, 18);
+                  const amountWei = '0x' + BigInt(amountStr).toString(16);
+
                   const transferData = '0xa9059cbb'
                     + payTo.replace('0x', '').toLowerCase().padStart(64, '0')
                     + amountWei.replace('0x', '').padStart(64, '0');
                   const tx = await window.ethereum.request({
                     method: 'eth_sendTransaction',
-                    params: [{ from, to: USDT_CONTRACT, data: transferData, value: '0x0' }],
+                    params: [{
+                      from,
+                      to: USDT_CONTRACT,
+                      data: transferData,
+                      value: '0x0',
+                      gas: '0x186A0',  // 100000 — enough for ERC20 transfer on BSC
+                    }],
                   });
                   txHash = tx;
                   toast(`TX sent: ${shortWallet(tx)}`);

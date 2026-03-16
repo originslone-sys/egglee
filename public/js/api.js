@@ -83,10 +83,28 @@ const API = (() => {
   async function ensureBSC() {
     const chainId = await window.ethereum.request({ method: 'eth_chainId' });
     if (chainId !== '0x38') {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x38' }],
-      });
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x38' }],
+        });
+      } catch (switchErr) {
+        // Chain not added to MetaMask — add it with a reliable RPC
+        if (switchErr.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x38',
+              chainName: 'BNB Smart Chain',
+              nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+              rpcUrls: ['https://bsc-dataseed.binance.org/'],
+              blockExplorerUrls: ['https://bscscan.com'],
+            }],
+          });
+        } else {
+          throw switchErr;
+        }
+      }
     }
   }
 
