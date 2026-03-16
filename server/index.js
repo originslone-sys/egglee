@@ -128,16 +128,19 @@ app.get('/api/health', (req, res) => {
     rootFiles = fs.readdirSync(frontendDir).filter(f => !f.startsWith('node_modules') && !f.startsWith('.'));
   } catch (e) { /* ignore */ }
 
+  const dbClient = db.client.config.client;
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV,
     port: process.env.PORT,
+    db_engine: dbClient,
+    db_configured: !!(process.env.DB_NAME && process.env.DB_USER),
+    cloud_sql: !!process.env.CLOUD_SQL_CONNECTION_NAME,
     indexHtmlExists: indexExists,
     frontendDir,
     rootFiles,
-    dbConfigured: !!(process.env.DB_NAME && process.env.DB_USER),
-    cloudSql: !!process.env.CLOUD_SQL_CONNECTION_NAME,
   });
 });
 
