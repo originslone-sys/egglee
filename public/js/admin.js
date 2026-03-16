@@ -291,9 +291,8 @@
 
       // Status counters
       el('wd-count-pending', String(s.status_counts.pending || 0));
-      el('wd-count-processing', String(s.status_counts.processing || 0));
       el('wd-count-completed', String(s.status_counts.completed || 0));
-      el('wd-count-rejected', String(s.status_counts.rejected || 0));
+      el('wd-count-cancelled', String(s.status_counts.cancelled || 0));
 
       // Top users
       const topBody = $('wd-top-users-body');
@@ -324,8 +323,7 @@
         withdrawalBody.innerHTML = `<tr><td colspan="8" class="text-soft">No ${status} withdrawals.</td></tr>`;
       } else {
         withdrawalBody.innerHTML = data.withdrawals.map(w => {
-          const statusClass = w.status === 'completed' ? 'ok' : w.status === 'rejected' ? 'danger' : w.status === 'processing' ? 'info' : 'warn';
-          const showActions = w.status === 'pending' || w.status === 'processing';
+          const statusClass = w.status === 'completed' ? 'ok' : w.status === 'cancelled' ? 'danger' : 'warn';
           return `
           <tr>
             <td>#${w.id}</td>
@@ -336,21 +334,20 @@
             <td><span class="status-pill ${statusClass}">${w.status}</span></td>
             <td>${new Date(w.created_at).toLocaleString()}</td>
             <td>
-              ${w.status === 'pending' ? `<button class="btn btn-primary btn-sm wd-process" data-id="${w.id}">Pay</button>
-              <button class="btn btn-danger btn-sm wd-reject" data-id="${w.id}">Reject</button>` : ''}
-              ${w.status === 'processing' ? `<button class="btn btn-primary btn-sm wd-complete" data-id="${w.id}">Complete</button>
-              <button class="btn btn-danger btn-sm wd-reject" data-id="${w.id}">Reject</button>` : ''}
+              ${w.status === 'pending' ? `<button class="btn btn-primary btn-sm wd-pay" data-id="${w.id}" data-wallet="${w.wallet_address || w.user_wallet || ''}" data-amount="${w.net_amount}">Pay</button>
+              <button class="btn btn-danger btn-sm wd-cancel" data-id="${w.id}">Cancel</button>` : ''}
               ${w.tx_hash ? `<span title="${w.tx_hash}" style="font-size:.75rem;color:var(--text-soft)">${w.tx_hash.slice(0, 10)}...</span>` : ''}
             </td>
           </tr>`;
         }).join('');
 
-        // Process buttons
-        withdrawalBody.querySelectorAll('.wd-process').forEach(btn => {
+        // Pay buttons — send USDT via MetaMask or enter TX hash, then complete
+        withdrawalBody.querySelectorAll('.wd-pay').forEach(btn => {
           btn.addEventListener('click', async () => {
             try {
-              const r = await API.admin.processWithdrawal(btn.dataset.id);
-              toast(`Withdrawal #${r.withdrawal_id} — pay ${fmtUSDT(r.net_amount)} to ${shortWallet(r.pay_to)}`);
+              const wId = btn.dataset.id;
+              const payTo = btn.dataset.wallet;
+              const netAmount = parseFloat(btn.dataset.amount);
 
               let txHash = null;
               if (typeof window.ethereum !== 'undefined') {
@@ -358,10 +355,9 @@
                   const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                   const from = accounts[0];
                   const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
-                  const amount = parseFloat(r.net_amount);
-                  const amountWei = '0x' + BigInt(Math.round(amount * 1e18)).toString(16);
+                  const amountWei = '0x' + BigInt(Math.round(netAmount * 1e18)).toString(16);
                   const transferData = '0xa9059cbb'
-                    + r.pay_to.replace('0x', '').toLowerCase().padStart(64, '0')
+                    + payTo.replace('0x', '').toLowerCase().padStart(64, '0')
                     + amountWei.replace('0x', '').padStart(64, '0');
                   const tx = await window.ethereum.request({
                     method: 'eth_sendTransaction',
@@ -375,11 +371,11 @@
               }
 
               if (!txHash) {
-                txHash = prompt('Enter TX hash manually (after sending BEP20 USDT):');
+                txHash = prompt('Enter TX hash (after sending BEP20 USDT):');
               }
 
               if (txHash) {
-                await API.admin.completeWithdrawal(btn.dataset.id, txHash);
+                const r = await API.admin.completeWithdrawal(wId, txHash);
                 toast(`Withdrawal #${r.withdrawal_id} completed`);
               }
               loadWithdrawals();
@@ -388,28 +384,13 @@
           });
         });
 
-        // Complete buttons (for processing status)
-        withdrawalBody.querySelectorAll('.wd-complete').forEach(btn => {
+        // Cancel buttons
+        withdrawalBody.querySelectorAll('.wd-cancel').forEach(btn => {
           btn.addEventListener('click', async () => {
-            const txHash = prompt('Enter the transaction TX hash:');
-            if (txHash) {
-              try {
-                await API.admin.completeWithdrawal(btn.dataset.id, txHash);
-                toast(`Withdrawal #${btn.dataset.id} completed`);
-                loadWithdrawals();
-                loadWithdrawalStats();
-              } catch (e) { toast(e.message, true); }
-            }
-          });
-        });
-
-        // Reject buttons
-        withdrawalBody.querySelectorAll('.wd-reject').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const note = prompt('Rejection reason (optional):');
+            const note = prompt('Cancellation reason (optional):');
             try {
-              await API.admin.rejectWithdrawal(btn.dataset.id, note || '');
-              toast(`Withdrawal #${btn.dataset.id} rejected and refunded`);
+              await API.admin.cancelWithdrawal(btn.dataset.id, note || '');
+              toast(`Withdrawal #${btn.dataset.id} cancelled and refunded`);
               loadWithdrawals();
               loadWithdrawalStats();
             } catch (e) { toast(e.message, true); }
