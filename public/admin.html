@@ -48,15 +48,15 @@
           </button>
           <button class="sidebar-link" data-section="withdrawals">
             <span class="link-icon">&#x1F4B8;</span>
-            <span class="link-text">Saques</span>
+            <span class="link-text">Withdrawals</span>
           </button>
           <button class="sidebar-link" data-section="purchases">
             <span class="link-icon">&#x1F6D2;</span>
-            <span class="link-text">Compras</span>
+            <span class="link-text">Purchases</span>
           </button>
           <button class="sidebar-link" data-section="species">
             <span class="link-icon">&#x1F414;</span>
-            <span class="link-text">Galinhas</span>
+            <span class="link-text">Chickens</span>
           </button>
           <button class="sidebar-link" data-section="users">
             <span class="link-icon">&#x1F465;</span>
@@ -105,7 +105,7 @@
         </div>
         <div class="topbar-actions">
           <span id="admin-user-label" class="status-pill ok" style="display:none">Admin</span>
-          <button id="logout-btn" class="btn btn-ghost btn-sm" style="display:none">Sair</button>
+          <button id="logout-btn" class="btn btn-ghost btn-sm" style="display:none">Logout</button>
         </div>
       </header>
 
@@ -114,19 +114,19 @@
         <div style="width:100%;max-width:380px">
           <div style="text-align:center;margin-bottom:1.5rem">
             <div style="font-size:3rem;margin-bottom:.5rem">&#x1F512;</div>
-            <h2 style="margin-bottom:.3rem">Painel Admin</h2>
-            <p class="text-soft">Insira suas credenciais para acessar.</p>
+            <h2 style="margin-bottom:.3rem">Admin Panel</h2>
+            <p class="text-soft">Enter your credentials to access.</p>
           </div>
           <form id="admin-login-form" autocomplete="off">
             <div style="margin-bottom:1rem">
-              <label for="admin-user" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:.4rem;color:var(--text-soft)">Usuário</label>
+              <label for="admin-user" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:.4rem;color:var(--text-soft)">Username</label>
               <input id="admin-user" type="text" class="input" placeholder="admin" style="width:100%" required />
             </div>
             <div style="margin-bottom:1.5rem">
-              <label for="admin-pass" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:.4rem;color:var(--text-soft)">Senha</label>
+              <label for="admin-pass" style="display:block;font-size:.8rem;font-weight:600;margin-bottom:.4rem;color:var(--text-soft)">Password</label>
               <input id="admin-pass" type="password" class="input" placeholder="********" style="width:100%" required />
             </div>
-            <button id="admin-login-btn" type="submit" class="btn btn-primary" style="width:100%">Entrar</button>
+            <button id="admin-login-btn" type="submit" class="btn btn-primary" style="width:100%">Sign In</button>
             <p id="admin-login-error" style="display:none;color:var(--danger);font-size:.82rem;text-align:center;margin-top:.8rem"></p>
           </form>
         </div>
@@ -135,9 +135,9 @@
       <!-- ── Access Denied ──────────────────── -->
       <div id="access-denied" style="display:none;text-align:center;padding:5rem 2rem">
         <div style="font-size:3rem;margin-bottom:1rem">&#x1F6AB;</div>
-        <h2 style="margin-bottom:.5rem">Acesso Negado</h2>
-        <p class="text-soft" style="margin-bottom:1.5rem">Esta área é restrita a contas de administrador.</p>
-        <a href="client.html" class="btn btn-primary">Ir para o Dashboard</a>
+        <h2 style="margin-bottom:.5rem">Access Denied</h2>
+        <p class="text-soft" style="margin-bottom:1.5rem">This area is restricted to administrator accounts.</p>
+        <a href="client.html" class="btn btn-primary">Go to Dashboard</a>
       </div>
 
       <div id="admin-content-wrap" class="admin-content" style="display:none">
@@ -153,42 +153,42 @@
             <div class="dash-card">
               <div class="dash-card-icon purchases">&#x1F6D2;</div>
               <div class="dash-card-body">
-                <p class="dash-card-label">Compras — Total Geral</p>
+                <p class="dash-card-label">Purchases — All Time</p>
                 <p class="dash-card-value" id="dash-purchases-total">--</p>
               </div>
             </div>
             <div class="dash-card">
               <div class="dash-card-icon purchases">&#x1F4C5;</div>
               <div class="dash-card-body">
-                <p class="dash-card-label">Compras — Hoje</p>
+                <p class="dash-card-label">Purchases — Today</p>
                 <p class="dash-card-value" id="dash-purchases-today">--</p>
               </div>
             </div>
             <div class="dash-card">
               <div class="dash-card-icon purchases">&#x1F5D3;</div>
               <div class="dash-card-body">
-                <p class="dash-card-label">Compras — Mês</p>
+                <p class="dash-card-label">Purchases — Month</p>
                 <p class="dash-card-value" id="dash-purchases-month">--</p>
               </div>
             </div>
             <div class="dash-card">
               <div class="dash-card-icon withdrawals">&#x1F4B8;</div>
               <div class="dash-card-body">
-                <p class="dash-card-label">Saques — Total Geral</p>
+                <p class="dash-card-label">Withdrawals — All Time</p>
                 <p class="dash-card-value" id="dash-withdrawals-total">--</p>
               </div>
             </div>
             <div class="dash-card">
               <div class="dash-card-icon withdrawals">&#x1F4C5;</div>
               <div class="dash-card-body">
-                <p class="dash-card-label">Saques — Hoje</p>
+                <p class="dash-card-label">Withdrawals — Today</p>
                 <p class="dash-card-value" id="dash-withdrawals-today">--</p>
               </div>
             </div>
             <div class="dash-card">
               <div class="dash-card-icon withdrawals">&#x1F5D3;</div>
               <div class="dash-card-body">
-                <p class="dash-card-label">Saques — Mês</p>
+                <p class="dash-card-label">Withdrawals — Month</p>
                 <p class="dash-card-value" id="dash-withdrawals-month">--</p>
               </div>
             </div>
@@ -200,35 +200,35 @@
               <span class="counter-icon">&#x1F465;</span>
               <div>
                 <p class="counter-value" id="dash-users">--</p>
-                <p class="counter-label">Usuários</p>
+                <p class="counter-label">Users</p>
               </div>
             </div>
             <div class="counter-card">
               <span class="counter-icon">&#x1F414;</span>
               <div>
                 <p class="counter-value" id="dash-chickens">--</p>
-                <p class="counter-label">Galinhas Vivas</p>
+                <p class="counter-label">Chickens Alive</p>
               </div>
             </div>
             <div class="counter-card">
               <span class="counter-icon">&#x1F95A;</span>
               <div>
                 <p class="counter-value" id="dash-eggs">--</p>
-                <p class="counter-label">Ovos Ativos</p>
+                <p class="counter-label">Active Eggs</p>
               </div>
             </div>
             <div class="counter-card">
               <span class="counter-icon">&#x23F3;</span>
               <div>
                 <p class="counter-value" id="dash-pending-wd">--</p>
-                <p class="counter-label">Saques Pendentes</p>
+                <p class="counter-label">Pending Withdrawals</p>
               </div>
             </div>
             <div class="counter-card">
               <span class="counter-icon">&#x1F6D2;</span>
               <div>
                 <p class="counter-value" id="dash-purchases-count">--</p>
-                <p class="counter-label">Total Compras</p>
+                <p class="counter-label">Total Purchases</p>
               </div>
             </div>
           </div>
@@ -277,13 +277,13 @@
         <!-- ── Withdrawals Section ─────────────── -->
         <div id="section-withdrawals" class="admin-section">
           <div class="section-header">
-            <h2>Saques</h2>
+            <h2>Withdrawals</h2>
             <div class="section-actions">
               <select id="wd-status-filter" class="input">
-                <option value="pending">Pendentes</option>
-                <option value="processing">Em Processamento</option>
-                <option value="completed">Completados</option>
-                <option value="rejected">Rejeitados</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+                <option value="rejected">Rejected</option>
               </select>
             </div>
           </div>
@@ -291,57 +291,57 @@
           <!-- Withdrawal Stats Cards -->
           <div class="stats-grid stats-grid-4">
             <div class="card stat-card">
-              <p class="metric-label">Total Pago (Geral)</p>
+              <p class="metric-label">Total Paid (All Time)</p>
               <p class="metric" id="wd-total-amount">--</p>
-              <p class="metric-sub" id="wd-total-count">-- saques</p>
+              <p class="metric-sub" id="wd-total-count">-- withdrawals</p>
             </div>
             <div class="card stat-card">
-              <p class="metric-label">Pago Hoje</p>
+              <p class="metric-label">Paid Today</p>
               <p class="metric" id="wd-today-amount">--</p>
-              <p class="metric-sub" id="wd-today-count">-- saques</p>
+              <p class="metric-sub" id="wd-today-count">-- withdrawals</p>
             </div>
             <div class="card stat-card">
-              <p class="metric-label">Pago no Mês</p>
+              <p class="metric-label">Paid This Month</p>
               <p class="metric" id="wd-month-amount">--</p>
-              <p class="metric-sub" id="wd-month-count">-- saques</p>
+              <p class="metric-sub" id="wd-month-count">-- withdrawals</p>
             </div>
             <div class="card stat-card">
-              <p class="metric-label">Taxas Arrecadadas</p>
+              <p class="metric-label">Fees Collected</p>
               <p class="metric" id="wd-fees-total">--</p>
-              <p class="metric-sub" id="wd-fees-month">Mês: --</p>
+              <p class="metric-sub" id="wd-fees-month">Month: --</p>
             </div>
           </div>
 
           <!-- Status Counters -->
           <div class="stats-grid stats-grid-4" style="margin-bottom:1rem">
             <div class="card stat-card mini">
-              <p class="metric-label">Pendentes</p>
+              <p class="metric-label">Pending</p>
               <p class="metric" id="wd-count-pending">0</p>
             </div>
             <div class="card stat-card mini">
-              <p class="metric-label">Processando</p>
+              <p class="metric-label">Processing</p>
               <p class="metric" id="wd-count-processing">0</p>
             </div>
             <div class="card stat-card mini">
-              <p class="metric-label">Completados</p>
+              <p class="metric-label">Completed</p>
               <p class="metric" id="wd-count-completed">0</p>
             </div>
             <div class="card stat-card mini">
-              <p class="metric-label">Rejeitados</p>
+              <p class="metric-label">Rejected</p>
               <p class="metric" id="wd-count-rejected">0</p>
             </div>
           </div>
 
           <!-- Top Users -->
           <div class="card" id="wd-top-users-card" style="margin-bottom:1.5rem">
-            <h3 style="margin-bottom:.8rem">Top Sacadores</h3>
+            <h3 style="margin-bottom:.8rem">Top Withdrawers</h3>
             <div class="table-wrap">
               <table class="table">
                 <thead>
-                  <tr><th>Wallet</th><th>Total Sacado</th><th>Qtd Saques</th></tr>
+                  <tr><th>Wallet</th><th>Total Withdrawn</th><th>Count</th></tr>
                 </thead>
                 <tbody id="wd-top-users-body">
-                  <tr><td colspan="3" class="text-soft">Carregando...</td></tr>
+                  <tr><td colspan="3" class="text-soft">Loading...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -349,11 +349,11 @@
 
           <!-- Withdrawal Queue Table -->
           <div class="card">
-            <h3 style="margin-bottom:.8rem">Fila de Saques</h3>
+            <h3 style="margin-bottom:.8rem">Withdrawal Queue</h3>
             <div class="table-wrap">
               <table class="table">
                 <thead>
-                  <tr><th>ID</th><th>Wallet</th><th>Valor Bruto</th><th>Taxa</th><th>Valor Líq.</th><th>Status</th><th>Data</th><th>Ações</th></tr>
+                  <tr><th>ID</th><th>Wallet</th><th>Gross</th><th>Fee</th><th>Net</th><th>Status</th><th>Date</th><th>Actions</th></tr>
                 </thead>
                 <tbody id="withdrawal-body">
                   <tr><td colspan="8" class="text-soft">Connect as admin to view queue.</td></tr>
@@ -366,42 +366,42 @@
         <!-- ── Compras Section ────────────────────── -->
         <div id="section-purchases" class="admin-section">
           <div class="section-header">
-            <h2>Compras</h2>
+            <h2>Purchases</h2>
           </div>
 
           <!-- Purchase Stats -->
           <div class="stats-grid stats-grid-3">
             <div class="card stat-card">
-              <p class="metric-label">Compras — Total Geral</p>
+              <p class="metric-label">Purchases — All Time</p>
               <p class="metric" id="purch-total">--</p>
-              <p class="metric-sub" id="purch-total-count">-- compras</p>
+              <p class="metric-sub" id="purch-total-count">-- purchases</p>
             </div>
             <div class="card stat-card">
-              <p class="metric-label">Compras — Hoje</p>
+              <p class="metric-label">Purchases — Today</p>
               <p class="metric" id="purch-today">--</p>
-              <p class="metric-sub" id="purch-today-count">-- compras</p>
+              <p class="metric-sub" id="purch-today-count">-- purchases</p>
             </div>
             <div class="card stat-card">
-              <p class="metric-label">Compras — Mês</p>
+              <p class="metric-label">Purchases — Month</p>
               <p class="metric" id="purch-month">--</p>
-              <p class="metric-sub" id="purch-month-count">-- compras</p>
+              <p class="metric-sub" id="purch-month-count">-- purchases</p>
             </div>
           </div>
 
           <!-- By Type -->
           <div class="stats-grid stats-grid-3" style="margin-bottom:1rem">
             <div class="card stat-card mini">
-              <p class="metric-label">Galinhas Vendidas</p>
+              <p class="metric-label">Chickens Sold</p>
               <p class="metric" id="purch-chicken-count">0</p>
               <p class="metric-sub" id="purch-chicken-total">0 USDT</p>
             </div>
             <div class="card stat-card mini">
-              <p class="metric-label">Ração Vendida</p>
+              <p class="metric-label">Feed Sold</p>
               <p class="metric" id="purch-feed-count">0</p>
               <p class="metric-sub" id="purch-feed-total">0 USDT</p>
             </div>
             <div class="card stat-card mini">
-              <p class="metric-label">Ovos Vendidos</p>
+              <p class="metric-label">Eggs Sold</p>
               <p class="metric" id="purch-eggs-count">0</p>
               <p class="metric-sub" id="purch-eggs-total">0 USDT</p>
             </div>
@@ -409,14 +409,14 @@
 
           <!-- Top Species -->
           <div class="card" id="top-species-card" style="margin-bottom:1.5rem">
-            <h3 style="margin-bottom:.8rem">Espécies Mais Vendidas</h3>
+            <h3 style="margin-bottom:.8rem">Top Selling Species</h3>
             <div class="table-wrap">
               <table class="table">
                 <thead>
-                  <tr><th>#</th><th>Espécie</th><th>Qtd Vendida</th><th>Total USDT</th></tr>
+                  <tr><th>#</th><th>Species</th><th>Qty Sold</th><th>Total USDT</th></tr>
                 </thead>
                 <tbody id="top-species-body">
-                  <tr><td colspan="4" class="text-soft">Carregando...</td></tr>
+                  <tr><td colspan="4" class="text-soft">Loading...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -424,14 +424,14 @@
 
           <!-- Recent Purchases Table -->
           <div class="card">
-            <h3 style="margin-bottom:.8rem">Compras Recentes</h3>
+            <h3 style="margin-bottom:.8rem">Recent Purchases</h3>
             <div class="table-wrap">
               <table class="table">
                 <thead>
-                  <tr><th>ID</th><th>Usuário</th><th>Tipo</th><th>Valor</th><th>Data</th></tr>
+                  <tr><th>ID</th><th>User</th><th>Type</th><th>Amount</th><th>Date</th></tr>
                 </thead>
                 <tbody id="purchases-body">
-                  <tr><td colspan="5" class="text-soft">Carregando...</td></tr>
+                  <tr><td colspan="5" class="text-soft">Loading...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -441,41 +441,41 @@
         <!-- ── Species Section (Emissor de Galinhas) ── -->
         <div id="section-species" class="admin-section">
           <div class="section-header">
-            <h2>Emissor de Galinhas</h2>
-            <button id="species-add-btn" class="btn btn-primary btn-sm">+ Nova Espécie</button>
+            <h2>Species Manager</h2>
+            <button id="species-add-btn" class="btn btn-primary btn-sm">+ New Species</button>
           </div>
 
           <!-- Create/Edit Form (hidden by default) -->
           <div id="species-form-wrap" class="card" style="display:none;margin-bottom:1.5rem">
-            <h3 id="species-form-title">Nova Espécie</h3>
+            <h3 id="species-form-title">New Species</h3>
             <form id="species-form" style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:.8rem">
               <div>
-                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Nome</label>
-                <input id="sp-name" class="input" type="text" placeholder="Ex: Poedeira Premium" required style="width:100%" />
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Name</label>
+                <input id="sp-name" class="input" type="text" placeholder="e.g. Premium Layer" required style="width:100%" />
               </div>
               <div>
-                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Preço (USDT)</label>
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Price (USDT)</label>
                 <input id="sp-price" class="input" type="number" step="0.01" min="0" required style="width:100%" />
               </div>
               <div>
-                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Ovos/dia</label>
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Eggs/day</label>
                 <input id="sp-eggs" class="input" type="number" step="0.1" min="0" required style="width:100%" />
               </div>
               <div>
-                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Ração/dia</label>
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Feed/day</label>
                 <input id="sp-feed" class="input" type="number" step="0.1" min="0" required style="width:100%" />
               </div>
               <div>
-                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Vida (dias)</label>
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Lifespan (days)</label>
                 <input id="sp-lifespan" class="input" type="number" min="1" required style="width:100%" />
               </div>
               <div>
-                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Peso Espécie (0-1)</label>
-                <input id="sp-weight" class="input" type="number" step="0.0001" min="0" max="1" value="0" style="width:100%" title="Peso relativo para seleção de espécie quando pintinho vira adulto" />
+                <label style="font-size:.78rem;font-weight:600;color:var(--text-soft)">Species Weight (0-1)</label>
+                <input id="sp-weight" class="input" type="number" step="0.0001" min="0" max="1" value="0" style="width:100%" title="Relative weight for species selection when chick becomes adult" />
               </div>
               <div style="grid-column:1/-1;display:flex;gap:.5rem;justify-content:flex-end;margin-top:.3rem">
-                <button type="button" id="species-cancel-btn" class="btn btn-ghost btn-sm">Cancelar</button>
-                <button type="submit" id="species-save-btn" class="btn btn-primary btn-sm">Salvar</button>
+                <button type="button" id="species-cancel-btn" class="btn btn-ghost btn-sm">Cancel</button>
+                <button type="submit" id="species-save-btn" class="btn btn-primary btn-sm">Save</button>
               </div>
             </form>
           </div>
@@ -486,18 +486,18 @@
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Nome</th>
-                  <th>Preço</th>
-                  <th>Ovos/dia</th>
-                  <th>Ração/dia</th>
-                  <th>Vida</th>
-                  <th>Peso Espécie</th>
+                  <th>Name</th>
+                  <th>Price</th>
+                  <th>Eggs/day</th>
+                  <th>Feed/day</th>
+                  <th>Lifespan</th>
+                  <th>Weight</th>
                   <th>Status</th>
-                  <th>Ações</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="species-body">
-                <tr><td colspan="9" class="text-soft">Carregando espécies...</td></tr>
+                <tr><td colspan="9" class="text-soft">Loading species...</td></tr>
               </tbody>
             </table>
           </div>

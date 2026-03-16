@@ -22,7 +22,7 @@
 
   function fmtUSDT(v) { return (parseFloat(v) || 0).toFixed(2) + ' USDT'; }
 
-  const purchaseTypeLabels = { chicken: 'Galinha', feed: 'Ração', eggs: 'Ovos' };
+  const purchaseTypeLabels = { chicken: 'Chicken', feed: 'Feed', eggs: 'Eggs' };
 
   // ── Auth ────────────────────────────────────────
   const logoutBtn = $('logout-btn');
@@ -77,13 +77,13 @@
     const btn = $('admin-login-btn');
 
     if (loginError) hide(loginError);
-    if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Signing in...'; }
 
     try {
       await API.adminLogin(username, password);
       updateAuthUI();
       if (checkAdminAccess()) {
-        toast('Login realizado com sucesso');
+        toast('Login successful');
         loadAdmin();
       }
     } catch (err) {
@@ -92,7 +92,7 @@
         show(loginError);
       }
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
     }
   });
 
@@ -197,10 +197,10 @@
       if (alertDetails) {
         let html = '';
         if (data.p1.starvation_risk > 0)
-          html += `<div class="alert-item danger">Risco de fome: ${data.p1.starvation_risk} galinhas em risco</div>`;
+          html += `<div class="alert-item danger">Starvation risk: ${data.p1.starvation_risk} chickens at risk</div>`;
         if (data.p1.withdrawal_sla_breach > 0)
-          html += `<div class="alert-item danger">SLA violado: ${data.p1.withdrawal_sla_breach} saques atrasados</div>`;
-        if (!html) html = '<p class="text-soft">Nenhum alerta P1 ativo.</p>';
+          html += `<div class="alert-item danger">SLA breach: ${data.p1.withdrawal_sla_breach} delayed withdrawals</div>`;
+        if (!html) html = '<p class="text-soft">No active P1 alerts.</p>';
         alertDetails.innerHTML = html;
       }
     } catch (_) { /* ignore */ }
@@ -281,13 +281,13 @@
       const el = (id, val) => { const e = $(id); if (e) e.textContent = val; };
 
       el('wd-total-amount', fmtUSDT(s.completed.total.amount));
-      el('wd-total-count', `${s.completed.total.count} saques`);
+      el('wd-total-count', `${s.completed.total.count} withdrawals`);
       el('wd-today-amount', fmtUSDT(s.completed.today.amount));
-      el('wd-today-count', `${s.completed.today.count} saques`);
+      el('wd-today-count', `${s.completed.today.count} withdrawals`);
       el('wd-month-amount', fmtUSDT(s.completed.month.amount));
-      el('wd-month-count', `${s.completed.month.count} saques`);
+      el('wd-month-count', `${s.completed.month.count} withdrawals`);
       el('wd-fees-total', fmtUSDT(s.fees.total));
-      el('wd-fees-month', `Mês: ${fmtUSDT(s.fees.month)}`);
+      el('wd-fees-month', `Month: ${fmtUSDT(s.fees.month)}`);
 
       // Status counters
       el('wd-count-pending', String(s.status_counts.pending || 0));
@@ -299,7 +299,7 @@
       const topBody = $('wd-top-users-body');
       if (topBody) {
         if (s.top_users.length === 0) {
-          topBody.innerHTML = '<tr><td colspan="3" class="text-soft">Nenhum saque completado.</td></tr>';
+          topBody.innerHTML = '<tr><td colspan="3" class="text-soft">No completed withdrawals.</td></tr>';
         } else {
           topBody.innerHTML = s.top_users.map(u => `
             <tr>
@@ -321,7 +321,7 @@
       const data = await API.admin.getWithdrawals(status);
 
       if (data.withdrawals.length === 0) {
-        withdrawalBody.innerHTML = `<tr><td colspan="8" class="text-soft">Nenhum saque ${status}.</td></tr>`;
+        withdrawalBody.innerHTML = `<tr><td colspan="8" class="text-soft">No ${status} withdrawals.</td></tr>`;
       } else {
         withdrawalBody.innerHTML = data.withdrawals.map(w => {
           const statusClass = w.status === 'completed' ? 'ok' : w.status === 'rejected' ? 'danger' : w.status === 'processing' ? 'info' : 'warn';
@@ -336,10 +336,10 @@
             <td><span class="status-pill ${statusClass}">${w.status}</span></td>
             <td>${new Date(w.created_at).toLocaleString()}</td>
             <td>
-              ${w.status === 'pending' ? `<button class="btn btn-primary btn-sm wd-process" data-id="${w.id}">Pagar</button>
-              <button class="btn btn-danger btn-sm wd-reject" data-id="${w.id}">Rejeitar</button>` : ''}
-              ${w.status === 'processing' ? `<button class="btn btn-primary btn-sm wd-complete" data-id="${w.id}">Completar</button>
-              <button class="btn btn-danger btn-sm wd-reject" data-id="${w.id}">Rejeitar</button>` : ''}
+              ${w.status === 'pending' ? `<button class="btn btn-primary btn-sm wd-process" data-id="${w.id}">Pay</button>
+              <button class="btn btn-danger btn-sm wd-reject" data-id="${w.id}">Reject</button>` : ''}
+              ${w.status === 'processing' ? `<button class="btn btn-primary btn-sm wd-complete" data-id="${w.id}">Complete</button>
+              <button class="btn btn-danger btn-sm wd-reject" data-id="${w.id}">Reject</button>` : ''}
               ${w.tx_hash ? `<span title="${w.tx_hash}" style="font-size:.75rem;color:var(--text-soft)">${w.tx_hash.slice(0, 10)}...</span>` : ''}
             </td>
           </tr>`;
@@ -350,7 +350,7 @@
           btn.addEventListener('click', async () => {
             try {
               const r = await API.admin.processWithdrawal(btn.dataset.id);
-              toast(`Saque #${r.withdrawal_id} — pagar ${fmtUSDT(r.net_amount)} para ${shortWallet(r.pay_to)}`);
+              toast(`Withdrawal #${r.withdrawal_id} — pay ${fmtUSDT(r.net_amount)} to ${shortWallet(r.pay_to)}`);
 
               let txHash = null;
               if (typeof window.ethereum !== 'undefined') {
@@ -368,19 +368,19 @@
                     params: [{ from, to: USDT_CONTRACT, data: transferData, chainId: '0x38' }],
                   });
                   txHash = tx;
-                  toast(`TX enviada: ${shortWallet(tx)}`);
+                  toast(`TX sent: ${shortWallet(tx)}`);
                 } catch (mmErr) {
-                  toast('MetaMask cancelou — insira o TX hash manualmente', true);
+                  toast('MetaMask cancelled — enter TX hash manually', true);
                 }
               }
 
               if (!txHash) {
-                txHash = prompt('Insira o TX hash manualmente (após enviar BEP20 USDT):');
+                txHash = prompt('Enter TX hash manually (after sending BEP20 USDT):');
               }
 
               if (txHash) {
                 await API.admin.completeWithdrawal(btn.dataset.id, txHash);
-                toast(`Saque #${r.withdrawal_id} completado`);
+                toast(`Withdrawal #${r.withdrawal_id} completed`);
               }
               loadWithdrawals();
               loadWithdrawalStats();
@@ -391,11 +391,11 @@
         // Complete buttons (for processing status)
         withdrawalBody.querySelectorAll('.wd-complete').forEach(btn => {
           btn.addEventListener('click', async () => {
-            const txHash = prompt('Insira o TX hash da transação:');
+            const txHash = prompt('Enter the transaction TX hash:');
             if (txHash) {
               try {
                 await API.admin.completeWithdrawal(btn.dataset.id, txHash);
-                toast(`Saque #${btn.dataset.id} completado`);
+                toast(`Withdrawal #${btn.dataset.id} completed`);
                 loadWithdrawals();
                 loadWithdrawalStats();
               } catch (e) { toast(e.message, true); }
@@ -406,10 +406,10 @@
         // Reject buttons
         withdrawalBody.querySelectorAll('.wd-reject').forEach(btn => {
           btn.addEventListener('click', async () => {
-            const note = prompt('Motivo da rejeição (opcional):');
+            const note = prompt('Rejection reason (optional):');
             try {
               await API.admin.rejectWithdrawal(btn.dataset.id, note || '');
-              toast(`Saque #${btn.dataset.id} rejeitado e reembolsado`);
+              toast(`Withdrawal #${btn.dataset.id} rejected and refunded`);
               loadWithdrawals();
               loadWithdrawalStats();
             } catch (e) { toast(e.message, true); }
@@ -640,11 +640,11 @@
 
       // Totals
       el('purch-total', fmtUSDT(s.totals.all.total));
-      el('purch-total-count', `${s.totals.all.count} compras`);
+      el('purch-total-count', `${s.totals.all.count} purchases`);
       el('purch-today', fmtUSDT(s.totals.today.total));
-      el('purch-today-count', `${s.totals.today.count} compras`);
+      el('purch-today-count', `${s.totals.today.count} purchases`);
       el('purch-month', fmtUSDT(s.totals.month.total));
-      el('purch-month-count', `${s.totals.month.count} compras`);
+      el('purch-month-count', `${s.totals.month.count} purchases`);
 
       // By type
       const bt = s.by_type;
@@ -659,7 +659,7 @@
       const topBody = $('top-species-body');
       if (topBody) {
         if (s.top_species.length === 0) {
-          topBody.innerHTML = '<tr><td colspan="4" class="text-soft">Nenhuma galinha vendida ainda.</td></tr>';
+          topBody.innerHTML = '<tr><td colspan="4" class="text-soft">No chickens sold yet.</td></tr>';
         } else {
           topBody.innerHTML = s.top_species.map((sp, i) => `
             <tr>
@@ -676,7 +676,7 @@
       const purchBody = $('purchases-body');
       if (purchBody) {
         if (s.recent.length === 0) {
-          purchBody.innerHTML = '<tr><td colspan="5" class="text-soft">Nenhuma compra registrada.</td></tr>';
+          purchBody.innerHTML = '<tr><td colspan="5" class="text-soft">No purchases recorded.</td></tr>';
         } else {
           purchBody.innerHTML = s.recent.map(p => `
             <tr>
@@ -703,7 +703,7 @@
 
   function resetSpeciesForm() {
     editingSpeciesId = null;
-    if (speciesFormTitle) speciesFormTitle.textContent = 'Nova Espécie';
+    if (speciesFormTitle) speciesFormTitle.textContent = 'New Species';
     $('sp-name').value = '';
     $('sp-price').value = '';
     $('sp-eggs').value = '';
@@ -734,10 +734,10 @@
     try {
       if (editingSpeciesId) {
         await API.admin.updateSpecies(editingSpeciesId, data);
-        toast('Espécie atualizada');
+        toast('Species updated');
       } else {
         await API.admin.createSpecies(data);
-        toast('Espécie criada');
+        toast('Species created');
       }
       resetSpeciesForm();
       loadSpecies();
@@ -751,7 +751,7 @@
     try {
       const species = await API.admin.getSpecies();
       if (species.length === 0) {
-        speciesBody.innerHTML = '<tr><td colspan="9" class="text-soft">Nenhuma espécie cadastrada. Clique em "+ Nova Espécie" para criar.</td></tr>';
+        speciesBody.innerHTML = '<tr><td colspan="9" class="text-soft">No species registered. Click "+ New Species" to create one.</td></tr>';
         return;
       }
       speciesBody.innerHTML = species.map(s => `
@@ -763,10 +763,10 @@
           <td>${parseFloat(s.feed_per_day).toFixed(1)}</td>
           <td>${s.lifespan_days}d</td>
           <td>${(parseFloat(s.species_weight) * 100).toFixed(1)}%</td>
-          <td><span class="status-pill ${s.is_active ? 'ok' : 'danger'}">${s.is_active ? 'Ativa' : 'Inativa'}</span></td>
+          <td><span class="status-pill ${s.is_active ? 'ok' : 'danger'}">${s.is_active ? 'Active' : 'Inactive'}</span></td>
           <td style="display:flex;gap:.3rem;flex-wrap:wrap">
-            <button class="btn btn-outline btn-sm sp-edit" data-id="${s.id}" data-name="${s.name}" data-price="${s.purchase_price}" data-eggs="${s.eggs_per_day}" data-feed="${s.feed_per_day}" data-life="${s.lifespan_days}" data-weight="${s.species_weight}">Editar</button>
-            <button class="btn ${s.is_active ? 'btn-danger' : 'btn-primary'} btn-sm sp-toggle" data-id="${s.id}" data-active="${s.is_active}">${s.is_active ? 'Desativar' : 'Ativar'}</button>
+            <button class="btn btn-outline btn-sm sp-edit" data-id="${s.id}" data-name="${s.name}" data-price="${s.purchase_price}" data-eggs="${s.eggs_per_day}" data-feed="${s.feed_per_day}" data-life="${s.lifespan_days}" data-weight="${s.species_weight}">Edit</button>
+            <button class="btn ${s.is_active ? 'btn-danger' : 'btn-primary'} btn-sm sp-toggle" data-id="${s.id}" data-active="${s.is_active}">${s.is_active ? 'Disable' : 'Enable'}</button>
           </td>
         </tr>
       `).join('');
@@ -774,7 +774,7 @@
       speciesBody.querySelectorAll('.sp-edit').forEach(btn => {
         btn.addEventListener('click', () => {
           editingSpeciesId = btn.dataset.id;
-          if (speciesFormTitle) speciesFormTitle.textContent = `Editar: ${btn.dataset.name}`;
+          if (speciesFormTitle) speciesFormTitle.textContent = `Edit: ${btn.dataset.name}`;
           $('sp-name').value = btn.dataset.name;
           $('sp-price').value = btn.dataset.price;
           $('sp-eggs').value = btn.dataset.eggs;
@@ -794,7 +794,7 @@
             } else {
               await API.admin.updateSpecies(btn.dataset.id, { is_active: true });
             }
-            toast(`Espécie ${newActive ? 'ativada' : 'desativada'}`);
+            toast(`Species ${newActive ? 'enabled' : 'disabled'}`);
             loadSpecies();
           } catch (err) { toast(err.message, true); }
         });
