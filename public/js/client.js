@@ -6,6 +6,7 @@
   function $(id) { return document.getElementById(id); }
   function show(el) { if (el) el.style.display = ''; }
   function hide(el) { if (el) el.style.display = 'none'; }
+  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
   function toast(msg, isError = false) {
     const t = document.createElement('div');
@@ -177,8 +178,8 @@
         const displayName = c.name || c.species;
         entityDetails.innerHTML = `
           <div class="entity-details-grid">
-            <div class="entity-detail"><span class="detail-label">Name</span><span class="detail-value">${displayName}</span></div>
-            <div class="entity-detail"><span class="detail-label">Species</span><span class="detail-value">${c.species}</span></div>
+            <div class="entity-detail"><span class="detail-label">Name</span><span class="detail-value">${esc(displayName)}</span></div>
+            <div class="entity-detail"><span class="detail-label">Species</span><span class="detail-value">${esc(c.species)}</span></div>
             <div class="entity-detail"><span class="detail-label">ID</span><span class="detail-value">#${c.id}</span></div>
             <div class="entity-detail"><span class="detail-label">Status</span><span class="detail-value">${status}</span></div>
             <div class="entity-detail"><span class="detail-label">Days Left</span><span class="detail-value">${daysLeft}d</span></div>
@@ -253,11 +254,11 @@
               <div class="chicken-avatar" style="background:${bg}">&#x1f414;</div>
               <div class="chicken-card-title">
                 <div class="chicken-display-name">
-                  <span id="cname-${c.id}">${displayName}</span>
+                  <span id="cname-${c.id}">${esc(displayName)}</span>
                   <button class="chicken-name-edit" onclick="window.__renameChicken(${c.id})" title="Rename">&#x270F;&#xFE0F;</button>
                   ${starving ? '<span class="status-pill danger">Starving</span>' : ''}
                 </div>
-                <div class="chicken-species-tag">${c.species} &middot; #${c.id}</div>
+                <div class="chicken-species-tag">${esc(c.species)} &middot; #${c.id}</div>
               </div>
             </div>
             <div class="chicken-card-stats">
@@ -353,7 +354,7 @@
             <td>${typeLabel}</td>
             <td>${parseFloat(p.expected_amount).toFixed(2)} USDT</td>
             <td><span class="status-pill ${statusClass}">${p.status}</span></td>
-            <td title="${p.tx_hash || ''}">${txShort}</td>
+            <td title="${esc(p.tx_hash || '')}">${esc(txShort)}</td>
           </tr>`;
         }).join('');
       }
@@ -664,7 +665,7 @@
         body.innerHTML = data.chicks.map(c => `
           <tr>
             <td>#${c.id}</td>
-            <td>${c.species}</td>
+            <td>${esc(c.species)}</td>
             <td>${new Date(c.hatched_at).toLocaleString()}</td>
             <td>${c.adult_at ? new Date(c.adult_at).toLocaleString() : '--'}</td>
             <td>${parseFloat(c.feed_consumed).toFixed(1)}</td>
@@ -690,7 +691,7 @@
       body.insertAdjacentHTML('beforeend', data.chicks.map(c => `
         <tr>
           <td>#${c.id}</td>
-          <td>${c.species}</td>
+          <td>${esc(c.species)}</td>
           <td>${new Date(c.hatched_at).toLocaleString()}</td>
           <td>${c.adult_at ? new Date(c.adult_at).toLocaleString() : '--'}</td>
           <td>${parseFloat(c.feed_consumed).toFixed(1)}</td>
@@ -798,8 +799,8 @@
           const causeClass = c.death_cause === 'starvation' ? 'danger' : 'warn';
           const displayName = c.name || c.species;
           return `<tr>
-            <td>${displayName}</td>
-            <td>${c.species}</td>
+            <td>${esc(displayName)}</td>
+            <td>${esc(c.species)}</td>
             <td>${parseInt(c.total_eggs_produced || 0, 10)}</td>
             <td>${parseFloat(c.total_feed_consumed || 0).toFixed(1)}</td>
             <td>${new Date(c.born_at).toLocaleDateString()}</td>

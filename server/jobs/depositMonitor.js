@@ -136,6 +136,10 @@ async function scanDeposits() {
     const confirmations = currentBlock - dep.block_number;
     if (confirmations >= requiredConfirmations) {
       await db.transaction(async (trx) => {
+        // Re-check status inside transaction to prevent double-credit
+        const fresh = await trx('deposits').where({ id: dep.id, status: 'pending' }).forUpdate().first();
+        if (!fresh) return; // already confirmed by another cycle
+
         await trx('deposits').where({ id: dep.id }).update({
           status: 'confirmed',
           confirmations,
@@ -143,10 +147,10 @@ async function scanDeposits() {
         });
 
         await adjustBalance(
-          trx, dep.user_id, parseFloat(dep.amount),
+          trx, fresh.user_id, parseFloat(fresh.amount),
           'deposit',
-          `BEP20 USDT deposit — tx ${dep.tx_hash.slice(0, 10)}...`,
-          `deposit:${dep.tx_hash}`
+          `BEP20 USDT deposit — tx ${fresh.tx_hash.slice(0, 10)}...`,
+          `deposit:${fresh.tx_hash}`
         );
       });
       credited++;
