@@ -152,6 +152,7 @@ const API = (() => {
     buyEggs:       (qty, txHash) => request('POST', '/client/buy-eggs', { quantity: qty, tx_hash: txHash }),
     buyChicken:    (speciesId, txHash) => request('POST', '/client/buy-chicken', { species_id: speciesId, tx_hash: txHash }),
     withdraw:      (amount) => request('POST', '/client/withdraw', { amount }),
+    withdrawals:   (page) => request('GET', `/client/withdrawals?page=${page || 1}`),
     species:       () => request('GET', '/client/species'),
     ledger:        (page) => request('GET', `/client/ledger?page=${page || 1}`),
     purchases:     (page) => request('GET', `/client/purchases?page=${page || 1}`),

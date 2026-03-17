@@ -157,6 +157,7 @@
     withdrawAmount: $('withdraw-amount'),
     chickenList: $('chicken-list'),
     ledgerBody: $('ledger-body'),
+    withdrawalsBody: $('withdrawals-body'),
   };
 
   // ── Farm Map 2D ────────────────────────────────
@@ -293,6 +294,7 @@
       renderFarm();
       loadSpecies();
       loadLedger();
+      loadWithdrawals();
       loadPurchases();
       loadEggsForIncubation();
       loadChickFeedSelect();
@@ -331,6 +333,31 @@
             <td>${parseFloat(e.balance_after).toFixed(2)}</td>
           </tr>
         `).join('');
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  // ── Withdrawal History ────────────────────────
+  async function loadWithdrawals() {
+    if (!el.withdrawalsBody) return;
+    try {
+      const { withdrawals } = await API.client.withdrawals(1);
+      if (withdrawals.length === 0) {
+        el.withdrawalsBody.innerHTML = '<tr><td colspan="6" class="text-soft">No withdrawals yet.</td></tr>';
+      } else {
+        el.withdrawalsBody.innerHTML = withdrawals.slice(0, 15).map(w => {
+          const statusClass = w.status === 'completed' ? 'ok' : w.status === 'cancelled' ? 'danger' : 'warn';
+          const txShort = w.tx_hash ? w.tx_hash.slice(0, 10) + '...' : '—';
+          const txLink = w.tx_hash ? `<a href="https://bscscan.com/tx/${esc(w.tx_hash)}" target="_blank" rel="noopener" title="${esc(w.tx_hash)}">${esc(txShort)}</a>` : '—';
+          return `<tr>
+            <td>${new Date(w.created_at).toLocaleString()}</td>
+            <td>${parseFloat(w.amount).toFixed(2)}</td>
+            <td>${parseFloat(w.fee_amount).toFixed(2)}</td>
+            <td>${parseFloat(w.net_amount).toFixed(2)}</td>
+            <td><span class="status-pill ${statusClass}">${esc(w.status)}</span></td>
+            <td>${txLink}</td>
+          </tr>`;
+        }).join('');
       }
     } catch (_) { /* ignore */ }
   }

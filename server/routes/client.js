@@ -317,6 +317,26 @@ router.get('/ledger', async (req, res) => {
   res.json({ page, limit, entries });
 });
 
+// GET /api/client/withdrawals — user withdrawal history
+router.get('/withdrawals', async (req, res) => {
+  const userId = req.user.id;
+  const page = parseInt(req.query.page || '1', 10);
+  const limit = Math.min(parseInt(req.query.limit || '20', 10), 100);
+  const offset = (page - 1) * limit;
+
+  const [withdrawals, countRow] = await Promise.all([
+    db('withdrawals')
+      .where({ user_id: userId })
+      .select('id', 'amount', 'fee_amount', 'net_amount', 'status', 'tx_hash', 'created_at', 'processed_at')
+      .orderBy('created_at', 'desc')
+      .limit(limit)
+      .offset(offset),
+    db('withdrawals').where({ user_id: userId }).count('id as total').first(),
+  ]);
+
+  res.json({ page, limit, total: parseInt(countRow.total, 10), withdrawals });
+});
+
 // POST /api/client/incubate-egg — start incubating an egg
 router.post('/incubate-egg', async (req, res) => {
   try {
