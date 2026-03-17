@@ -79,9 +79,9 @@ const FarmMap = (() => {
     clouds=[];for(let i=0;i<7;i++)clouds.push({x:rr(-W*0.2,W*1.2),y:rr(8,H*SKY_H*0.55),w:rr(60,160)*SC,spd:rr(3,8),op:rr(0.5,0.85),bubbles:Math.floor(rr(4,8))});
     grass=[];for(let i=0;i<200;i++)grass.push({x:rr(0,W),y:rr(H*GROUND_Y,H),h:rr(3,10)*SC,ph:rr(0,Math.PI*2),shade:rr(0,1)});
     flowers=[];const fc=['#ff5070','#ff8840','#cc70ff','#ff3050','#fff','#ffccdd','#80ccff','#5050ff','#ffee30','#ff90b0','#70dd70'];
-    for(let i=0;i<120;i++)flowers.push({x:rr(0,W),y:rr(H*0.68,H*0.98),c:fc[i%fc.length],sz:rr(1.5,4)*SC,ph:rr(0,Math.PI*2),petals:Math.floor(rr(4,7))});
+    for(let i=0;i<35;i++)flowers.push({x:rr(0,W),y:rr(H*0.68,H*0.98),c:fc[i%fc.length],sz:rr(1.5,4)*SC,ph:rr(0,Math.PI*2),petals:Math.floor(rr(4,7))});
     // mid-field flowers (sparser)
-    for(let i=0;i<40;i++)flowers.push({x:rr(0,W),y:rr(H*0.45,H*0.68),c:fc[i%fc.length],sz:rr(1,2.5)*SC,ph:rr(0,Math.PI*2),petals:Math.floor(rr(4,6))});
+    for(let i=0;i<12;i++)flowers.push({x:rr(0,W),y:rr(H*0.45,H*0.68),c:fc[i%fc.length],sz:rr(1,2.5)*SC,ph:rr(0,Math.PI*2),petals:Math.floor(rr(4,6))});
     trees=[];[0.08,0.25,0.52,0.68,0.88].forEach((p,i)=>trees.push({x:W*p+sr(i*77)*30,y:H*FENCE_Y-rr(5,15)*SC,sc:rr(0.7,1.1),ph:rr(0,Math.PI*2)}));
     rocks=[];for(let i=0;i<12;i++)rocks.push({x:rr(W*0.02,W*0.98),y:rr(H*0.65,H*0.96),sz:rr(3,8)*SC,c:'#'+[['778899','889988','8a8878','99887a'][i%4]],rot:rr(-0.3,0.3)});
     butterflies=[];['#ff6090','#aa80ff','#ffdd44','#80ddff','#ff9944'].forEach((c,i)=>butterflies.push({x:rr(0,W),y:rr(H*0.4,H*0.7),vx:0,vy:0,tx:rr(0,W),ty:rr(H*0.3,H*0.7),c,wp:rr(0,Math.PI*2),tmr:0}));
