@@ -46,8 +46,11 @@
       <div id="section-overview" class="client-section active">
 
         <!-- Status Banner -->
-        <div id="farm-status" class="farm-status-banner ok">
-          Connect your wallet to see farm status.
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.6rem;flex-wrap:wrap">
+          <div id="farm-status" class="farm-status-banner ok" style="flex:1;margin-bottom:0">
+            Connect your wallet to see farm status.
+          </div>
+          <button id="guide-btn" class="btn btn-outline btn-sm" style="white-space:nowrap">? How it works</button>
         </div>
 
         <!-- Metrics -->
@@ -350,6 +353,102 @@
         I have read and accept the Terms of Service. I understand this is a simulation platform with a virtual economy.
       </label>
       <button id="terms-accept-btn" class="btn btn-primary" disabled>Accept &amp; Continue</button>
+    </div>
+  </div>
+
+  <!-- ── How It Works Guide ─────────────────────── -->
+  <div id="guide-overlay" class="terms-overlay" style="display:none">
+    <div class="terms-box" style="max-width:620px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem">
+        <h2 style="margin:0">How Egglee Works</h2>
+        <button id="guide-close" class="btn btn-ghost btn-sm" style="font-size:1.2rem;padding:0 .4rem">&times;</button>
+      </div>
+
+      <div id="guide-steps" class="guide-steps">
+        <!-- Step 1 -->
+        <div class="guide-step active" data-step="1">
+          <div class="guide-step-icon">&#x1F3E1;</div>
+          <h3>1. Connect Your Wallet</h3>
+          <p>Click <strong>"Connect Wallet"</strong> (top right) to link your MetaMask wallet on the <strong>BNB Smart Chain</strong> network. This is your account — no email or password needed.</p>
+          <div class="guide-tip">New users automatically receive a <strong>free Common chicken</strong> and <strong>5 units of feed</strong> to get started!</div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="guide-step" data-step="2">
+          <div class="guide-step-icon">&#x1F414;</div>
+          <h3>2. Your Chickens Produce Eggs</h3>
+          <p>Each chicken produces eggs automatically every day as long as it has <strong>feed</strong>. Different breeds produce at different rates:</p>
+          <ul class="guide-list">
+            <li><strong>Common</strong> — 1 egg/day, costs 1.00 USDT</li>
+            <li><strong>Premium</strong> — 3 eggs/day, costs 10.00 USDT</li>
+            <li><strong>Rare</strong> — 5 eggs/day, costs 20.00 USDT</li>
+          </ul>
+          <div class="guide-tip">Without feed, chickens starve and stop producing. Keep your feed stock up!</div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="guide-step" data-step="3">
+          <div class="guide-step-icon">&#x1F95A;</div>
+          <h3>3. Sell Eggs for USDT</h3>
+          <p>Click <strong>"Sell Eggs"</strong> on the dashboard to instantly sell all collected eggs at <strong>$0.12 per egg</strong>. The USDT is added to your in-game balance immediately.</p>
+          <div class="guide-tip">Collect and sell daily for maximum earnings. Eggs accumulate but don't expire.</div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="guide-step" data-step="4">
+          <div class="guide-step-icon">&#x1F33E;</div>
+          <h3>4. Buy Feed & Expand</h3>
+          <p>Purchase feed with <strong>USDT via MetaMask</strong> to keep your chickens producing. You can also buy more chickens to increase your daily egg output.</p>
+          <ul class="guide-list">
+            <li><strong>Buy Feed</strong> — 10 units per purchase</li>
+            <li><strong>Buy Chicken</strong> — choose the breed from the dropdown</li>
+            <li><strong>Buy Eggs</strong> — buy eggs ($0.20) to incubate for new chicks</li>
+          </ul>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="guide-step" data-step="5">
+          <div class="guide-step-icon">&#x1F423;</div>
+          <h3>5. Incubate Eggs into Chicks</h3>
+          <p>Go to the <strong>Farm</strong> tab to incubate eggs. Each incubation has a <strong>30% hatch rate</strong>. Successful hatches give you a new chick that grows into a chicken — the breed is random based on rarity weights.</p>
+          <div class="guide-tip">Incubation is a gamble — but hatched chickens are free, saving you USDT!</div>
+        </div>
+
+        <!-- Step 6 -->
+        <div class="guide-step" data-step="6">
+          <div class="guide-step-icon">&#x1F4B0;</div>
+          <h3>6. Withdraw Your Earnings</h3>
+          <p>Go to the <strong>Wallet</strong> tab to request a withdrawal. Your USDT balance is sent to your MetaMask wallet on BNB Smart Chain.</p>
+          <ul class="guide-list">
+            <li>Withdrawals are reviewed manually (up to 72h)</li>
+            <li>A small fee is deducted from each withdrawal</li>
+            <li>Limit: 1 withdrawal per day</li>
+          </ul>
+        </div>
+
+        <!-- Step 7 -->
+        <div class="guide-step" data-step="7">
+          <div class="guide-step-icon">&#x1F4C8;</div>
+          <h3>7. Grow Your Farm</h3>
+          <p>The key to maximizing earnings:</p>
+          <ul class="guide-list">
+            <li><strong>Reinvest</strong> — use egg profits to buy more chickens</li>
+            <li><strong>Upgrade breeds</strong> — Premium and Rare earn more per day</li>
+            <li><strong>Keep feed stocked</strong> — starving chickens produce nothing</li>
+            <li><strong>Incubate often</strong> — free chickens from hatched eggs</li>
+          </ul>
+          <div class="guide-tip">Start with Common chickens, reinvest into better breeds as your balance grows.</div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="guide-nav">
+        <div class="guide-dots" id="guide-dots"></div>
+        <div style="display:flex;gap:.5rem">
+          <button id="guide-prev" class="btn btn-ghost btn-sm">Back</button>
+          <button id="guide-next" class="btn btn-primary btn-sm">Next</button>
+        </div>
+      </div>
     </div>
   </div>
 

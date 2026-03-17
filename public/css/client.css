@@ -594,3 +594,82 @@
   justify-content: center;
   padding: .5rem 0 0;
 }
+
+/* ── How It Works Guide ─────────────────────────── */
+.guide-steps { position: relative; min-height: 260px; }
+.guide-step {
+  display: none;
+  animation: guideFadeIn .3s ease;
+}
+.guide-step.active { display: block; }
+
+@keyframes guideFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.guide-step-icon {
+  font-size: 2.5rem;
+  margin-bottom: .5rem;
+}
+.guide-step h3 {
+  font-size: 1rem;
+  margin-bottom: .5rem;
+  color: var(--text);
+}
+.guide-step p, .guide-step li {
+  font-size: .85rem;
+  color: var(--text-soft);
+  line-height: 1.65;
+}
+.guide-list {
+  list-style: none;
+  padding: 0;
+  margin: .6rem 0;
+}
+.guide-list li {
+  padding: .35rem .6rem;
+  background: rgba(255,255,255,.03);
+  border-left: 2px solid var(--primary);
+  margin-bottom: .35rem;
+  border-radius: 0 6px 6px 0;
+}
+.guide-tip {
+  margin-top: .7rem;
+  padding: .5rem .8rem;
+  background: var(--success-dim);
+  border-radius: 8px;
+  font-size: .82rem;
+  color: var(--success);
+  line-height: 1.5;
+}
+.guide-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding-top: .8rem;
+  border-top: 1px solid var(--stroke);
+}
+.guide-dots {
+  display: flex;
+  gap: .4rem;
+}
+.guide-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--stroke);
+  cursor: pointer;
+  transition: background .2s, transform .2s;
+}
+.guide-dot.active {
+  background: var(--primary);
+  transform: scale(1.3);
+}
+.guide-dot:hover { background: var(--primary); }
+
+@media (max-width: 600px) {
+  .guide-steps { min-height: 220px; }
+  .guide-step-icon { font-size: 2rem; }
+}
