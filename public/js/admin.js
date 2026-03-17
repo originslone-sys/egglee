@@ -822,7 +822,8 @@
 
       speciesBody.querySelectorAll('.sp-toggle').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const newActive = btn.dataset.active !== 'true';
+          const curActive = btn.dataset.active === 'true' || btn.dataset.active === '1';
+          const newActive = !curActive;
           try {
             if (!newActive) {
               await API.admin.deleteSpecies(btn.dataset.id);

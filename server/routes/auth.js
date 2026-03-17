@@ -95,10 +95,11 @@ router.post('/verify', async (req, res) => {
       const freeFeed = await EconomyConfig.getNumber('onboarding_free_feed');
       await trx('users').where({ id: user.id }).update({ feed_balance: freeFeed || 5 });
 
-      let comum = await trx('chicken_species').where({ name: 'Comum' }).first();
+      let comum = await trx('chicken_species').where({ name: 'Common' }).first();
+      if (!comum) comum = await trx('chicken_species').where({ name: 'Comum' }).first();
       if (!comum) {
         const [id] = await trx('chicken_species').insert({
-          name: 'Comum',
+          name: 'Common',
           purchase_price: 1.20,
           eggs_per_day: 1.0,
           feed_per_day: 0.8,
