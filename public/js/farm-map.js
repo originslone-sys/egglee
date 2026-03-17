@@ -13,6 +13,13 @@ const FarmMap = (() => {
   let rooster = null;
   let farmer = {active:false,x:-40,y:0,dir:1,phase:0,state:'idle',timer:0,feedTimer:0,walkTarget:0,wp:0,feedAnim:0};
 
+  // ── Rotation system ──────────────────────────────
+  const MAX_VISIBLE = 50;
+  let chickenPool = [];    // all chicken data from server
+  let chickPool = [];      // all chick data from server
+  let visibleIds = new Set(); // IDs of chickens currently on screen
+  let rotationTimer = 0;
+
   // Layout ratios
   const SKY_H = 0.38;      // sky ends here
   const HILLS_H = 0.30;    // distant hills
@@ -23,7 +30,7 @@ const FarmMap = (() => {
   const TROUGH = {xR:0.38, yR:0.65};
   const PASTURE = {x0:0.08, x1:0.92, y0:0.45, y1:0.88};
 
-  const S = {IDLE:0,WALK:1,PECK:2,EAT:3,SLEEP:4,FLAP:5,DRINK:6,SCRATCH:7,CROW:8,COURT:9};
+  const S = {IDLE:0,WALK:1,PECK:2,EAT:3,SLEEP:4,FLAP:5,DRINK:6,SCRATCH:7,CROW:8,COURT:9,EXIT:10};
 
   // Chicken species colors — distinct
   const SPCOL = {
@@ -103,6 +110,15 @@ const FarmMap = (() => {
       b.x+=b.vx*dt;b.y+=b.vy*dt;b.wp+=dt*14;
     });
     entities.forEach(e=>tickEntity(e,dt));
+    // Remove entities that walked off screen (EXIT state)
+    for(let i=entities.length-1;i>=0;i--){
+      const e=entities[i];
+      if(e.state===S.EXIT&&(e.x<-40||e.x>W+40)){
+        visibleIds.delete(e.data?e.data.id:null);
+        entities.splice(i,1);
+      }
+    }
+    tickRotation(dt);
     if(rooster)tickRooster(rooster,dt);
     tickFarmer(dt);
     sortDirty=true;
@@ -118,6 +134,7 @@ const FarmMap = (() => {
   function tickEntity(e, dt) {
     e.at=(e.at||0)+dt; e.st=(e.st||0)-dt;
     if(e.type==='egg')return;
+    if(e.state===S.EXIT){moveToTarget(e,dt);e.st=1;return;} // exiting — just walk off, don't pick new state
     if(e.st<=0)pickState(e);
     switch(e.state){
       case S.WALK:moveToTarget(e,dt);break;
@@ -163,6 +180,71 @@ const FarmMap = (() => {
     const s=e.spd||18;e.x+=(dx/d)*s*dt;e.y+=(dy/d)*s*dt;e.dir=dx>0?1:-1;
     e.wp=(e.wp||0)+dt*8;
     if(canSpawn()&&Math.random()<dt*3)particles.push({x:e.x-e.dir*2,y:e.y+(e.type==='chick'?4:10)*SC,vx:-e.dir*rr(2,8),vy:rr(-2,-6),life:0.35,color:'rgba(130,110,80,0.3)',sz:1.5*SC,g:6});
+  }
+
+  // ── Rotation System ────────────────────────────
+  function getRotationInterval() {
+    const total = chickenPool.length + chickPool.length;
+    if (total <= MAX_VISIBLE) return 0; // no rotation needed
+    // More chickens = faster rotation so everyone gets screen time
+    // 50-100: every 12s, 100-200: every 8s, 200-500: every 5s, 500+: every 3s
+    const ratio = total / MAX_VISIBLE;
+    return Math.max(3, 15 / ratio);
+  }
+
+  function getSwapCount() {
+    const total = chickenPool.length + chickPool.length;
+    if (total <= MAX_VISIBLE) return 0;
+    // Swap 2-6 chickens per rotation depending on how many total
+    return Math.min(6, Math.max(2, Math.floor(total / 40)));
+  }
+
+  function tickRotation(dt) {
+    const total = chickenPool.length + chickPool.length;
+    if (total <= MAX_VISIBLE) return;
+    rotationTimer -= dt;
+    if (rotationTimer > 0) return;
+    rotationTimer = getRotationInterval();
+
+    const swapCount = getSwapCount();
+    // Pick visible chickens to exit (only those that aren't already exiting)
+    const candidates = entities.filter(e => (e.type === 'chicken' || e.type === 'chick') && e.state !== S.EXIT);
+    const toExit = [];
+    const shuffled = candidates.sort(() => Math.random() - 0.5);
+    for (let i = 0; i < Math.min(swapCount, shuffled.length); i++) {
+      toExit.push(shuffled[i]);
+    }
+    // Send them walking off screen
+    toExit.forEach(e => {
+      e.state = S.EXIT;
+      const exitLeft = Math.random() < 0.5;
+      e.tx = exitLeft ? -50 : W + 50;
+      e.ty = e.y + rr(-10, 10);
+      e.spd = 20 + rr(0, 10);
+      e.dir = exitLeft ? -1 : 1;
+    });
+
+    // Bring in new ones from the pool
+    const pool = [...chickenPool, ...chickPool];
+    const offscreen = pool.filter(c => !visibleIds.has(c.id));
+    const enterShuffled = offscreen.sort(() => Math.random() - 0.5);
+    const enterCount = Math.min(swapCount, enterShuffled.length);
+    for (let i = 0; i < enterCount; i++) {
+      const c = enterShuffled[i];
+      const isChick = !!c._isChick;
+      const enterLeft = Math.random() < 0.5;
+      const startX = enterLeft ? -30 : W + 30;
+      const targetX = lerp(W * PASTURE.x0, W * PASTURE.x1, Math.random());
+      const targetY = isChick
+        ? lerp(H * (PASTURE.y1 - 0.15), H * PASTURE.y1, Math.random())
+        : lerp(H * PASTURE.y0, H * PASTURE.y1, Math.random());
+      const s = hash(c.id);
+      const ent = isChick
+        ? {type:'chick',data:c,x:startX,y:targetY,dir:enterLeft?1:-1,bo:sr(s+3)*Math.PI*2,wp:0,state:S.WALK,tx:targetX,ty:targetY,st:8,at:rr(0,10),spd:14+rr(0,10)}
+        : {type:'chicken',data:c,x:startX,y:targetY,dir:enterLeft?1:-1,bo:sr(s+3)*Math.PI*2,wp:0,colors:SPCOL[c.species]||DCOL,starving:!!c.starvation_started_at,state:S.WALK,tx:targetX,ty:targetY,st:8,at:rr(0,10),spd:10+rr(0,8)};
+      entities.push(ent);
+      visibleIds.add(c.id);
+    }
   }
 
   // ── Rooster AI ─────────────────────────────────
@@ -215,23 +297,85 @@ const FarmMap = (() => {
   // ── Rebuild Entities ───────────────────────────
   function rebuildEntities() {
     if(!farmData)return;
-    const old=new Map();entities.forEach(e=>{const k=e.type+':'+(e.data?e.data.id:e.ei);old.set(k,e);});
-    const nw=[];
-    (farmData.chickens||[]).forEach(c=>{
-      const k='chicken:'+c.id,ex=old.get(k);
-      if(ex){ex.data=c;ex.starving=!!c.starvation_started_at;ex.colors=SPCOL[c.species]||DCOL;nw.push(ex);}
-      else{const s=hash(c.id);nw.push({type:'chicken',data:c,x:lerp(W*PASTURE.x0,W*PASTURE.x1,sr(s)),y:lerp(H*PASTURE.y0,H*PASTURE.y1,sr(s+1)),dir:sr(s+2)>0.5?1:-1,bo:sr(s+3)*Math.PI*2,wp:0,colors:SPCOL[c.species]||DCOL,starving:!!c.starvation_started_at,state:S.IDLE,st:rr(0,3),at:rr(0,10),spd:10+sr(s+4)*8});}
-    });
-    (farmData.chicks||[]).forEach(c=>{
-      const k='chick:'+c.id,ex=old.get(k);
-      if(ex){ex.data=c;nw.push(ex);}
-      else{const s=hash(c.id+5000);nw.push({type:'chick',data:c,x:lerp(W*PASTURE.x0,W*PASTURE.x1,sr(s)),y:lerp(H*(PASTURE.y1-0.15),H*PASTURE.y1,sr(s+1)),dir:sr(s+2)>0.5?1:-1,bo:sr(s+3)*Math.PI*2,wp:0,state:S.IDLE,st:rr(0,2),at:rr(0,10),spd:14+sr(s+4)*10});}
-    });
-    const ec=farmData.eggs_available||0;
-    for(let i=0;i<Math.min(ec,20);i++){const s=hash(i+9000);nw.push({type:'egg',ei:i,x:W*0.06+sr(s)*W*0.08,y:H*0.45+sr(s+1)*H*0.12,tilt:sr(s+2)*0.3-0.15,state:S.IDLE});}
-    entities=nw;
-    if(nw.some(e=>e.type==='chicken')&&!rooster){rooster={type:'rooster',x:W*0.5,y:H*0.6,dir:1,bo:0,wp:0,colors:RCOL,state:S.IDLE,st:2+rr(0,3),at:0,spd:12+rr(0,8),courtTarget:null};}
-    else if(!nw.some(e=>e.type==='chicken'))rooster=null;
+
+    // Update pools with all data from server
+    chickenPool = (farmData.chickens || []).slice();
+    chickPool = (farmData.chicks || []).map(c => ({...c, _isChick: true}));
+    const totalAnimals = chickenPool.length + chickPool.length;
+    const needsRotation = totalAnimals > MAX_VISIBLE;
+
+    const old = new Map();
+    entities.forEach(e => { const k = e.type + ':' + (e.data ? e.data.id : e.ei); old.set(k, e); });
+
+    // Remove entities whose data no longer exists on server
+    const serverChickenIds = new Set(chickenPool.map(c => c.id));
+    const serverChickIds = new Set(chickPool.map(c => c.id));
+    for (const [k, e] of old) {
+      if (e.type === 'chicken' && !serverChickenIds.has(e.data.id)) old.delete(k);
+      if (e.type === 'chick' && !serverChickIds.has(e.data.id)) old.delete(k);
+    }
+
+    const nw = [];
+    visibleIds = new Set();
+
+    if (!needsRotation) {
+      // <= 50 animals: show all (original behavior)
+      (farmData.chickens || []).forEach(c => {
+        const k = 'chicken:' + c.id, ex = old.get(k);
+        if (ex) { ex.data = c; ex.starving = !!c.starvation_started_at; ex.colors = SPCOL[c.species] || DCOL; nw.push(ex); }
+        else { const s = hash(c.id); nw.push({type:'chicken',data:c,x:lerp(W*PASTURE.x0,W*PASTURE.x1,sr(s)),y:lerp(H*PASTURE.y0,H*PASTURE.y1,sr(s+1)),dir:sr(s+2)>0.5?1:-1,bo:sr(s+3)*Math.PI*2,wp:0,colors:SPCOL[c.species]||DCOL,starving:!!c.starvation_started_at,state:S.IDLE,st:rr(0,3),at:rr(0,10),spd:10+sr(s+4)*8}); }
+        visibleIds.add(c.id);
+      });
+      (farmData.chicks || []).forEach(c => {
+        const k = 'chick:' + c.id, ex = old.get(k);
+        if (ex) { ex.data = c; nw.push(ex); }
+        else { const s = hash(c.id + 5000); nw.push({type:'chick',data:c,x:lerp(W*PASTURE.x0,W*PASTURE.x1,sr(s)),y:lerp(H*(PASTURE.y1-0.15),H*PASTURE.y1,sr(s+1)),dir:sr(s+2)>0.5?1:-1,bo:sr(s+3)*Math.PI*2,wp:0,state:S.IDLE,st:rr(0,2),at:rr(0,10),spd:14+sr(s+4)*10}); }
+        visibleIds.add(c.id);
+      });
+    } else {
+      // > 50 animals: keep existing visible entities, update their data
+      entities.forEach(e => {
+        if (e.type !== 'chicken' && e.type !== 'chick') return;
+        if (!e.data) return;
+        const id = e.data.id;
+        const isChick = e.type === 'chick';
+        const pool = isChick ? chickPool : chickenPool;
+        const updated = pool.find(c => c.id === id);
+        if (updated) {
+          e.data = updated;
+          if (!isChick) { e.starving = !!updated.starvation_started_at; e.colors = SPCOL[updated.species] || DCOL; }
+          nw.push(e);
+          visibleIds.add(id);
+        }
+        // else: chicken was sold/died — don't keep it
+      });
+      // Fill remaining slots if we have fewer visible than MAX_VISIBLE
+      if (nw.length < MAX_VISIBLE) {
+        const allPool = [...chickenPool, ...chickPool];
+        const available = allPool.filter(c => !visibleIds.has(c.id)).sort(() => Math.random() - 0.5);
+        let i = 0;
+        while (nw.length < MAX_VISIBLE && i < available.length) {
+          const c = available[i++];
+          const isChick = !!c._isChick;
+          const s = hash(c.id + (isChick ? 5000 : 0));
+          if (isChick) {
+            nw.push({type:'chick',data:c,x:lerp(W*PASTURE.x0,W*PASTURE.x1,sr(s)),y:lerp(H*(PASTURE.y1-0.15),H*PASTURE.y1,sr(s+1)),dir:sr(s+2)>0.5?1:-1,bo:sr(s+3)*Math.PI*2,wp:0,state:S.IDLE,st:rr(0,2),at:rr(0,10),spd:14+sr(s+4)*10});
+          } else {
+            nw.push({type:'chicken',data:c,x:lerp(W*PASTURE.x0,W*PASTURE.x1,sr(s)),y:lerp(H*PASTURE.y0,H*PASTURE.y1,sr(s+1)),dir:sr(s+2)>0.5?1:-1,bo:sr(s+3)*Math.PI*2,wp:0,colors:SPCOL[c.species]||DCOL,starving:!!c.starvation_started_at,state:S.IDLE,st:rr(0,3),at:rr(0,10),spd:10+sr(s+4)*8});
+          }
+          visibleIds.add(c.id);
+        }
+      }
+      // Initialize rotation timer on first build
+      if (rotationTimer <= 0) rotationTimer = getRotationInterval();
+    }
+
+    // Eggs (always show, max 20)
+    const ec = farmData.eggs_available || 0;
+    for (let i = 0; i < Math.min(ec, 20); i++) { const s = hash(i + 9000); nw.push({type:'egg',ei:i,x:W*0.06+sr(s)*W*0.08,y:H*0.45+sr(s+1)*H*0.12,tilt:sr(s+2)*0.3-0.15,state:S.IDLE}); }
+    entities = nw;
+    if (nw.some(e => e.type === 'chicken') && !rooster) { rooster = {type:'rooster',x:W*0.5,y:H*0.6,dir:1,bo:0,wp:0,colors:RCOL,state:S.IDLE,st:2+rr(0,3),at:0,spd:12+rr(0,8),courtTarget:null}; }
+    else if (!nw.some(e => e.type === 'chicken')) rooster = null;
   }
 
   // ── Render ─────────────────────────────────────
