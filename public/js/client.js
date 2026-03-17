@@ -91,6 +91,49 @@
     });
   }
 
+  // ── How It Works Guide ───────────────────────────
+  (function initGuide() {
+    const overlay = $('guide-overlay');
+    const steps = overlay?.querySelectorAll('.guide-step');
+    const dotsEl = $('guide-dots');
+    const prevBtn = $('guide-prev');
+    const nextBtn = $('guide-next');
+    if (!overlay || !steps || !steps.length) return;
+
+    const total = steps.length;
+    let cur = 0;
+
+    function renderDots() {
+      dotsEl.innerHTML = '';
+      for (let i = 0; i < total; i++) {
+        const d = document.createElement('span');
+        d.className = 'guide-dot' + (i === cur ? ' active' : '');
+        d.addEventListener('click', () => goTo(i));
+        dotsEl.appendChild(d);
+      }
+    }
+
+    function goTo(i) {
+      cur = Math.max(0, Math.min(total - 1, i));
+      steps.forEach((s, idx) => s.classList.toggle('active', idx === cur));
+      prevBtn.style.visibility = cur === 0 ? 'hidden' : 'visible';
+      nextBtn.textContent = cur === total - 1 ? 'Got it!' : 'Next';
+      renderDots();
+    }
+
+    prevBtn.addEventListener('click', () => goTo(cur - 1));
+    nextBtn.addEventListener('click', () => {
+      if (cur === total - 1) { hide(overlay); goTo(0); }
+      else goTo(cur + 1);
+    });
+
+    $('guide-btn')?.addEventListener('click', () => { goTo(0); show(overlay); });
+    $('guide-close')?.addEventListener('click', () => { hide(overlay); goTo(0); });
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) { hide(overlay); goTo(0); } });
+
+    goTo(0);
+  })();
+
   connectBtn?.addEventListener('click', async () => {
     // Show terms first if not yet accepted
     if (!hasAcceptedTerms()) {
