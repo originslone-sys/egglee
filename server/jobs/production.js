@@ -87,7 +87,7 @@ async function processUserFarm(userId, now) {
     const chickens = await trx('chickens')
       .where({ user_id: userId, status: 'alive' })
       .join('chicken_species', 'chickens.species_id', 'chicken_species.id')
-      .select('chickens.id', 'chicken_species.eggs_per_day', 'chicken_species.feed_per_day', 'chickens.starvation_started_at');
+      .select('chickens.id', 'chicken_species.eggs_per_day', 'chicken_species.feed_per_day', 'chickens.starvation_started_at', 'chickens.egg_accumulator');
 
     if (chickens.length === 0) return;
 
@@ -125,10 +125,19 @@ async function processUserFarm(userId, now) {
         await trx('chickens').whereIn('id', ids).increment('total_feed_consumed', parseFloat(feed));
       }
 
+      // Accumulate fractional eggs and produce whole eggs when accumulator >= 1.0
       const eggsToInsert = [];
+      const accumulatorUpdates = new Map(); // chickenId -> newAccumulator
+
       for (const c of chickens) {
-        const eggsThisCycle = parseFloat(c.eggs_per_day) / cyclesPerDay;
-        if (Math.random() < eggsThisCycle) {
+        const increment = parseFloat(c.eggs_per_day) / cyclesPerDay;
+        let accumulator = parseFloat(c.egg_accumulator || 0) + increment;
+        const wholeEggs = Math.floor(accumulator);
+        accumulator -= wholeEggs;
+
+        accumulatorUpdates.set(c.id, parseFloat(accumulator.toFixed(6)));
+
+        for (let i = 0; i < wholeEggs; i++) {
           eggsToInsert.push({
             user_id: userId,
             chicken_id: c.id,
@@ -136,6 +145,17 @@ async function processUserFarm(userId, now) {
             produced_at: now,
           });
         }
+      }
+
+      // Batch update accumulators grouped by value
+      const accGroups = new Map();
+      for (const [id, acc] of accumulatorUpdates) {
+        const key = acc.toString();
+        if (!accGroups.has(key)) accGroups.set(key, []);
+        accGroups.get(key).push(id);
+      }
+      for (const [acc, ids] of accGroups) {
+        await trx('chickens').whereIn('id', ids).update({ egg_accumulator: parseFloat(acc) });
       }
 
       if (eggsToInsert.length > 0) {
