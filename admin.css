@@ -35,6 +35,8 @@ code { background:var(--violet-100); padding:.1rem .35rem; border-radius:5px; fo
 .btn-primary { background:var(--violet); border-color:var(--violet); color:#fff; }
 .btn-sm { padding:.32rem .6rem; font-size:.82rem; }
 .btn-pub { background:var(--yolk); border-color:#eab23a; color:#5a3d00; }
+.btn-del { background:#fff; border-color:#f3c2cb; color:#b3253c; }
+.btn-del:hover { background:#fde7eb; border-color:#d6455d; }
 .inline { display:inline; }
 
 .badge { display:inline-block; padding:.15rem .55rem; border-radius:999px; font-size:.75rem; font-weight:800; text-transform:uppercase; background:#eee; }

@@ -5,7 +5,10 @@ $badge = ['draft' => 'b-draft', 'reviewed' => 'b-rev', 'published' => 'b-pub'];
 ?>
 <div class="page-head">
   <h1>Painel</h1>
-  <a class="btn btn-primary" href="/admin/dictionary">+ Gerar do dicionário</a>
+  <div style="display:flex; gap:.5rem;">
+    <a class="btn" href="/admin/diagnose">Testar IA</a>
+    <a class="btn btn-primary" href="/admin/dictionary">+ Gerar do dicionário</a>
+  </div>
 </div>
 
 <!-- Fila de geração -->
@@ -67,6 +70,11 @@ $badge = ['draft' => 'b-draft', 'reviewed' => 'b-rev', 'published' => 'b-pub'];
               <button class="btn btn-sm">Despublicar</button>
             </form>
           <?php endif; ?>
+          <form method="post" action="/admin/delete" class="inline" onsubmit="return confirm('Excluir <?= e($s['id']) ?>? Esta ação não pode ser desfeita.');">
+            <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+            <input type="hidden" name="id" value="<?= e($s['id']) ?>">
+            <button class="btn btn-sm btn-del">Excluir</button>
+          </form>
         </td>
       </tr>
     <?php endforeach; ?>

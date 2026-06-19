@@ -64,8 +64,9 @@ final class Generator
         }
 
         try {
-            $this->repo->ensureSymbol($concept, $row['category'], $related, $model);
+            // Gera PRIMEIRO; só cria o símbolo se a IA respondeu (sem drafts vazios).
             $content = DeepSeek::generate($concept, $row['category'], $row['en'], $next, $related);
+            $this->repo->ensureSymbol($concept, $row['category'], $related, $model);
             $this->repo->saveLanguage($concept, $next, $content);
             $this->log($concept, $next, $model, true, null);
 
