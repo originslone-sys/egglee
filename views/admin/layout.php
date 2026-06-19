@@ -1,6 +1,7 @@
 <?php
 use App\Core\Auth;
 use function App\Core\e;
+use function App\Core\asset;
 $user = Auth::user();
 // item de menu ativo a partir da URL atual
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/admin', PHP_URL_PATH) ?? '';
@@ -22,7 +23,7 @@ $isActive = static function (string $href) use ($path): bool {
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/admin.css">
+  <link rel="stylesheet" href="<?= e(asset('admin.css')) ?>">
 </head>
 <body class="admin">
   <div class="admin-shell">

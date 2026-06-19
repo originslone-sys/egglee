@@ -1,4 +1,4 @@
-<?php use function App\Core\e; ?><!doctype html>
+<?php use function App\Core\e; use function App\Core\asset; ?><!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
@@ -8,7 +8,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/admin.css">
+  <link rel="stylesheet" href="<?= e(asset('admin.css')) ?>">
 </head>
 <body class="admin admin-login-page">
   <?= $content ?>
