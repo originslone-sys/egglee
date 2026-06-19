@@ -116,7 +116,27 @@ final class AdminController
         @set_time_limit(0);
         echo View::render('admin/diagnose', [
             'result' => DeepSeek::diagnose(),
+            'csrf'   => Auth::csrf(),
+            'flash'  => $_GET['flash'] ?? null,
+            'error'  => $_GET['error'] ?? null,
         ], 'admin/layout');
+    }
+
+    // ---------- trocar o modelo da IA (grava no .env) ----------
+    public function setModel(): void
+    {
+        Auth::require();
+        if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
+            $this->redirect('/admin/diagnose?error=' . rawurlencode('Token inválido.'));
+        }
+        $model = trim($_POST['model'] ?? '');
+        if (!in_array($model, ['deepseek-chat', 'deepseek-reasoner'], true)) {
+            $this->redirect('/admin/diagnose?error=' . rawurlencode('Modelo inválido.'));
+        }
+        $ok = \App\Core\EnvFile::set(dirname(__DIR__, 2), 'DEEPSEEK_MODEL', $model);
+        $this->redirect('/admin/diagnose?' . ($ok
+            ? 'flash=' . rawurlencode("Modelo alterado para $model.")
+            : 'error=' . rawurlencode('Não consegui gravar o .env (permissão).')));
     }
 
     // ---------- excluir símbolo ----------

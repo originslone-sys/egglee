@@ -15,6 +15,22 @@ $render = static function (array $r): string {
   <a class="btn" href="/admin">← Painel</a>
 </div>
 
+<div class="queue-panel" style="display:block; margin-bottom:1rem;">
+  <strong>Modelo de geração:</strong>
+  <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.5rem;">
+    <form method="post" action="/admin/set-model" class="inline">
+      <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+      <input type="hidden" name="model" value="deepseek-chat">
+      <button class="btn btn-primary"<?= $result['configured']==='deepseek-chat'?' disabled':'' ?>>Usar deepseek-chat (recomendado)</button>
+    </form>
+    <form method="post" action="/admin/set-model" class="inline">
+      <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+      <input type="hidden" name="model" value="deepseek-reasoner">
+      <button class="btn"<?= $result['configured']==='deepseek-reasoner'?' disabled':'' ?>>Usar deepseek-reasoner</button>
+    </form>
+  </div>
+</div>
+
 <table class="data-table">
   <tbody>
     <tr><th>Chave (.env)</th><td><?= $result['hasKey'] ? '<span class="badge b-pub">presente</span>' : '<span class="badge b-err">ausente</span>' ?></td></tr>
