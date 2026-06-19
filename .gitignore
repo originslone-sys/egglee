@@ -1,6 +1,7 @@
-# Segredos
+# Segredos / estado do servidor (criados em runtime, não versionar)
 .env
 .env.local
+database/.installed
 
 # Dependências / build (legado Astro, caso reapareçam)
 node_modules/

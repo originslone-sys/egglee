@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 /**
  * Front controller da egglee. O .htaccess envia todas as requisições para cá.
- * Document root = esta pasta (public/). O código da app fica em ../app (fora da web).
+ * Document root = a raiz do repositório (= public_html na Hostinger).
+ * As pastas app/, views/, database/, scripts/ ficam protegidas por .htaccess próprio.
  */
 
 use App\Core\Auth;
@@ -20,7 +21,7 @@ if (PHP_SAPI === 'cli-server') {
     }
 }
 
-$root = dirname(__DIR__);
+$root = __DIR__;
 
 // Autoloader PSR-4 simples: App\ -> app/
 spl_autoload_register(static function (string $class) use ($root): void {
@@ -43,6 +44,12 @@ Auth::start();
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
 $path = '/' . trim(rawurldecode($path), '/');
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+// Ainda não instalado? Manda para o instalador (rodar uma vez após o deploy).
+if (!is_file("$root/database/.installed")) {
+    header('Location: /install.php', true, 302);
+    exit;
+}
 
 $pub = new PublicController();
 

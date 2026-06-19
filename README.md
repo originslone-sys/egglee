@@ -36,35 +36,45 @@ app/
 views/
   public/      layout, home, article, 404, partials
   admin/       layout, login, dashboard, edit
-public/        index.php (.htaccess), styles.css, admin.css, logo.svg, favicon.svg  <- DOCUMENT ROOT
+index.php      <- FRONT CONTROLLER (raiz do repo = public_html)
+.htaccess      roteamento + proteção das pastas internas
+install.php    instalador (rodar uma vez após o 1º deploy)
+styles.css, admin.css, logo.svg, favicon.svg, site.webmanifest
 database/      schema.sql, setup.sh, seed/, create-admin.md
 scripts/       import_seed.php, create_admin.php
 ```
 
+> **A raiz do repositório é o document root.** As pastas `app/`, `views/`,
+> `database/` e `scripts/` ficam no web root mas são bloqueadas por `.htaccess`
+> (cada uma tem um `Require all denied`, além das regras na `.htaccess` da raiz).
+
 ## Instalação local / dev
 
 ```bash
-cp .env.example .env          # preencha DB_* e DEEPSEEK_API_KEY
-bash database/setup.sh        # cria as tabelas
-php scripts/import_seed.php   # carrega o exemplo (cobra/serpiente/snake)
-php scripts/create_admin.php admin "uma-senha-forte"
-php -S 127.0.0.1:8000 -t public public/index.php
-# site:  http://127.0.0.1:8000/pt
-# admin: http://127.0.0.1:8000/admin
+php -S 127.0.0.1:8000 index.php
+# abra http://127.0.0.1:8000 — será redirecionado ao instalador uma vez
 ```
 
-## Deploy na Hostinger
+## Deploy na Hostinger (Git automático)
 
-1. **hPanel → Bancos de dados MySQL:** o banco e o usuário já existem
-   (`u740938289_egg` / `u740938289_egg_user`).
-2. Suba os arquivos. Defina o **document root** para a pasta `public/`
-   (ou, se o root for fixo em `public_html`, mova o conteúdo de `public/`
-   para lá e ajuste o `require` para apontar a `app/` fora da web).
-3. Crie um `.env` no servidor (fora do `public/`) com as credenciais MySQL e a
-   `DEEPSEEK_API_KEY`. **Nunca** versione o `.env`.
-4. Importe `database/schema.sql` pelo **phpMyAdmin** (ou `bash database/setup.sh` via SSH).
-5. Crie o usuário admin: `php scripts/create_admin.php seu_user senha_forte`
-   (ou siga `database/create-admin.md` no phpMyAdmin).
+O `main` está ligado ao deploy automático da Hostinger: **a cada merge, os
+arquivos do repositório vão para `public_html`**. Como o deploy só copia
+arquivos (não roda SQL), a configuração inicial é feita **uma vez** pelo
+instalador:
+
+1. Faça o merge → a Hostinger publica os arquivos.
+2. Acesse **`https://seu-dominio.com/install.php`**. Preencha os dados do MySQL
+   (banco/usuário já existem no hPanel) e crie seu login do painel.
+   O instalador: testa a conexão, grava o `.env`, cria as tabelas, importa o
+   exemplo e cria o admin.
+3. **Apague `install.php`** do servidor (ou deixe — o lock
+   `database/.installed` impede reexecução).
+
+A partir daí, **todo novo merge só atualiza o código**. O `.env` e o banco
+permanecem intactos (são estado do servidor, fora do Git).
+
+> Mudou o schema no futuro? Aí sim é preciso aplicar a alteração no banco
+> (phpMyAdmin ou uma migração) — isso não acontece no merge.
 
 ## Fluxo de conteúdo (painel admin)
 

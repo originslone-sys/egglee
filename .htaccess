@@ -1,15 +1,23 @@
-# egglee — roteamento e cache (Apache / Hostinger)
+# egglee — roteamento, proteção e cache (Apache / LiteSpeed / Hostinger)
+# A raiz deste repositório é o document root (public_html).
+
 RewriteEngine On
 
-# Não reescrever arquivos/pastas existentes (assets estáticos)
+# 1) Bloqueia dotfiles e dotdirs (.env, .git, .htaccess...) — exceto .well-known
+RewriteRule (^|/)\.(?!well-known)[^/]* - [F,L]
+
+# 2) Bloqueia acesso web às pastas internas da aplicação
+RewriteRule ^(app|views|database|scripts)(/|$) - [F,L]
+
+# 3) Arquivos/pastas reais existentes (assets) são servidos direto
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Tudo o mais vai para o front controller
+# 4) Todo o resto vai para o front controller
 RewriteRule ^ index.php [L]
 
-# Proteção: bloquear acesso direto ao .env (caso fique no web root)
+# Reforço: nega acesso direto ao .env
 <Files ".env">
   Require all denied
 </Files>
