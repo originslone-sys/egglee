@@ -1,0 +1,48 @@
+/* Design limpo e legível — Core Web Vitals e leitura confortável.
+   Sem frameworks: CSS leve = página rápida. */
+:root {
+  --ink: #1f2430;
+  --muted: #5b6472;
+  --accent: #6d4aff;
+  --bg: #fbfaff;
+  --card: #fff;
+  --line: #e7e4f2;
+  --maxw: 720px;
+}
+* { box-sizing: border-box; }
+html { font-size: 18px; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.7;
+}
+a { color: var(--accent); }
+.topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  max-width: var(--maxw); margin: 0 auto; padding: 1rem;
+}
+.topbar > a { font-weight: 700; text-decoration: none; color: var(--ink); }
+.langs a { margin-left: .8rem; font-size: .85rem; text-decoration: none; }
+.langs a[aria-current='page'] { font-weight: 700; text-decoration: underline; }
+.article { max-width: var(--maxw); margin: 0 auto; padding: 1rem 1rem 4rem; }
+h1 { font-size: 2rem; line-height: 1.2; margin: .5rem 0 1rem; }
+h2 { font-size: 1.35rem; margin: 2rem 0 .6rem; }
+.tagline { color: var(--muted); font-size: 1.1rem; }
+.quick-answer {
+  background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+  border-radius: 10px; padding: 1rem 1.2rem; margin: 1.2rem 0;
+}
+.quick-answer p { margin: .4rem 0 0; }
+.variations { padding-left: 1.1rem; }
+.variations li { margin: .5rem 0; }
+.faq details {
+  border: 1px solid var(--line); border-radius: 10px; padding: .6rem 1rem; margin: .6rem 0; background: var(--card);
+}
+.faq summary { cursor: pointer; font-weight: 600; }
+.closing { font-style: italic; color: var(--muted); margin-top: 2rem; }
+.related { margin-top: 2.5rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+.related ul, .index-list { list-style: none; padding: 0; }
+.related li, .index-list li { margin: .4rem 0; }
+.index-list a { font-size: 1.1rem; }
