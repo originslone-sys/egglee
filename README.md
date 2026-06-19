@@ -78,11 +78,27 @@ permanecem intactos (são estado do servidor, fora do Git).
 
 ## Fluxo de conteúdo (painel admin)
 
-1. `/admin` → **+ Novo símbolo**: informe id, categoria, relacionados e os
-   termos nos 3 idiomas → **Gerar rascunho**. A IA gera os 3 idiomas (status `draft`).
-2. **Editar**: revise/ajuste cada idioma (textos e campos JSON de seções/FAQ).
-3. **Publicar**: mude o status para `published`. Só então a página entra no ar
-   e no sitemap.
+Produção orientada por **dicionário + fila** (eficiente e sem timeout):
+
+1. **Dicionário** (`/admin/dictionary`): ~200 conceitos por categoria. Filtre por
+   categoria/busca, marque os que quer e **Enfileirar selecionados**. Você não
+   digita termos — a **IA decide** a melhor expressão de busca em cada idioma.
+2. **Worker processa a fila** (em segundo plano): gera os 3 idiomas e salva como
+   `draft`. Configure um **cron** (recomendado) ou use **Processar 1 agora** no
+   painel para hosts sem cron.
+3. **Editar**: revise/ajuste cada idioma (textos e campos JSON de seções/FAQ).
+4. **Publicar**: mude o status para `published`. Só então a página entra no ar.
+
+### Cron do worker (Hostinger → hPanel → Cron Jobs)
+
+```
+*/5 * * * * php /home/USER/domains/SEU_DOMINIO/public_html/scripts/worker.php 1
+```
+
+Roda a cada 5 min e processa 1 item por vez (cada item = 3 idiomas no
+`deepseek-reasoner`, ~1–2 min). Ajuste a frequência/quantidade conforme o ritmo.
+
+> Adicionar mais conceitos ao dicionário: edite `app/Support/Dictionary.php`.
 
 ## Segurança
 

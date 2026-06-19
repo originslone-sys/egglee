@@ -4,10 +4,11 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Core\Auth;
-use App\Core\Database;
 use App\Core\View;
 use App\Repository\SymbolRepository;
-use App\Service\DeepSeek;
+use App\Repository\GenerationQueue;
+use App\Service\Generator;
+use App\Support\Dictionary;
 use App\Support\Lang;
 
 /** Painel administrativo. */
@@ -48,51 +49,76 @@ final class AdminController
         Auth::require();
         echo View::render('admin/dashboard', [
             'symbols' => $this->repo->listAll(),
+            'queue'   => GenerationQueue::counts(),
+            'errors'  => GenerationQueue::recentErrors(5),
             'csrf'    => Auth::csrf(),
             'flash'   => $_GET['flash'] ?? null,
             'error'   => $_GET['error'] ?? null,
         ], 'admin/layout');
     }
 
-    // ---------- criar + gerar via IA ----------
-    public function create(): void
+    // ---------- dicionário: filtrar e escolher o que gerar ----------
+    public function dictionary(): void
+    {
+        Auth::require();
+        $cat = $_GET['cat'] ?? '';
+        $q   = trim($_GET['q'] ?? '');
+
+        $items = Dictionary::all();
+        if ($cat !== '') {
+            $items = array_values(array_filter($items, fn($i) => $i['category'] === $cat));
+        }
+        if ($q !== '') {
+            $needle = mb_strtolower($q);
+            $items = array_values(array_filter(
+                $items,
+                fn($i) => str_contains(mb_strtolower($i['id'] . ' ' . $i['en']), $needle)
+            ));
+        }
+
+        echo View::render('admin/dictionary', [
+            'items'       => $items,
+            'categories'  => Dictionary::categories(),
+            'cat'         => $cat,
+            'q'           => $q,
+            'createdMap'  => $this->repo->statusMap(),          // id => status do símbolo já criado
+            'queueMap'    => GenerationQueue::statusByConcept(), // id => pending/processing/error
+            'csrf'        => Auth::csrf(),
+            'flash'       => $_GET['flash'] ?? null,
+            'error'       => $_GET['error'] ?? null,
+        ], 'admin/layout');
+    }
+
+    // ---------- enfileirar conceitos selecionados ----------
+    public function enqueue(): void
+    {
+        Auth::require();
+        if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
+            $this->redirect('/admin/dictionary?error=' . rawurlencode('Token inválido.'));
+        }
+        $ids = (array) ($_POST['ids'] ?? []);
+        $n = 0;
+        foreach ($ids as $cid) {
+            $item = Dictionary::find((string) $cid);
+            if ($item && GenerationQueue::enqueue($item['id'], $item['category'], $item['en'])) {
+                $n++;
+            }
+        }
+        $back = '/admin/dictionary?' . http_build_query(['cat' => $_POST['cat'] ?? '', 'q' => $_POST['q'] ?? '']);
+        $this->redirect($back . '&flash=' . rawurlencode("$n conceito(s) enfileirado(s) para geração."));
+    }
+
+    // ---------- processar a fila agora (sem cron) ----------
+    public function processNow(): void
     {
         Auth::require();
         if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
             $this->redirect('/admin?error=' . rawurlencode('Token inválido.'));
         }
-
-        $id       = \App\Service\Slug::make($_POST['id'] ?? '');
-        $category = trim($_POST['category'] ?? 'objects');
-        $related  = array_values(array_filter(array_map('trim', explode(',', $_POST['related'] ?? ''))));
-        $terms    = [
-            'pt' => trim($_POST['term_pt'] ?? ''),
-            'es' => trim($_POST['term_es'] ?? ''),
-            'en' => trim($_POST['term_en'] ?? ''),
-        ];
-
-        if ($id === '' || $terms['pt'] === '' || $terms['es'] === '' || $terms['en'] === '') {
-            $this->redirect('/admin?error=' . rawurlencode('Preencha id e os termos nos 3 idiomas.'));
-        }
-
-        $languages = [];
-        $model = \App\Core\Env::get('DEEPSEEK_MODEL', 'deepseek-reasoner');
-        foreach (Lang::LANGS as $lang) {
-            try {
-                $languages[$lang] = DeepSeek::generate($id, $category, $terms[$lang], $lang, $related);
-                $this->log($id, $lang, $model, true, null);
-            } catch (\Throwable $e) {
-                $this->log($id, $lang, $model, false, $e->getMessage());
-                $this->redirect('/admin?error=' . rawurlencode("Falha ao gerar [$lang]: " . $e->getMessage()));
-            }
-        }
-
-        try {
-            $this->repo->save($id, $category, $related, $languages, $model);
-        } catch (\Throwable $e) {
-            $this->redirect('/admin?error=' . rawurlencode('Falha ao salvar: ' . $e->getMessage()));
-        }
-        $this->redirect("/admin/edit?id=$id&flash=" . rawurlencode('Gerado como rascunho. Revise e publique.'));
+        @set_time_limit(0);
+        ignore_user_abort(true);
+        [$done, $err] = (new Generator())->processPending(1);
+        $this->redirect('/admin?flash=' . rawurlencode("Processado: $done ok, $err erro(s)."));
     }
 
     // ---------- editar ----------
@@ -172,17 +198,6 @@ final class AdminController
     {
         $v = json_decode($raw, true);
         return is_array($v) ? $v : [];
-    }
-
-    private function log(?string $symbolId, ?string $lang, ?string $model, bool $ok, ?string $error): void
-    {
-        try {
-            Database::pdo()->prepare(
-                'INSERT INTO generation_log (symbol_id, lang, model, ok, error) VALUES (?,?,?,?,?)'
-            )->execute([$symbolId, $lang, $model, $ok ? 1 : 0, $error]);
-        } catch (\Throwable) {
-            // log é best-effort
-        }
     }
 
     private function redirect(string $to): never

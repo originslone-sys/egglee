@@ -15,7 +15,7 @@ final class DeepSeek
      * @return array conteúdo decodificado
      * @throws \RuntimeException em falha de API ou JSON inválido
      */
-    public static function generate(string $id, string $category, string $term, string $lang, array $related = []): array
+    public static function generate(string $id, string $category, string $conceptEn, string $lang, array $related = []): array
     {
         $apiKey = Env::get('DEEPSEEK_API_KEY');
         if (!$apiKey) {
@@ -24,7 +24,7 @@ final class DeepSeek
         $url   = Env::get('DEEPSEEK_API_URL', 'https://api.deepseek.com/chat/completions');
         $model = Env::get('DEEPSEEK_MODEL', 'deepseek-reasoner');
 
-        $messages = PromptBuilder::build($id, $category, $term, $lang, $related);
+        $messages = PromptBuilder::build($id, $category, $conceptEn, $lang, $related);
 
         $payload = [
             'model'      => $model,

@@ -88,7 +88,7 @@ Use the target language for ALL human-readable text. Slugs must be ASCII (fold a
 TXT;
 
     /** @return array<int, array{role:string, content:string}> */
-    public static function build(string $id, string $category, string $term, string $lang, array $related = []): array
+    public static function build(string $id, string $category, string $conceptEn, string $lang, array $related = []): array
     {
         $L = self::LOCALES[$lang] ?? null;
         if ($L === null) {
@@ -108,12 +108,17 @@ TXT;
 
         $user = <<<TXT
 Target language: {$L['name']} ({$L['hreflang']})
-Dream symbol to write about: "$term"  (internal id: $id, category: $category)
-URL slug pattern hint: "{$L['slugVerb']}-<term>" — adapt naturally to grammar.$relatedHint
+Dream symbol concept (English, for your understanding ONLY): "$conceptEn"  (internal id: $id, category: $category)
 
-Write the complete, in-depth page for someone who just searched the meaning of dreaming about "$term" in {$L['name']}.
-Aim for roughly 700-1100 words of total human-readable content across the fields.
-Make it the single best, most useful page on the internet for this query — and unique to {$L['name']}, not a translation of any other language.
+YOU decide the primary keyword: choose the most natural and most-searched way a
+native {$L['name']} speaker would phrase a dream about this concept (e.g. how they
+actually type it into Google). Do NOT translate the English literally — use the
+real local expression. Build the slug from that phrase (pattern hint: "{$L['slugVerb']}-<term>").$relatedHint
+
+Write the complete, in-depth page for someone who just searched the meaning of this
+dream in {$L['name']}. Aim for roughly 700-1100 words of total human-readable content
+across the fields. Make it the single best, most useful page on the internet for this
+query — and unique to {$L['name']}, not a translation of any other language.
 
 Output the JSON object now.
 TXT;
