@@ -1,0 +1,29 @@
+# egglee — roteamento e cache (Apache / Hostinger)
+RewriteEngine On
+
+# Não reescrever arquivos/pastas existentes (assets estáticos)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Tudo o mais vai para o front controller
+RewriteRule ^ index.php [L]
+
+# Proteção: bloquear acesso direto ao .env (caso fique no web root)
+<Files ".env">
+  Require all denied
+</Files>
+
+# Cache de assets estáticos
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType image/svg+xml "access plus 30 days"
+  ExpiresByType image/png "access plus 30 days"
+  ExpiresByType application/javascript "access plus 7 days"
+</IfModule>
+
+# Compressão
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>
