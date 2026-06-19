@@ -114,11 +114,14 @@ final class AdminController
     {
         Auth::require();
         @set_time_limit(0);
+        // Teste de geração real só quando pedido (?gen=1), pois é mais lento.
+        $genTest = isset($_GET['gen']) ? DeepSeek::testGeneration(60) : null;
         echo View::render('admin/diagnose', [
-            'result' => DeepSeek::diagnose(),
-            'csrf'   => Auth::csrf(),
-            'flash'  => $_GET['flash'] ?? null,
-            'error'  => $_GET['error'] ?? null,
+            'result'  => DeepSeek::diagnose(),
+            'genTest' => $genTest,
+            'csrf'    => Auth::csrf(),
+            'flash'   => $_GET['flash'] ?? null,
+            'error'   => $_GET['error'] ?? null,
         ], 'admin/layout');
     }
 

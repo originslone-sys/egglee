@@ -81,11 +81,29 @@ final class DeepSeek
     public static function generate(string $id, string $category, string $conceptEn, string $lang, array $related = []): array
     {
         $messages = PromptBuilder::build($id, $category, $conceptEn, $lang, $related);
-        $res = self::request($messages);
+        // max_tokens enxuto: geração mais curta = mais rápida = cabe no limite do host.
+        $res = self::request($messages, ['max_tokens' => (int) Env::get('DEEPSEEK_MAX_TOKENS', '3000')]);
         if (!$res['ok']) {
             throw new \RuntimeException($res['error'] ?? 'Falha desconhecida na IA.');
         }
         return self::parseJson($res['content']);
+    }
+
+    /**
+     * Teste de GERAÇÃO REAL (1 idioma) com cronômetro: revela quanto tempo
+     * uma geração de verdade leva e se conclui — o teste curto não mostra isso.
+     */
+    public static function testGeneration(int $timeout = 60): array
+    {
+        $messages = PromptBuilder::build('cat', 'animals', 'a cat', 'pt', []);
+        $res = self::request($messages, ['timeout' => $timeout, 'max_tokens' => (int) Env::get('DEEPSEEK_MAX_TOKENS', '3000')]);
+        return [
+            'ok'      => $res['ok'],
+            'elapsed' => $res['elapsed'],
+            'http'    => $res['http'],
+            'error'   => $res['error'],
+            'chars'   => $res['content'] ? strlen($res['content']) : 0,
+        ];
     }
 
     /**

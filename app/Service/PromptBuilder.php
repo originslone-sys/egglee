@@ -63,10 +63,10 @@ SEO REQUIREMENTS (bake these into the fields, do not add them separately):
 - metaDescription: 110-160 chars, includes the keyword, promises a clear answer.
 - h1: keyword-forward, natural, distinct from the title.
 - quickAnswer: 120-360 chars, directly answers "what does it mean" in the first sentence.
-- sections: 4+ H2 blocks covering DISTINCT angles (folk tradition, psychological, emotional, spiritual/cultural).
-- variations: 3+ real long-tail sub-meanings; each "keyword" must be a phrase a person would actually type.
-- faq: 3+ real questions, each answered in 2-4 sentences.
-- semanticKeywords: 5+ related terms for topical depth.
+- sections: exactly 3 H2 blocks covering DISTINCT angles (folk tradition, psychological, emotional/spiritual).
+- variations: exactly 3 real long-tail sub-meanings; each "keyword" must be a phrase a person would actually type.
+- faq: exactly 3 real questions, each answered in 2-3 sentences.
+- semanticKeywords: 5 related terms for topical depth.
 TXT;
 
     private const JSON_SCHEMA = <<<TXT
@@ -77,9 +77,9 @@ Return ONLY a valid JSON object (no markdown, no comments, no text before or aft
   "metaDescription": "string 110-160 chars",
   "h1": "string",
   "quickAnswer": "string 120-360 chars",
-  "intro": "2-3 rich paragraphs (>=280 chars), paragraphs separated by \\n",
-  "sections": [ { "heading": "H2", "body": ">=220 chars" } ],
-  "variations": [ { "keyword": "long-tail phrase", "meaning": ">=120 chars" } ],
+  "intro": "2 short paragraphs (~180-260 chars), separated by \\n",
+  "sections": [ { "heading": "H2", "body": "~160-220 chars" } ],
+  "variations": [ { "keyword": "long-tail phrase", "meaning": "~100-150 chars" } ],
   "faq": [ { "question": "string", "answer": ">=80 chars" } ],
   "closing": ">=120 chars",
   "semanticKeywords": ["string","string","string","string","string"]
@@ -115,10 +115,10 @@ native {$L['name']} speaker would phrase a dream about this concept (e.g. how th
 actually type it into Google). Do NOT translate the English literally — use the
 real local expression. Build the slug from that phrase (pattern hint: "{$L['slugVerb']}-<term>").$relatedHint
 
-Write the complete, in-depth page for someone who just searched the meaning of this
-dream in {$L['name']}. Aim for roughly 700-1100 words of total human-readable content
-across the fields. Make it the single best, most useful page on the internet for this
-query — and unique to {$L['name']}, not a translation of any other language.
+Write a focused, useful page for someone who just searched the meaning of this
+dream in {$L['name']}. Aim for roughly 450-650 words of total human-readable content
+across the fields — concise but genuinely helpful, no filler. Make it unique to
+{$L['name']}, not a translation of any other language. Be efficient and direct.
 
 Output the JSON object now.
 TXT;
