@@ -46,7 +46,8 @@ $path = '/' . trim(rawurldecode($path), '/');
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 // Ainda não instalado? Manda para o instalador (rodar uma vez após o deploy).
-if (!is_file("$root/database/.installed")) {
+// Detecção robusta: trava em arquivo OU tabelas já existentes no banco.
+if (!\App\Core\Installed::check($root)) {
     header('Location: /install.php', true, 302);
     exit;
 }
