@@ -39,6 +39,25 @@ $models = [
   </tbody>
 </table>
 
+<div class="queue-panel" style="display:block; margin-top:1rem;">
+  <strong>Geração real (1 idioma, com cronômetro)</strong> — mede quanto uma geração de verdade leva.
+  <div style="margin-top:.5rem;">
+    <a class="btn btn-pub" href="/admin/diagnose?gen=1">Testar geração real (pode levar ~30-60s)</a>
+  </div>
+  <?php if (!empty($genTest)): ?>
+    <p style="margin-top:.7rem;">
+      <?php if ($genTest['ok']): ?>
+        <span class="badge b-pub">OK</span> em <strong><?= sprintf('%.1fs', $genTest['elapsed']) ?></strong>
+        — <?= (int) $genTest['chars'] ?> caracteres gerados.
+      <?php else: ?>
+        <span class="badge b-err">FALHOU</span> após <strong><?= sprintf('%.1fs', $genTest['elapsed']) ?></strong>
+        — <?= e((string) $genTest['error']) ?>
+      <?php endif; ?>
+    </p>
+    <p class="hint" style="margin:.3rem 0 0;">Se levou &gt;50s, o servidor web mata a requisição antes de concluir — por isso a geração deve rodar pelo <strong>cron</strong>, não pelo botão do painel.</p>
+  <?php endif; ?>
+</div>
+
 <div class="queue-panel" style="margin-top:1rem; display:block;">
   <strong>Como ler:</strong>
   <ul class="hint" style="margin:.5rem 0 0; padding-left:1.1rem;">

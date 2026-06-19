@@ -65,7 +65,12 @@ final class Generator
 
         try {
             // Gera PRIMEIRO; só cria o símbolo se a IA respondeu (sem drafts vazios).
+            $t0 = microtime(true);
             $content = DeepSeek::generate($concept, $row['category'], $row['en'], $next, $related);
+            $elapsed = microtime(true) - $t0;
+            if (PHP_SAPI === 'cli') {
+                fwrite(STDOUT, sprintf("  %s [%s] gerado em %.1fs\n", $concept, $next, $elapsed));
+            }
             $this->repo->ensureSymbol($concept, $row['category'], $related, $model);
             $this->repo->saveLanguage($concept, $next, $content);
             $this->log($concept, $next, $model, true, null);
