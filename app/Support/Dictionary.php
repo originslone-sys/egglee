@@ -249,6 +249,12 @@ final class Dictionary
         return array_keys(self::DATA);
     }
 
+    /** Itens agrupados por categoria: ['animals' => [['id'=>..,'en'=>..], ...], ...]. */
+    public static function grouped(): array
+    {
+        return self::DATA;
+    }
+
     /** Todos os itens como lista plana com a categoria embutida. */
     public static function all(): array
     {

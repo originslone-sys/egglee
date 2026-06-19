@@ -69,20 +69,20 @@ try {
     if ($path === '/admin' || str_starts_with($path, '/admin/')) {
         $admin = new AdminController();
         match (true) {
-            $path === '/admin'                          => $admin->dashboard(),
-            $path === '/admin/login' && $method==='GET' => $admin->loginForm(),
-            $path === '/admin/login' && $method==='POST'=> $admin->login(),
-            $path === '/admin/logout'                   => $admin->logout(),
-            $path === '/admin/dictionary'               => $admin->dictionary(),
-            $path === '/admin/enqueue' && $method==='POST'=> $admin->enqueue(),
-            $path === '/admin/process' && $method==='POST'=> $admin->processNow(),
-            $path === '/admin/diagnose'                 => $admin->diagnose(),
+            $path === '/admin'                            => header('Location: /admin/generate', true, 302),
+            $path === '/admin/login' && $method==='GET'   => $admin->loginForm(),
+            $path === '/admin/login' && $method==='POST'  => $admin->login(),
+            $path === '/admin/logout'                     => $admin->logout(),
+            $path === '/admin/generate' && $method==='POST'=> $admin->generateRun(),
+            $path === '/admin/generate'                   => $admin->generateForm(),
+            $path === '/admin/articles'                   => $admin->articles(),
+            $path === '/admin/diagnose'                   => $admin->diagnose(),
             $path === '/admin/set-model' && $method==='POST'=> $admin->setModel(),
-            $path === '/admin/delete' && $method==='POST'=> $admin->deleteSymbol(),
-            $path === '/admin/edit'                     => $admin->edit(),
-            $path === '/admin/update' && $method==='POST'=> $admin->update(),
-            $path === '/admin/status' && $method==='POST'=> $admin->status(),
-            default                                     => $pub->notFound(),
+            $path === '/admin/delete' && $method==='POST' => $admin->deleteSymbol(),
+            $path === '/admin/edit'                       => $admin->edit(),
+            $path === '/admin/update' && $method==='POST' => $admin->update(),
+            $path === '/admin/status' && $method==='POST' => $admin->status(),
+            default                                       => $pub->notFound(),
         };
         exit;
     }

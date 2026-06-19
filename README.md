@@ -76,29 +76,23 @@ permanecem intactos (são estado do servidor, fora do Git).
 > Mudou o schema no futuro? Aí sim é preciso aplicar a alteração no banco
 > (phpMyAdmin ou uma migração) — isso não acontece no merge.
 
-## Fluxo de conteúdo (painel admin)
+## Painel admin (menu lateral)
 
-Produção orientada por **dicionário + fila** (eficiente e sem timeout):
+- **Gerador** (`/admin/generate`): escolha **categoria → conceito → idioma** e
+  clique em **Gerar**. A geração é direta e síncrona (~15s por idioma, modelo
+  `deepseek-v4-flash` sem thinking) e salva como `draft`. A **IA decide** a
+  melhor expressão de busca em cada idioma — você não digita termos.
+- **Artigos** (`/admin/articles`): lista dos artigos gerados; editar, publicar,
+  despublicar e excluir.
+- **Diagnóstico** (`/admin/diagnose`): testa a IA, mede a geração real e troca
+  o modelo (v4-flash / v4-pro) em 1 clique.
 
-1. **Dicionário** (`/admin/dictionary`): ~200 conceitos por categoria. Filtre por
-   categoria/busca, marque os que quer e **Enfileirar selecionados**. Você não
-   digita termos — a **IA decide** a melhor expressão de busca em cada idioma.
-2. **Worker processa a fila** (em segundo plano): gera os 3 idiomas e salva como
-   `draft`. Configure um **cron** (recomendado) ou use **Processar 1 agora** no
-   painel para hosts sem cron.
-3. **Editar**: revise/ajuste cada idioma (textos e campos JSON de seções/FAQ).
-4. **Publicar**: mude o status para `published`. Só então a página entra no ar.
+Fluxo: **Gerar → revisar em Artigos/Editar → Publicar** (só `published` entra no ar).
 
-### Cron do worker (Hostinger → hPanel → Cron Jobs)
+> Adicionar mais conceitos: edite `app/Support/Dictionary.php`.
 
-```
-*/5 * * * * php /home/USER/domains/SEU_DOMINIO/public_html/scripts/worker.php 1
-```
-
-Roda a cada 5 min e processa 1 item por vez (cada item = 3 idiomas no
-`deepseek-reasoner`, ~1–2 min). Ajuste a frequência/quantidade conforme o ritmo.
-
-> Adicionar mais conceitos ao dicionário: edite `app/Support/Dictionary.php`.
+> `scripts/worker.php` + a fila (`GenerationQueue`) continuam no projeto para
+> geração em lote via cron, mas **não são necessários** no fluxo simples acima.
 
 ## Segurança
 
