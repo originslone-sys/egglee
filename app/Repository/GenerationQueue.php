@@ -62,11 +62,34 @@ final class GenerationQueue
         return $stmt->fetchAll();
     }
 
+    /**
+     * Recupera itens presos em "processing" (processo morto por timeout antes
+     * de concluir). Após $minutes parado: volta para "pending" para retomar;
+     * se já tentou demais, marca "error" para não ficar em loop infinito.
+     */
+    public static function reclaimStale(int $minutes = 10, int $maxAttempts = 5): void
+    {
+        self::ensureTable();
+        Database::pdo()->prepare(
+            'UPDATE generation_queue
+             SET status   = IF(attempts >= ?, "error", "pending"),
+                 error    = IF(attempts >= ?, "Tempo excedido repetidamente; geração não concluiu.", error),
+                 attempts = attempts + 1
+             WHERE status = "processing" AND updated_at < (NOW() - INTERVAL ? MINUTE)'
+        )->execute([$maxAttempts, $maxAttempts, $minutes]);
+    }
+
     public static function markProcessing(int $id): void
     {
         Database::pdo()->prepare(
-            'UPDATE generation_queue SET status="processing", attempts=attempts+1 WHERE id=?'
+            'UPDATE generation_queue SET status="processing" WHERE id=?'
         )->execute([$id]);
+    }
+
+    /** Volta para a fila (passo concluído, mas ainda faltam idiomas). */
+    public static function markPending(int $id): void
+    {
+        Database::pdo()->prepare('UPDATE generation_queue SET status="pending" WHERE id=?')->execute([$id]);
     }
 
     public static function markDone(int $id): void
