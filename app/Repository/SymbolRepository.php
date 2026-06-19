@@ -85,6 +85,17 @@ final class SymbolRepository
         return Database::pdo()->query($sql)->fetchAll();
     }
 
+    /** Mapa id => status de todos os símbolos já criados. */
+    public function statusMap(): array
+    {
+        $rows = Database::pdo()->query('SELECT id, status FROM symbols')->fetchAll();
+        $out = [];
+        foreach ($rows as $r) {
+            $out[$r['id']] = $r['status'];
+        }
+        return $out;
+    }
+
     public function find(string $id): ?array
     {
         $stmt = Database::pdo()->prepare('SELECT * FROM symbols WHERE id = ? LIMIT 1');

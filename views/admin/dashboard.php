@@ -1,40 +1,48 @@
 <?php
 use function App\Core\e;
-/** @var array $symbols */ /** @var string $csrf */
+/** @var array $symbols */ /** @var array $queue */ /** @var array $errors */ /** @var string $csrf */
 $badge = ['draft' => 'b-draft', 'reviewed' => 'b-rev', 'published' => 'b-pub'];
 ?>
 <div class="page-head">
-  <h1>Símbolos</h1>
+  <h1>Painel</h1>
+  <a class="btn btn-primary" href="/admin/dictionary">+ Gerar do dicionário</a>
 </div>
 
-<details class="new-symbol">
-  <summary>+ Novo símbolo (gerar com IA)</summary>
-  <form method="post" action="/admin/create" class="grid-form">
-    <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
-    <label>ID (slug interno, ex: <code>snake</code>)<input name="id" required></label>
-    <label>Categoria
-      <select name="category">
-        <?php foreach (['animals','people','actions','objects','places','feelings','events','body','nature','spiritual'] as $cat): ?>
-          <option value="<?= $cat ?>"><?= $cat ?></option>
+<!-- Fila de geração -->
+<div class="queue-panel">
+  <div class="queue-stats">
+    <div class="qstat"><span class="qn"><?= (int) $queue['pending'] ?></span> na fila</div>
+    <div class="qstat"><span class="qn"><?= (int) $queue['processing'] ?></span> gerando</div>
+    <div class="qstat"><span class="qn"><?= (int) $queue['done'] ?></span> concluídos</div>
+    <div class="qstat err"><span class="qn"><?= (int) $queue['error'] ?></span> erros</div>
+  </div>
+  <?php if ($queue['pending'] > 0): ?>
+    <form method="post" action="/admin/process" class="inline">
+      <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+      <button class="btn btn-pub">Processar 1 agora</button>
+    </form>
+    <span class="hint">Ideal: configurar um cron rodando <code>scripts/worker.php</code> (ver README).</span>
+  <?php else: ?>
+    <span class="hint">Sem itens pendentes. Vá ao <a href="/admin/dictionary">dicionário</a> para escolher o que gerar.</span>
+  <?php endif; ?>
+  <?php if ($errors): ?>
+    <details class="queue-errors">
+      <summary><?= count($errors) ?> erro(s) recente(s)</summary>
+      <ul>
+        <?php foreach ($errors as $er): ?>
+          <li><code><?= e($er['concept_id']) ?></code>: <?= e(mb_substr((string) $er['error'], 0, 160)) ?></li>
         <?php endforeach; ?>
-      </select>
-    </label>
-    <label>Relacionados (ids, separados por vírgula)<input name="related" placeholder="spider, rat"></label>
-    <label>Termo PT<input name="term_pt" placeholder="cobra" required></label>
-    <label>Termo ES<input name="term_es" placeholder="serpiente" required></label>
-    <label>Termo EN<input name="term_en" placeholder="snakes" required></label>
-    <div class="form-actions">
-      <button class="btn btn-primary">Gerar rascunho (3 idiomas)</button>
-      <span class="hint">Usa a DEEPSEEK_API_KEY do .env. Pode levar ~1 min.</span>
-    </div>
-  </form>
-</details>
+      </ul>
+    </details>
+  <?php endif; ?>
+</div>
 
+<h2 class="sub-h">Símbolos criados</h2>
 <table class="data-table">
   <thead><tr><th>ID</th><th>Título (PT)</th><th>Categoria</th><th>Status</th><th>Ações</th></tr></thead>
   <tbody>
     <?php if (!$symbols): ?>
-      <tr><td colspan="5" class="empty">Nenhum símbolo ainda. Crie o primeiro acima.</td></tr>
+      <tr><td colspan="5" class="empty">Nenhum símbolo ainda. Gere a partir do dicionário.</td></tr>
     <?php endif; ?>
     <?php foreach ($symbols as $s): ?>
       <tr>

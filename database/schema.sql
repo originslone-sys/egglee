@@ -74,3 +74,19 @@ CREATE TABLE IF NOT EXISTS `generation_log` (
   PRIMARY KEY (`id`),
   KEY `idx_symbol` (`symbol_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---- Fila de geração (admin enfileira, worker/cron processa) ----
+CREATE TABLE IF NOT EXISTS `generation_queue` (
+  `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `concept_id` VARCHAR(64)  NOT NULL,
+  `category`   VARCHAR(32)  NOT NULL,
+  `en`         VARCHAR(255) NOT NULL,
+  `status`     ENUM('pending','processing','done','error') NOT NULL DEFAULT 'pending',
+  `attempts`   TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  `error`      TEXT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_concept` (`concept_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

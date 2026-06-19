@@ -19,6 +19,7 @@ $user = Auth::user();
     <a class="admin-brand" href="/admin"><img src="/logo.svg" alt="egglee" height="28"> <span>admin</span></a>
     <nav>
       <a href="/admin">Painel</a>
+      <a href="/admin/dictionary">Dicionário</a>
       <a href="/pt" target="_blank" rel="noopener">Ver site ↗</a>
       <a href="/admin/logout">Sair (<?= e($user['username'] ?? '') ?>)</a>
     </nav>
