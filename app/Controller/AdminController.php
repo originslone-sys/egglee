@@ -6,8 +6,6 @@ namespace App\Controller;
 use App\Core\Auth;
 use App\Core\View;
 use App\Repository\SymbolRepository;
-use App\Repository\GenerationQueue;
-use App\Service\Generator;
 use App\Service\DeepSeek;
 use App\Support\Dictionary;
 use App\Support\Lang;
@@ -44,69 +42,72 @@ final class AdminController
         $this->redirect('/admin/login');
     }
 
-    // ---------- dashboard ----------
-    public function dashboard(): void
+    // ---------- Artigos gerados ----------
+    public function articles(): void
     {
         Auth::require();
-        echo View::render('admin/dashboard', [
+        echo View::render('admin/articles', [
             'symbols' => $this->repo->listAll(),
-            'queue'   => GenerationQueue::counts(),
-            'errors'  => GenerationQueue::recentErrors(5),
             'csrf'    => Auth::csrf(),
             'flash'   => $_GET['flash'] ?? null,
             'error'   => $_GET['error'] ?? null,
         ], 'admin/layout');
     }
 
-    // ---------- dicionário: filtrar e escolher o que gerar ----------
-    public function dictionary(): void
+    // ---------- Gerador (formulário) ----------
+    public function generateForm(): void
     {
         Auth::require();
-        $cat = $_GET['cat'] ?? '';
-        $q   = trim($_GET['q'] ?? '');
-
-        $items = Dictionary::all();
-        if ($cat !== '') {
-            $items = array_values(array_filter($items, fn($i) => $i['category'] === $cat));
-        }
-        if ($q !== '') {
-            $needle = mb_strtolower($q);
-            $items = array_values(array_filter(
-                $items,
-                fn($i) => str_contains(mb_strtolower($i['id'] . ' ' . $i['en']), $needle)
-            ));
-        }
-
-        echo View::render('admin/dictionary', [
-            'items'       => $items,
-            'categories'  => Dictionary::categories(),
-            'cat'         => $cat,
-            'q'           => $q,
-            'createdMap'  => $this->repo->statusMap(),          // id => status do símbolo já criado
-            'queueMap'    => GenerationQueue::statusByConcept(), // id => pending/processing/error
-            'csrf'        => Auth::csrf(),
-            'flash'       => $_GET['flash'] ?? null,
-            'error'       => $_GET['error'] ?? null,
+        echo View::render('admin/generate', [
+            'grouped'  => Dictionary::grouped(),
+            'results'  => null,
+            'symbolId' => null,
+            'csrf'     => Auth::csrf(),
+            'flash'    => $_GET['flash'] ?? null,
+            'error'    => $_GET['error'] ?? null,
         ], 'admin/layout');
     }
 
-    // ---------- enfileirar conceitos selecionados ----------
-    public function enqueue(): void
+    // ---------- Gerador (executa, direto e síncrono) ----------
+    public function generateRun(): void
     {
         Auth::require();
         if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
-            $this->redirect('/admin/dictionary?error=' . rawurlencode('Token inválido.'));
+            $this->redirect('/admin/generate?error=' . rawurlencode('Token inválido.'));
         }
-        $ids = (array) ($_POST['ids'] ?? []);
-        $n = 0;
-        foreach ($ids as $cid) {
-            $item = Dictionary::find((string) $cid);
-            if ($item && GenerationQueue::enqueue($item['id'], $item['category'], $item['en'])) {
-                $n++;
+        @set_time_limit(0);
+        ignore_user_abort(true);
+
+        $item = Dictionary::find((string) ($_POST['concept'] ?? ''));
+        if (!$item) {
+            $this->redirect('/admin/generate?error=' . rawurlencode('Conceito inválido.'));
+        }
+        $langSel = $_POST['lang'] ?? 'all';
+        $langs = ($langSel !== 'all' && in_array($langSel, Lang::LANGS, true)) ? [$langSel] : Lang::LANGS;
+        $related = Dictionary::siblings($item['id'], 3);
+        $model = \App\Core\Env::get('DEEPSEEK_MODEL', 'deepseek-v4-flash');
+
+        $results = [];
+        foreach ($langs as $l) {
+            $t0 = microtime(true);
+            try {
+                $content = DeepSeek::generate($item['id'], $item['category'], $item['en'], $l, $related);
+                $this->repo->ensureSymbol($item['id'], $item['category'], $related, $model);
+                $this->repo->saveLanguage($item['id'], $l, $content);
+                $results[] = ['lang' => $l, 'ok' => true, 'elapsed' => microtime(true) - $t0, 'error' => null];
+            } catch (\Throwable $e) {
+                $results[] = ['lang' => $l, 'ok' => false, 'elapsed' => microtime(true) - $t0, 'error' => $e->getMessage()];
             }
         }
-        $back = '/admin/dictionary?' . http_build_query(['cat' => $_POST['cat'] ?? '', 'q' => $_POST['q'] ?? '']);
-        $this->redirect($back . '&flash=' . rawurlencode("$n conceito(s) enfileirado(s) para geração."));
+
+        echo View::render('admin/generate', [
+            'grouped'  => Dictionary::grouped(),
+            'results'  => $results,
+            'symbolId' => $item['id'],
+            'csrf'     => Auth::csrf(),
+            'flash'    => null,
+            'error'    => null,
+        ], 'admin/layout');
     }
 
     // ---------- diagnóstico da IA ----------
@@ -154,20 +155,7 @@ final class AdminController
         if ($id !== '') {
             $this->repo->delete($id);
         }
-        $this->redirect('/admin?flash=' . rawurlencode("Símbolo \"$id\" excluído."));
-    }
-
-    // ---------- processar a fila agora (sem cron) ----------
-    public function processNow(): void
-    {
-        Auth::require();
-        if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
-            $this->redirect('/admin?error=' . rawurlencode('Token inválido.'));
-        }
-        @set_time_limit(0);
-        ignore_user_abort(true);
-        [$done, $err] = (new Generator())->processPending(1);
-        $this->redirect('/admin?flash=' . rawurlencode("Processado: $done ok, $err erro(s)."));
+        $this->redirect('/admin/articles?flash=' . rawurlencode("Símbolo \"$id\" excluído."));
     }
 
     // ---------- editar ----------
@@ -238,7 +226,7 @@ final class AdminController
             $status = 'draft';
         }
         $this->repo->setStatus($id, $status);
-        $back = $_POST['back'] ?? '/admin';
+        $back = $_POST['back'] ?? '/admin/articles';
         $this->redirect($back . (str_contains($back, '?') ? '&' : '?') . 'flash=' . rawurlencode("Status: $status"));
     }
 
