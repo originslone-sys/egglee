@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
 import { UI } from '../../i18n/ui.mjs';
 
 export async function getStaticPaths() {
@@ -78,16 +79,10 @@ const breadcrumbSchema = {
   alternates={alternates}
   jsonLd={[articleSchema, faqSchema, breadcrumbSchema]}
 >
-  <header class="topbar">
-    <a href={`/${lang}`}>{UI[lang].siteName}</a>
-    <nav class="langs">
-      {Object.entries(alternates).map(([l, path]) => (
-        <a href={path} aria-current={l === lang ? 'page' : undefined}>{UI[l].langName}</a>
-      ))}
-    </nav>
-  </header>
+  <Header lang={lang} alternates={alternates} />
 
-  <main class="article">
+  <main class="wrap article">
+    <p class="breadcrumbs"><a href={`/${lang}`}>{t.home}</a> › {content.h1}</p>
     <h1>{content.h1}</h1>
 
     <aside class="quick-answer">

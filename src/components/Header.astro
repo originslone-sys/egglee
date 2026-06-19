@@ -1,0 +1,20 @@
+---
+import { UI } from '../i18n/ui.mjs';
+const LANGS = ['pt', 'es', 'en'];
+// `alternates` = { pt: '/pt/...', es: '/es/...', en: '/en/...' } do conteúdo atual.
+const { lang, alternates } = Astro.props;
+---
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href={`/${lang}`} aria-label="egglee — início">
+      <img src="/logo.svg" alt="egglee" width="220" height="64" />
+    </a>
+    <nav class="langs" aria-label="Idiomas">
+      {LANGS.map((l) => (
+        <a href={alternates[l]} aria-current={l === lang ? 'page' : undefined} hreflang={l}>
+          {UI[l].langName}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>

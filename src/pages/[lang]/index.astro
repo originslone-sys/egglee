@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
 import { UI } from '../../i18n/ui.mjs';
 
 export async function getStaticPaths() {
@@ -9,7 +10,6 @@ export async function getStaticPaths() {
 }
 
 const LANGS = ['pt', 'es', 'en'];
-
 const { lang } = Astro.props;
 const t = UI[lang];
 
@@ -24,24 +24,30 @@ const alternates = Object.fromEntries(LANGS.map((l) => [l, `/${l}`]));
 
 <Base
   lang={lang}
-  title={`${t.siteName} — ${t.tagline}`}
+  title={`egglee — ${t.tagline}`}
   description={t.tagline}
   canonicalPath={`/${lang}`}
   alternates={alternates}
 >
-  <header class="topbar">
-    <a href={`/${lang}`}>{t.siteName}</a>
-    <nav class="langs">
-      {LANGS.map((l) => (
-        <a href={`/${l}`} aria-current={l === lang ? 'page' : undefined}>{UI[l].langName}</a>
+  <Header lang={lang} alternates={alternates} />
+
+  <section class="hero">
+    <div class="hero__inner">
+      <img class="egg-mark" src="/favicon.svg" alt="" width="64" height="64" />
+      <h1>{t.heroTitle}</h1>
+      <p class="tagline">{t.tagline}</p>
+    </div>
+  </section>
+
+  <main class="wrap-wide">
+    <h2 class="section-title">{t.indexTitle}</h2>
+    <p class="section-sub">{t.indexSub}</p>
+    <ul class="card-grid">
+      {items.map((i) => (
+        <li>
+          <a class="card" href={i.href}><span class="dot" aria-hidden="true"></span>{i.label}</a>
+        </li>
       ))}
-    </nav>
-  </header>
-  <main class="article">
-    <h1>{t.siteName}</h1>
-    <p class="tagline">{t.tagline}</p>
-    <ul class="index-list">
-      {items.map((i) => <li><a href={i.href}>{i.label}</a></li>)}
     </ul>
   </main>
 </Base>

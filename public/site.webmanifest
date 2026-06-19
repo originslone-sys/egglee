@@ -1,0 +1,12 @@
+{
+  "name": "egglee — Significado dos Sonhos",
+  "short_name": "egglee",
+  "description": "Interpretações de sonhos com tradição popular e psicologia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1c1745",
+  "theme_color": "#1c1745",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
