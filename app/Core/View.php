@@ -36,3 +36,16 @@ function e(?string $s): string
 {
     return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
+
+/**
+ * URL de asset com "cache-busting": acrescenta ?v=<mtime>, então o navegador
+ * busca a versão nova sempre que o arquivo muda (e mantém o cache longo entre
+ * mudanças). Evita CSS/JS velho preso no cache após o deploy.
+ */
+function asset(string $path): string
+{
+    $rel  = '/' . ltrim($path, '/');
+    $full = dirname(__DIR__, 2) . $rel; // raiz do projeto (= document root)
+    $v    = is_file($full) ? filemtime($full) : time();
+    return $rel . '?v=' . $v;
+}

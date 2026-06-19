@@ -2,6 +2,7 @@
 use App\Core\Env;
 use App\Support\Lang;
 use function App\Core\e;
+use function App\Core\asset;
 
 $site = rtrim((string) Env::get('SITE_URL', ''), '/');
 $hl = Lang::HREFLANG;
@@ -37,7 +38,7 @@ $hl = Lang::HREFLANG;
   <script type="application/ld+json"><?= json_encode($block, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
   <?php endforeach; ?>
 
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="<?= e(asset('styles.css')) ?>">
 </head>
 <body>
   <?php include __DIR__ . '/partials/header.php'; ?>
