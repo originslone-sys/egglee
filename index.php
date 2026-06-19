@@ -77,6 +77,7 @@ try {
             $path === '/admin/enqueue' && $method==='POST'=> $admin->enqueue(),
             $path === '/admin/process' && $method==='POST'=> $admin->processNow(),
             $path === '/admin/diagnose'                 => $admin->diagnose(),
+            $path === '/admin/set-model' && $method==='POST'=> $admin->setModel(),
             $path === '/admin/delete' && $method==='POST'=> $admin->deleteSymbol(),
             $path === '/admin/edit'                     => $admin->edit(),
             $path === '/admin/update' && $method==='POST'=> $admin->update(),
