@@ -162,6 +162,51 @@ final class SymbolRepository
         }
     }
 
+    // ---------------- Geração incremental (1 idioma por vez) ----------------
+
+    /** Idiomas já gerados para um símbolo. */
+    public function langsFor(string $id): array
+    {
+        $stmt = Database::pdo()->prepare('SELECT lang FROM symbol_content WHERE symbol_id = ?');
+        $stmt->execute([$id]);
+        return array_map(fn($r) => $r['lang'], $stmt->fetchAll());
+    }
+
+    /** Cria a linha do símbolo se não existir (sem mexer no status atual). */
+    public function ensureSymbol(string $id, string $category, array $related, ?string $model = null): void
+    {
+        Database::pdo()->prepare(
+            'INSERT INTO symbols (id, category, related, model, generated_at)
+             VALUES (?,?,?,?,NOW())
+             ON DUPLICATE KEY UPDATE category=VALUES(category), related=VALUES(related),
+               model=VALUES(model), generated_at=NOW()'
+        )->execute([$id, $category, json_encode(array_values($related), JSON_UNESCAPED_UNICODE), $model]);
+    }
+
+    /** Upsert do conteúdo de UM idioma. */
+    public function saveLanguage(string $id, string $lang, array $c): void
+    {
+        Database::pdo()->prepare(
+            'INSERT INTO symbol_content
+                (symbol_id, lang, slug, title, meta_description, h1, quick_answer, intro,
+                 sections, variations, faq, closing, semantic_keywords)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+             ON DUPLICATE KEY UPDATE
+                 slug=VALUES(slug), title=VALUES(title), meta_description=VALUES(meta_description),
+                 h1=VALUES(h1), quick_answer=VALUES(quick_answer), intro=VALUES(intro),
+                 sections=VALUES(sections), variations=VALUES(variations), faq=VALUES(faq),
+                 closing=VALUES(closing), semantic_keywords=VALUES(semantic_keywords)'
+        )->execute([
+            $id, $lang, $c['slug'], $c['title'], $c['metaDescription'], $c['h1'],
+            $c['quickAnswer'], $c['intro'],
+            json_encode($c['sections'], JSON_UNESCAPED_UNICODE),
+            json_encode($c['variations'], JSON_UNESCAPED_UNICODE),
+            json_encode($c['faq'], JSON_UNESCAPED_UNICODE),
+            $c['closing'],
+            json_encode($c['semanticKeywords'], JSON_UNESCAPED_UNICODE),
+        ]);
+    }
+
     /** Decodifica campos JSON de uma linha de symbol_content. */
     private function hydrate(array $row): array
     {

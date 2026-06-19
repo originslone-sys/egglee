@@ -19,9 +19,9 @@ $badge = ['draft' => 'b-draft', 'reviewed' => 'b-rev', 'published' => 'b-pub'];
   <?php if ($queue['pending'] > 0): ?>
     <form method="post" action="/admin/process" class="inline">
       <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
-      <button class="btn btn-pub">Processar 1 agora</button>
+      <button class="btn btn-pub">Gerar próximo idioma</button>
     </form>
-    <span class="hint">Ideal: configurar um cron rodando <code>scripts/worker.php</code> (ver README).</span>
+    <span class="hint">Cada clique gera 1 idioma (3 = símbolo completo). O ideal é o cron rodando <code>scripts/worker.php</code> a cada 1–5 min (ver README).</span>
   <?php else: ?>
     <span class="hint">Sem itens pendentes. Vá ao <a href="/admin/dictionary">dicionário</a> para escolher o que gerar.</span>
   <?php endif; ?>

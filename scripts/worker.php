@@ -2,14 +2,19 @@
 declare(strict_types=1);
 
 /*
- * Worker da fila de geração. Processa itens pendentes (1 por vez por padrão).
+ * Worker da fila de geração. Processa por PASSOS: cada passo gera 1 idioma,
+ * então cada execução é curta e cabe no tempo limite do cron/PHP.
+ * Um símbolo completo = 3 passos (pt, es, en).
  *
- * Rodar manualmente:   php scripts/worker.php [quantidade]
- * Cron (recomendado, a cada 5 min):
- *   [*]/5 * * * * php /home/USER/domains/SEU_DOMINIO/public_html/scripts/worker.php 1 >> /tmp/egglee-worker.log 2>&1
- *   (troque [*]/5 pelo asterisco-barra-5 normal do cron)
+ * O argumento é a quantidade de PASSOS por execução (padrão 1).
  *
- * Processa em segundo plano, então nunca trava o painel nem estoura timeout web.
+ * Rodar manualmente:   php scripts/worker.php [passos]
+ * Cron (recomendado, a cada 1 min para ir mais rápido):
+ *   [*]/1 * * * * /usr/bin/php /home/USER/public_html/scripts/worker.php 1 >> /tmp/egglee-worker.log 2>&1
+ *   (troque [*]/1 pelo asterisco-barra-1 normal do cron)
+ *
+ * Itens travados em "processing" (processo morto por timeout) são recuperados
+ * automaticamente no início de cada execução (reclaim).
  */
 $root = dirname(__DIR__);
 spl_autoload_register(static function (string $class) use ($root): void {
