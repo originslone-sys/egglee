@@ -1,0 +1,55 @@
+---
+import { HREFLANG } from '../i18n/ui.mjs';
+
+/**
+ * Shell base: <head> com SEO, hreflang alternates e canonical.
+ * `alternates` = mapa { pt: '/pt/slug', es: '/es/slug', en: '/en/slug' }
+ * para o mesmo símbolo (ajuda o Google a entender as versões por idioma).
+ */
+const {
+  lang,
+  title,
+  description,
+  canonicalPath,
+  alternates = {},
+  jsonLd = [],
+} = Astro.props;
+
+const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
+const canonical = `${site}${canonicalPath}`;
+---
+
+<!doctype html>
+<html lang={HREFLANG[lang]}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    {
+      Object.entries(alternates).map(([l, path]) => (
+        <link rel="alternate" hreflang={HREFLANG[l]} href={`${site}${path}`} />
+      ))
+    }
+    {alternates.pt && <link rel="alternate" hreflang="x-default" href={`${site}${alternates.pt}`} />}
+
+    <!-- Open Graph básico -->
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+
+    {
+      jsonLd.map((block) => (
+        <script type="application/ld+json" set:html={JSON.stringify(block)} />
+      ))
+    }
+
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
