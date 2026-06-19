@@ -51,16 +51,24 @@ final class PromptBuilder
     ];
 
     private const QUALITY_CONTRACT = <<<TXT
-WRITING QUALITY (non-negotiable — this is what keeps the site indexed):
+LANGUAGE PURITY (absolutely critical):
+- Write EVERY single word strictly in the target language using ONLY its Latin alphabet.
+- NEVER output Chinese, Japanese, Korean or any non-Latin characters. Not a single one.
+- If you are tempted to use a foreign word, use the correct target-language word instead.
+
+WRITING QUALITY (non-negotiable — this is what keeps the site indexed and builds authority):
 - Write GENUINELY USEFUL, specific content. Never pad with filler, never repeat the same idea reworded.
+- Be CONCRETE and authoritative: name specific beliefs, regional sayings, concrete dream scenarios and
+  what each detail implies. Avoid vague phrases like "primitive instincts" or "unconditional love" unless
+  tied to a concrete, useful explanation. A reader must learn something they could not guess themselves.
 - Each section must say something DIFFERENT and concrete. No two paragraphs may be interchangeable.
 - Avoid generic openers like "Dreams have fascinated humanity for centuries". Start with substance.
 - No hallucinated studies, fake statistics, or invented quotes. Cultural beliefs must be framed as beliefs.
-- Vary sentence length and rhythm. Sound human, not like a template.
+- Vary sentence length and rhythm. Sound like a confident human expert, not a template.
 
 SEO REQUIREMENTS (bake these into the fields, do not add them separately):
 - title: includes the primary keyword near the front, 30-65 chars, no clickbait lies.
-- metaDescription: 110-160 chars, includes the keyword, promises a clear answer.
+- metaDescription: 110-160 chars, includes the keyword, promises a clear answer, invites the click.
 - h1: keyword-forward, natural, distinct from the title.
 - quickAnswer: 120-360 chars, directly answers "what does it mean" in the first sentence.
 - sections: exactly 3 H2 blocks covering DISTINCT angles (folk tradition, psychological, emotional/spiritual).
@@ -115,10 +123,11 @@ native {$L['name']} speaker would phrase a dream about this concept (e.g. how th
 actually type it into Google). Do NOT translate the English literally — use the
 real local expression. Build the slug from that phrase (pattern hint: "{$L['slugVerb']}-<term>").$relatedHint
 
-Write a focused, useful page for someone who just searched the meaning of this
-dream in {$L['name']}. Aim for roughly 450-650 words of total human-readable content
-across the fields — concise but genuinely helpful, no filler. Make it unique to
-{$L['name']}, not a translation of any other language. Be efficient and direct.
+Write a focused, authoritative page for someone who just searched the meaning of this
+dream in {$L['name']}. Aim for roughly 600-800 words of total human-readable content
+across the fields — rich and genuinely helpful, no filler. Make it unique to
+{$L['name']}, not a translation of any other language. Every word must be valid
+{$L['name']} (Latin alphabet only — no Chinese/foreign characters).
 
 Output the JSON object now.
 TXT;

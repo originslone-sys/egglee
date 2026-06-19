@@ -81,12 +81,23 @@ final class DeepSeek
     public static function generate(string $id, string $category, string $conceptEn, string $lang, array $related = []): array
     {
         $messages = PromptBuilder::build($id, $category, $conceptEn, $lang, $related);
-        // max_tokens enxuto: geração mais curta = mais rápida = cabe no limite do host.
-        $res = self::request($messages, ['max_tokens' => (int) Env::get('DEEPSEEK_MAX_TOKENS', '3000')]);
-        if (!$res['ok']) {
-            throw new \RuntimeException($res['error'] ?? 'Falha desconhecida na IA.');
+        $maxTokens = (int) Env::get('DEEPSEEK_MAX_TOKENS', '4000');
+
+        // Re-tenta se a IA vazar caracteres não-latinos (ex.: CJK do modelo chinês).
+        $lastErr = 'Falha desconhecida na IA.';
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            $res = self::request($messages, ['max_tokens' => $maxTokens]);
+            if (!$res['ok']) {
+                $lastErr = $res['error'] ?? $lastErr;
+                continue;
+            }
+            $data = self::parseJson($res['content']);
+            if (!self::hasForeignScript($data)) {
+                return $data;
+            }
+            $lastErr = 'Saída continha caracteres não-latinos (CJK) após várias tentativas.';
         }
-        return self::parseJson($res['content']);
+        throw new \RuntimeException($lastErr);
     }
 
     /**
@@ -125,6 +136,27 @@ final class DeepSeek
         // O modelo configurado, do MESMO jeito que a geração o usa.
         $out['confModel'] = self::request($msg, ['model' => $configured, 'timeout' => 45, 'max_tokens' => 32, 'temperature' => 0]);
         return $out;
+    }
+
+    /**
+     * Detecta caracteres não-latinos (chinês/japonês/coreano) em qualquer
+     * campo de texto — defeito comum de modelos chineses vazando tokens CJK.
+     */
+    public static function hasForeignScript(mixed $value): bool
+    {
+        if (is_array($value)) {
+            foreach ($value as $v) {
+                if (self::hasForeignScript($v)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (!is_string($value)) {
+            return false;
+        }
+        // CJK ideogramas, Hiragana, Katakana, Hangul, símbolos CJK.
+        return (bool) preg_match('/[\x{3000}-\x{303F}\x{3040}-\x{30FF}\x{31F0}-\x{31FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{AC00}-\x{D7AF}\x{F900}-\x{FAFF}\x{FF00}-\x{FFEF}]/u', $value);
     }
 
     /** Extrai o objeto JSON mesmo se vier embrulhado em ```json ... ``` ou texto. */
