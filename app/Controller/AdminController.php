@@ -8,6 +8,7 @@ use App\Core\View;
 use App\Repository\SymbolRepository;
 use App\Repository\GenerationQueue;
 use App\Service\Generator;
+use App\Service\DeepSeek;
 use App\Support\Dictionary;
 use App\Support\Lang;
 
@@ -106,6 +107,30 @@ final class AdminController
         }
         $back = '/admin/dictionary?' . http_build_query(['cat' => $_POST['cat'] ?? '', 'q' => $_POST['q'] ?? '']);
         $this->redirect($back . '&flash=' . rawurlencode("$n conceito(s) enfileirado(s) para geração."));
+    }
+
+    // ---------- diagnóstico da IA ----------
+    public function diagnose(): void
+    {
+        Auth::require();
+        @set_time_limit(0);
+        echo View::render('admin/diagnose', [
+            'result' => DeepSeek::diagnose(),
+        ], 'admin/layout');
+    }
+
+    // ---------- excluir símbolo ----------
+    public function deleteSymbol(): void
+    {
+        Auth::require();
+        if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
+            $this->redirect('/admin?error=' . rawurlencode('Token inválido.'));
+        }
+        $id = $_POST['id'] ?? '';
+        if ($id !== '') {
+            $this->repo->delete($id);
+        }
+        $this->redirect('/admin?flash=' . rawurlencode("Símbolo \"$id\" excluído."));
     }
 
     // ---------- processar a fila agora (sem cron) ----------

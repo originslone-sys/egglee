@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyInstalled) {
     if (!$errors) {
         $env = "# Gerado pelo instalador da egglee em " . date('c') . "\n"
             . "DEEPSEEK_API_KEY={$cfg['DEEPSEEK_API_KEY']}\n"
-            . "DEEPSEEK_MODEL=deepseek-reasoner\n"
+            . "DEEPSEEK_MODEL=deepseek-chat\n"
             . "DEEPSEEK_API_URL=https://api.deepseek.com/chat/completions\n"
             . "SITE_URL={$cfg['SITE_URL']}\n"
             . "DB_HOST={$cfg['DB_HOST']}\n"

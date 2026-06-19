@@ -45,6 +45,10 @@ final class GenerationQueue
         if ((int) $stmt->fetchColumn() > 0) {
             return false; // já na fila
         }
+        // Limpa tentativas antigas (done/error) do mesmo conceito antes de reenfileirar.
+        Database::pdo()->prepare(
+            'DELETE FROM generation_queue WHERE concept_id = ? AND status IN ("done","error")'
+        )->execute([$conceptId]);
         Database::pdo()->prepare(
             'INSERT INTO generation_queue (concept_id, category, en) VALUES (?,?,?)'
         )->execute([$conceptId, $category, $en]);

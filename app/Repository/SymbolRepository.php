@@ -121,6 +121,12 @@ final class SymbolRepository
         $stmt->execute([$status, $id]);
     }
 
+    /** Exclui o símbolo (o conteúdo por idioma cai junto via ON DELETE CASCADE). */
+    public function delete(string $id): void
+    {
+        Database::pdo()->prepare('DELETE FROM symbols WHERE id = ?')->execute([$id]);
+    }
+
     /** Cria/atualiza o símbolo e seu conteúdo por idioma (upsert). */
     public function save(string $id, string $category, array $related, array $languages, ?string $model = null): void
     {
