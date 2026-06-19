@@ -130,7 +130,8 @@ final class AdminController
             $this->redirect('/admin/diagnose?error=' . rawurlencode('Token inválido.'));
         }
         $model = trim($_POST['model'] ?? '');
-        if (!in_array($model, ['deepseek-chat', 'deepseek-reasoner'], true)) {
+        $allowed = ['deepseek-v4-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'];
+        if (!in_array($model, $allowed, true)) {
             $this->redirect('/admin/diagnose?error=' . rawurlencode('Modelo inválido.'));
         }
         $ok = \App\Core\EnvFile::set(dirname(__DIR__, 2), 'DEEPSEEK_MODEL', $model);

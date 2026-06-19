@@ -21,7 +21,7 @@ final class DeepSeek
             return ['ok' => false, 'http' => 0, 'elapsed' => 0.0, 'error' => 'DEEPSEEK_API_KEY não configurada no .env.', 'content' => null];
         }
         $url     = Env::get('DEEPSEEK_API_URL', 'https://api.deepseek.com/chat/completions');
-        $model   = $opts['model']   ?? Env::get('DEEPSEEK_MODEL', 'deepseek-chat');
+        $model   = $opts['model']   ?? Env::get('DEEPSEEK_MODEL', 'deepseek-v4-flash');
         $timeout = $opts['timeout'] ?? (int) Env::get('DEEPSEEK_TIMEOUT', '110');
         $maxTok  = $opts['max_tokens'] ?? 8000;
 
@@ -32,6 +32,14 @@ final class DeepSeek
             'max_tokens'  => $maxTok,
             'stream'      => false,
         ];
+
+        // Modelos V4 vêm com "thinking" LIGADO por padrão — isso devolve o
+        // conteúdo vazio/lento no nosso fluxo. Desligamos (modo não-pensante),
+        // a menos que explicitamente pedido. Só se aplica aos modelos v4.
+        if (str_starts_with($model, 'deepseek-v4')) {
+            $thinking = $opts['thinking'] ?? Env::get('DEEPSEEK_THINKING', 'disabled');
+            $payload['thinking'] = ['type' => $thinking === 'enabled' ? 'enabled' : 'disabled'];
+        }
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -88,14 +96,16 @@ final class DeepSeek
     public static function diagnose(): array
     {
         $msg = [['role' => 'user', 'content' => 'Responda apenas com a palavra: ok']];
-        $configured = Env::get('DEEPSEEK_MODEL', 'deepseek-chat');
+        $configured = Env::get('DEEPSEEK_MODEL', 'deepseek-v4-flash');
 
         $out = [
             'hasKey'     => (bool) Env::get('DEEPSEEK_API_KEY'),
             'configured' => $configured,
         ];
-        $out['chat']      = self::request($msg, ['model' => 'deepseek-chat', 'timeout' => 45, 'max_tokens' => 10, 'temperature' => 0]);
-        $out['confModel'] = self::request($msg, ['model' => $configured, 'timeout' => 45, 'max_tokens' => 10, 'temperature' => 0]);
+        // Referência rápida: v4-flash sem thinking (config que usamos na geração).
+        $out['chat']      = self::request($msg, ['model' => 'deepseek-v4-flash', 'timeout' => 45, 'max_tokens' => 32, 'temperature' => 0]);
+        // O modelo configurado, do MESMO jeito que a geração o usa.
+        $out['confModel'] = self::request($msg, ['model' => $configured, 'timeout' => 45, 'max_tokens' => 32, 'temperature' => 0]);
         return $out;
     }
 
