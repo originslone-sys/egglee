@@ -1,7 +1,12 @@
+# Segredos
+.env
+.env.local
+
+# Dependências / build (legado Astro, caso reapareçam)
 node_modules/
 dist/
 .astro/
-.env
-.env.local
+
+# Sistema
 .DS_Store
-npm-debug.log*
+*.log
