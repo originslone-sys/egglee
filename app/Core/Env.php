@@ -10,8 +10,12 @@ final class Env
 
     public static function load(string $path): void
     {
-        if (self::$loaded || !is_file($path)) {
-            self::$loaded = true;
+        if (self::$loaded) {
+            return;
+        }
+        // Arquivo ainda não existe: NÃO marca como carregado, para permitir
+        // recarregar depois (ex.: o instalador acabou de gravar o .env).
+        if (!is_file($path)) {
             return;
         }
         foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {

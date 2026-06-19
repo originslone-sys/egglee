@@ -29,10 +29,15 @@ require "$root/app/Core/View.php";
 
 use App\Core\Env;
 use App\Core\Database;
+use App\Core\Installed;
 use App\Repository\SymbolRepository;
 use function App\Core\e;
 
-$alreadyInstalled = is_file($lock);
+// Carrega o .env (se existir) para permitir a detecção via banco.
+Env::load("$root/.env");
+
+// Já instalado se: trava em arquivo OU as tabelas já existem no banco.
+$alreadyInstalled = Installed::check($root);
 $errors = [];
 $done = false;
 
