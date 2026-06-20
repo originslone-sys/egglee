@@ -168,6 +168,40 @@ final class AdminController
             : 'error=' . rawurlencode('Não consegui gravar o .env (permissão).')));
     }
 
+    // ---------- imagem: trocar / remover ----------
+    public function image(): void
+    {
+        Auth::require();
+        if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
+            $this->redirect('/admin/articles?error=' . rawurlencode('Token inválido.'));
+        }
+        \App\Core\Migrate::ensure();
+        $id  = $_POST['id'] ?? '';
+        $op  = $_POST['op'] ?? 'change';
+        $back = "/admin/edit?id=" . rawurlencode($id);
+
+        if ($op === 'remove') {
+            $this->repo->setImage($id, ['url' => null, 'photographer' => null, 'photographer_url' => null, 'page' => null]);
+            $this->redirect($back . '&flash=' . rawurlencode('Imagem removida.'));
+        }
+
+        if (!\App\Service\Pexels::enabled()) {
+            $this->redirect($back . '&error=' . rawurlencode('Configure a chave do Pexels no Diagnóstico.'));
+        }
+        // Termo: o que o usuário digitou, senão o conceito do dicionário.
+        $query = trim($_POST['query'] ?? '');
+        if ($query === '') {
+            $item = Dictionary::find($id);
+            $query = $item['en'] ?? $id;
+        }
+        $img = \App\Service\Pexels::search($query, true);
+        if (!$img) {
+            $this->redirect($back . '&error=' . rawurlencode('Nenhuma imagem encontrada para "' . $query . '".'));
+        }
+        $this->repo->setImage($id, $img);
+        $this->redirect($back . '&flash=' . rawurlencode('Imagem atualizada.'));
+    }
+
     // ---------- excluir símbolo ----------
     public function deleteSymbol(): void
     {
@@ -186,6 +220,7 @@ final class AdminController
     public function edit(): void
     {
         Auth::require();
+        \App\Core\Migrate::ensure();
         $id = $_GET['id'] ?? '';
         $sym = $this->repo->find($id);
         if (!$sym) {

@@ -102,6 +102,13 @@ code { background:var(--violet-100); padding:.1rem .35rem; border-radius:5px; fo
 .dict-table td:first-child, .dict-table th:first-child { width:32px; text-align:center; }
 .mini { font-size:.75rem; margin-left:.4rem; }
 
+.img-box { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem; margin-bottom:1rem; }
+.img-preview { display:flex; flex-direction:column; gap:.3rem; }
+.img-preview img { width:200px; height:120px; object-fit:cover; border-radius:8px; border:1px solid var(--line); }
+.img-empty { width:200px; height:120px; display:flex; align-items:center; justify-content:center; background:#f0edf8; color:var(--muted); border-radius:8px; font-size:.85rem; }
+.img-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+.img-actions input[type=text] { width:auto; min-width:160px; }
+
 .data-table { width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; box-shadow:0 6px 20px -14px rgba(42,35,99,.4); }
 .data-table th, .data-table td { text-align:left; padding:.7rem .8rem; border-bottom:1px solid var(--line); }
 .data-table th { background:#f0edf8; font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
