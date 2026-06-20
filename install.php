@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyInstalled) {
         'DB_PASS' => (string) ($_POST['db_pass'] ?? ''),
         'SITE_URL' => rtrim($in('site_url'), '/'),
         'DEEPSEEK_API_KEY' => (string) ($_POST['deepseek_key'] ?? ''),
+        'PEXELS_API_KEY' => (string) ($_POST['pexels_key'] ?? ''),
     ];
     $adminUser = $in('admin_user');
     $adminPass = (string) ($_POST['admin_pass'] ?? '');
@@ -85,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyInstalled) {
             . "DEEPSEEK_THINKING=disabled\n"
             . "DEEPSEEK_API_URL=https://api.deepseek.com/chat/completions\n"
             . "SITE_URL={$cfg['SITE_URL']}\n"
+            . "PEXELS_API_KEY={$cfg['PEXELS_API_KEY']}\n"
             . "DB_HOST={$cfg['DB_HOST']}\n"
             . "DB_PORT={$cfg['DB_PORT']}\n"
             . "DB_NAME={$cfg['DB_NAME']}\n"
@@ -184,6 +186,7 @@ $d = [
         <h3>Site</h3>
         <label>URL do site <input name="site_url" value="<?= e($d['site_url']) ?>"></label>
         <label>DeepSeek API Key (opcional) <input name="deepseek_key" autocomplete="off" placeholder="sk-..."></label>
+        <label>Pexels API Key (opcional, para imagens) <input name="pexels_key" autocomplete="off"></label>
 
         <h3>Acesso ao painel</h3>
         <label>Usuário admin <input name="admin_user" value="admin" required></label>

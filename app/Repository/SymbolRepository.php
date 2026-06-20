@@ -27,7 +27,9 @@ final class SymbolRepository
     /** Página pública por idioma + slug. Retorna null se não existir/for draft. */
     public function findBySlug(string $lang, string $slug): ?array
     {
-        $sql = 'SELECT s.id, s.category, s.related, s.status, c.*
+        $sql = 'SELECT s.id, s.category, s.related, s.status,
+                       s.image_url, s.image_photographer, s.image_photographer_url, s.image_page,
+                       c.*
                 FROM symbol_content c
                 JOIN symbols s ON s.id = c.symbol_id
                 WHERE c.lang = ? AND c.slug = ? AND s.status IN ("reviewed","published")
@@ -125,6 +127,23 @@ final class SymbolRepository
     public function delete(string $id): void
     {
         Database::pdo()->prepare('DELETE FROM symbols WHERE id = ?')->execute([$id]);
+    }
+
+    /** URL da imagem atual do símbolo (ou null). */
+    public function imageUrl(string $id): ?string
+    {
+        $stmt = Database::pdo()->prepare('SELECT image_url FROM symbols WHERE id = ?');
+        $stmt->execute([$id]);
+        $v = $stmt->fetchColumn();
+        return $v ? (string) $v : null;
+    }
+
+    /** Define a imagem (hotlink do Pexels) do símbolo. */
+    public function setImage(string $id, array $img): void
+    {
+        Database::pdo()->prepare(
+            'UPDATE symbols SET image_url=?, image_photographer=?, image_photographer_url=?, image_page=? WHERE id=?'
+        )->execute([$img['url'], $img['photographer'], $img['photographer_url'], $img['page'], $id]);
     }
 
     /** Cria/atualiza o símbolo e seu conteúdo por idioma (upsert). */

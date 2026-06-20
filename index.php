@@ -78,6 +78,7 @@ try {
             $path === '/admin/articles'                   => $admin->articles(),
             $path === '/admin/diagnose'                   => $admin->diagnose(),
             $path === '/admin/set-model' && $method==='POST'=> $admin->setModel(),
+            $path === '/admin/set-pexels' && $method==='POST'=> $admin->setPexels(),
             $path === '/admin/delete' && $method==='POST' => $admin->deleteSymbol(),
             $path === '/admin/edit'                       => $admin->edit(),
             $path === '/admin/update' && $method==='POST' => $admin->update(),

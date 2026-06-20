@@ -25,6 +25,11 @@ $hl = Lang::HREFLANG;
   <meta property="og:title" content="<?= e($title) ?>">
   <meta property="og:description" content="<?= e($description) ?>">
   <meta property="og:url" content="<?= e($site . $canonical) ?>">
+  <?php if (!empty($image ?? null)): ?>
+  <meta property="og:image" content="<?= e($image) ?>">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="<?= e($image) ?>">
+  <?php endif; ?>
 
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/site.webmanifest">

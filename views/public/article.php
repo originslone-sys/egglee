@@ -11,6 +11,15 @@ use function App\Core\e;
   </p>
   <h1><?= e($c['h1']) ?></h1>
 
+  <?php if (!empty($c['image_url'])): ?>
+    <figure class="article-hero">
+      <img src="<?= e($c['image_url']) ?>" alt="<?= e($c['h1']) ?>" loading="eager" width="940" height="600">
+      <?php if (!empty($c['image_photographer'])): ?>
+        <figcaption>Foto: <a href="<?= e($c['image_photographer_url']) ?>" rel="nofollow noopener" target="_blank"><?= e($c['image_photographer']) ?></a> / <a href="https://www.pexels.com" rel="nofollow noopener" target="_blank">Pexels</a></figcaption>
+      <?php endif; ?>
+    </figure>
+  <?php endif; ?>
+
   <aside class="quick-answer">
     <strong><?= e(Lang::ui($lang, 'quickAnswer')) ?></strong>
     <p><?= e($c['quick_answer']) ?></p>
