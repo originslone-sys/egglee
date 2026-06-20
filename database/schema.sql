@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `symbol_content` (
   `variations`       JSON NOT NULL,   -- [{keyword, meaning}]
   `faq`              JSON NOT NULL,   -- [{question, answer}]
   `closing`          TEXT NOT NULL,
+  `table_data`       JSON NULL,       -- tabela comparativa (ex: por cor/tipo)
   `semantic_keywords` JSON NOT NULL,  -- ["...","..."]
   `updated_at`       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`symbol_id`, `lang`),
