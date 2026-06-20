@@ -64,6 +64,10 @@ try {
         $pub->sitemap();
         exit;
     }
+    if ($path === '/robots.txt') {
+        $pub->robots();
+        exit;
+    }
 
     // ---- admin ----
     if ($path === '/admin' || str_starts_with($path, '/admin/')) {
