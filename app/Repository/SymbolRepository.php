@@ -164,6 +164,15 @@ final class SymbolRepository
         return $out;
     }
 
+    /** IDs de símbolos já gerados (têm pelo menos 1 idioma). */
+    public function generatedIds(): array
+    {
+        $rows = Database::pdo()->query(
+            'SELECT DISTINCT symbol_id FROM symbol_content'
+        )->fetchAll();
+        return array_map(fn($r) => $r['symbol_id'], $rows);
+    }
+
     public function find(string $id): ?array
     {
         $stmt = Database::pdo()->prepare('SELECT * FROM symbols WHERE id = ? LIMIT 1');

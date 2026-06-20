@@ -58,14 +58,60 @@ final class AdminController
     public function generateForm(): void
     {
         Auth::require();
+        \App\Core\Migrate::ensure();
         echo View::render('admin/generate', [
             'grouped'  => Dictionary::grouped(),
             'results'  => null,
             'symbolId' => null,
+            'auto'     => (new \App\Service\AutoGenerator())->progress(),
+            'autoPublish' => \App\Core\Env::get('AUTO_PUBLISH', '1') !== '0',
+            'failures' => \App\Repository\AutoStatus::failures(10),
             'csrf'     => Auth::csrf(),
             'flash'    => $_GET['flash'] ?? null,
             'error'    => $_GET['error'] ?? null,
         ], 'admin/layout');
+    }
+
+    // ---------- Automação: gerar o próximo agora ----------
+    public function auto(): void
+    {
+        Auth::require();
+        if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
+            $this->redirect('/admin/generate?error=' . rawurlencode('Token inválido.'));
+        }
+        @set_time_limit(0);
+        ignore_user_abort(true);
+        \App\Core\Migrate::ensure();
+        $r = (new \App\Service\AutoGenerator())->tick(1);
+        $this->redirect('/admin/generate?flash=' . rawurlencode(
+            "Automação: {$r['ok']} gerado(s), {$r['failedRun']} falha(s). Restantes: {$r['remaining']}."
+        ));
+    }
+
+    // ---------- Automação: ligar/desligar auto-publicação ----------
+    public function autoPublish(): void
+    {
+        Auth::require();
+        if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
+            $this->redirect('/admin/generate?error=' . rawurlencode('Token inválido.'));
+        }
+        $on = ($_POST['on'] ?? '1') === '1';
+        \App\Core\EnvFile::set(dirname(__DIR__, 2), 'AUTO_PUBLISH', $on ? '1' : '0');
+        $this->redirect('/admin/generate?flash=' . rawurlencode(
+            $on ? 'Auto-publicação LIGADA: novos artigos vão ao ar automaticamente.'
+                : 'Auto-publicação DESLIGADA: novos artigos ficam como rascunho para revisão.'
+        ));
+    }
+
+    // ---------- Automação: limpar falhas (tentar de novo) ----------
+    public function autoReset(): void
+    {
+        Auth::require();
+        if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
+            $this->redirect('/admin/generate?error=' . rawurlencode('Token inválido.'));
+        }
+        \App\Repository\AutoStatus::clearAll();
+        $this->redirect('/admin/generate?flash=' . rawurlencode('Falhas zeradas. Serão tentadas de novo.'));
     }
 
     // ---------- Gerador (executa, direto e síncrono) ----------

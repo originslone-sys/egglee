@@ -2,19 +2,16 @@
 declare(strict_types=1);
 
 /*
- * Worker da fila de geração. Processa por PASSOS: cada passo gera 1 idioma,
- * então cada execução é curta e cabe no tempo limite do cron/PHP.
- * Um símbolo completo = 3 passos (pt, es, en).
+ * Piloto automático de geração. Cada execução gera o PRÓXIMO conceito ainda
+ * não gerado (percorrendo o dicionário), pulando os que já existem ou falharam.
  *
- * O argumento é a quantidade de PASSOS por execução (padrão 1).
+ * Rodar manualmente:  php scripts/worker.php [quantos_artigos]
+ * Cron (recomendado, a cada 30 min):
+ *   [*]/30 * * * * /usr/bin/php /home/USER/public_html/scripts/worker.php 1
+ *   (troque [*]/30 pelo asterisco-barra-30 normal do cron)
  *
- * Rodar manualmente:   php scripts/worker.php [passos]
- * Cron (recomendado, a cada 1 min para ir mais rápido):
- *   [*]/1 * * * * /usr/bin/php /home/USER/public_html/scripts/worker.php 1 >> /tmp/egglee-worker.log 2>&1
- *   (troque [*]/1 pelo asterisco-barra-1 normal do cron)
- *
- * Itens travados em "processing" (processo morto por timeout) são recuperados
- * automaticamente no início de cada execução (reclaim).
+ * Se uma geração falhar, registra e passa para o próximo. Roda em CLI, sem
+ * limite de tempo da web.
  */
 $root = dirname(__DIR__);
 spl_autoload_register(static function (string $class) use ($root): void {
@@ -25,11 +22,12 @@ spl_autoload_register(static function (string $class) use ($root): void {
 require "$root/app/Core/View.php";
 
 use App\Core\Env;
-use App\Service\Generator;
+use App\Service\AutoGenerator;
 
 Env::load("$root/.env");
 @set_time_limit(0);
 
-$max = isset($argv[1]) ? max(1, (int) $argv[1]) : 1;
-[$done, $error] = (new Generator())->processPending($max);
-echo date('c') . " worker: $done ok, $error erro(s)\n";
+$n = isset($argv[1]) ? max(1, (int) $argv[1]) : 1;
+$r = (new AutoGenerator())->tick($n);
+echo date('c') . " auto: {$r['ok']} gerado(s), {$r['failedRun']} falha(s) nesta execução | "
+    . "{$r['generated']}/{$r['total']} prontos, {$r['remaining']} restantes\n";
