@@ -93,6 +93,8 @@ final class AdminController
             $t0 = microtime(true);
             try {
                 $content = DeepSeek::generate($item['id'], $item['category'], $item['en'], $l, $related);
+                // A chamada à IA demora ~30s; a conexão pode ter expirado. Reconecta.
+                \App\Core\Database::reconnect();
                 $this->repo->ensureSymbol($item['id'], $item['category'], $related, $model);
                 $this->repo->saveLanguage($item['id'], $l, $content);
                 $results[] = ['lang' => $l, 'ok' => true, 'elapsed' => microtime(true) - $t0, 'error' => null];

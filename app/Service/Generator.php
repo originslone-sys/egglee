@@ -71,6 +71,7 @@ final class Generator
             if (PHP_SAPI === 'cli') {
                 fwrite(STDOUT, sprintf("  %s [%s] gerado em %.1fs\n", $concept, $next, $elapsed));
             }
+            \App\Core\Database::reconnect(); // conexão pode ter expirado durante a IA
             $this->repo->ensureSymbol($concept, $row['category'], $related, $model);
             $this->repo->saveLanguage($concept, $next, $content);
             $this->log($concept, $next, $model, true, null);
