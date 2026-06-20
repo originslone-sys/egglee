@@ -65,8 +65,16 @@ final class AutoGenerator
             }
         }
 
-        // 'failed' aqui = total permanente (do progress); 'failedRun' = desta execução.
-        return array_merge(['ok' => $ok, 'failedRun' => $failed], $this->progress());
+        $result = array_merge(['ok' => $ok, 'failedRun' => $failed], $this->progress());
+
+        // Heartbeat: registra a última execução (o painel mostra; revela se o cron roda).
+        try {
+            $hb = $result + ['time' => date('c'), 'sapi' => PHP_SAPI];
+            @file_put_contents(dirname(__DIR__, 2) . '/database/last-run.json', json_encode($hb));
+        } catch (\Throwable) {
+        }
+
+        return $result;
     }
 
     /** Próximo conceito (base ou variação) ainda não gerado nem pulado. */

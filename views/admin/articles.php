@@ -4,7 +4,7 @@ use function App\Core\e;
 $badge = ['draft' => 'b-draft', 'reviewed' => 'b-rev', 'published' => 'b-pub'];
 ?>
 <div class="page-head">
-  <h1>Artigos gerados</h1>
+  <h1>Artigos gerados <span class="hint">(<?= (int) ($total ?? 0) ?>)</span></h1>
   <a class="btn btn-primary" href="/admin/generate">+ Gerar novo</a>
 </div>
 
@@ -47,3 +47,11 @@ $badge = ['draft' => 'b-draft', 'reviewed' => 'b-rev', 'published' => 'b-pub'];
     <?php endforeach; ?>
   </tbody>
 </table>
+
+<?php if (($pages ?? 1) > 1): ?>
+  <nav class="pager">
+    <?php if ($page > 1): ?><a class="btn btn-sm" href="/admin/articles?page=<?= $page - 1 ?>">← Anterior</a><?php endif; ?>
+    <span class="pager-info">Página <?= (int) $page ?> de <?= (int) $pages ?></span>
+    <?php if ($page < $pages): ?><a class="btn btn-sm" href="/admin/articles?page=<?= $page + 1 ?>">Próxima →</a><?php endif; ?>
+  </nav>
+<?php endif; ?>

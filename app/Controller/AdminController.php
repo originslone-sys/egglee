@@ -46,8 +46,15 @@ final class AdminController
     public function articles(): void
     {
         Auth::require();
+        $perPage = 50;
+        $total = $this->repo->countAll();
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = max(1, min($pages, (int) ($_GET['page'] ?? 1)));
         echo View::render('admin/articles', [
-            'symbols' => $this->repo->listAll(),
+            'symbols' => $this->repo->listAll($perPage, ($page - 1) * $perPage),
+            'page'    => $page,
+            'pages'   => $pages,
+            'total'   => $total,
             'csrf'    => Auth::csrf(),
             'flash'   => $_GET['flash'] ?? null,
             'error'   => $_GET['error'] ?? null,
@@ -65,6 +72,7 @@ final class AdminController
             'symbolId' => null,
             'auto'     => (new \App\Service\AutoGenerator())->progress(),
             'autoPublish' => \App\Core\Env::get('AUTO_PUBLISH', '1') !== '0',
+            'lastRun'  => @json_decode((string) @file_get_contents(dirname(__DIR__, 2) . '/database/last-run.json'), true) ?: null,
             'failures' => \App\Repository\AutoStatus::failures(10),
             'csrf'     => Auth::csrf(),
             'flash'    => $_GET['flash'] ?? null,

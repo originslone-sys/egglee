@@ -2,6 +2,7 @@
 .env
 .env.local
 database/.installed
+database/last-run.json
 
 # Dependências / build (legado Astro, caso reapareçam)
 node_modules/
