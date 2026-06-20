@@ -97,6 +97,17 @@ final class PublicController
         ], 'public/layout');
     }
 
+    public function robots(): void
+    {
+        $siteUrl = rtrim((string) (\App\Core\Env::get('SITE_URL', '')), '/');
+        header('Content-Type: text/plain; charset=utf-8');
+        echo "User-agent: *\n";
+        echo "Allow: /\n";
+        echo "Disallow: /admin\n";
+        echo "Disallow: /install.php\n\n";
+        echo "Sitemap: $siteUrl/sitemap.xml\n";
+    }
+
     public function sitemap(): void
     {
         $siteUrl = rtrim((string) (\App\Core\Env::get('SITE_URL', '')), '/');
