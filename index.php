@@ -80,6 +80,7 @@ try {
             $path === '/admin/set-model' && $method==='POST'=> $admin->setModel(),
             $path === '/admin/set-pexels' && $method==='POST'=> $admin->setPexels(),
             $path === '/admin/delete' && $method==='POST' => $admin->deleteSymbol(),
+            $path === '/admin/image' && $method==='POST' => $admin->image(),
             $path === '/admin/edit'                       => $admin->edit(),
             $path === '/admin/update' && $method==='POST' => $admin->update(),
             $path === '/admin/status' && $method==='POST' => $admin->status(),

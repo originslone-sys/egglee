@@ -24,6 +24,32 @@ $jsonField = static function ($v): string {
   </div>
 </div>
 
+<div class="img-box">
+  <div class="img-preview">
+    <?php if (!empty($sym['image_url'])): ?>
+      <img src="<?= e($sym['image_url']) ?>" alt="" loading="lazy">
+      <span class="hint">Foto: <?= e($sym['image_photographer'] ?? '—') ?> / Pexels</span>
+    <?php else: ?>
+      <div class="img-empty">Sem imagem</div>
+    <?php endif; ?>
+  </div>
+  <form method="post" action="/admin/image" class="img-actions">
+    <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+    <input type="hidden" name="id" value="<?= e($sym['id']) ?>">
+    <input type="hidden" name="op" value="change">
+    <input type="text" name="query" placeholder="Buscar por (ex: dog, snake)…">
+    <button class="btn btn-sm btn-primary">Trocar imagem</button>
+  </form>
+  <?php if (!empty($sym['image_url'])): ?>
+    <form method="post" action="/admin/image" class="inline" onsubmit="return confirm('Remover a imagem?');">
+      <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+      <input type="hidden" name="id" value="<?= e($sym['id']) ?>">
+      <input type="hidden" name="op" value="remove">
+      <button class="btn btn-sm btn-del">Remover</button>
+    </form>
+  <?php endif; ?>
+</div>
+
 <form method="post" action="/admin/update">
   <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
   <input type="hidden" name="id" value="<?= e($sym['id']) ?>">

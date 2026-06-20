@@ -12,15 +12,19 @@ final class Pexels
      * Procura uma foto horizontal para o termo. Retorna null se não houver
      * chave configurada, erro de rede ou nenhum resultado.
      *
+     * @param bool $random Se true, escolhe aleatoriamente entre os primeiros
+     *                     resultados (para o botão "trocar imagem" variar).
      * @return array{url:string, photographer:string, photographer_url:string, page:string}|null
      */
-    public static function search(string $query): ?array
+    public static function search(string $query, bool $random = false): ?array
     {
         $key = Env::get('PEXELS_API_KEY');
         if (!$key || trim($query) === '') {
             return null;
         }
-        $url = 'https://api.pexels.com/v1/search?orientation=landscape&per_page=1&query=' . rawurlencode($query);
+        $perPage = $random ? 15 : 1;
+        $url = 'https://api.pexels.com/v1/search?orientation=landscape&per_page=' . $perPage
+            . '&query=' . rawurlencode($query);
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -37,10 +41,11 @@ final class Pexels
             return null;
         }
         $data = json_decode((string) $body, true);
-        $p = $data['photos'][0] ?? null;
-        if (!$p) {
+        $photos = $data['photos'] ?? [];
+        if (!$photos) {
             return null;
         }
+        $p = $random ? $photos[array_rand($photos)] : $photos[0];
         return [
             'url'              => $p['src']['large'] ?? ($p['src']['landscape'] ?? ($p['src']['original'] ?? '')),
             'photographer'     => (string) ($p['photographer'] ?? 'Pexels'),
