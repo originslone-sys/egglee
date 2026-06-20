@@ -18,6 +18,26 @@ $cats = array_keys($grouped);
     <span><strong><?= (int) $auto['remaining'] ?></strong> restantes</span>
     <span class="err"><strong><?= (int) $auto['failed'] ?></strong> com falha</span>
   </div>
+
+  <?php if (!empty($runLog)): ?>
+    <div class="run-log">
+      <strong>Resultado desta execução:</strong>
+      <ul>
+        <?php foreach ($runLog as $row): ?>
+          <li>
+            <code><?= e($row['concept']) ?></code> [<?= e($row['lang']) ?>]
+            <?php if ($row['ok']): ?>
+              <span class="badge b-pub">ok</span> <?= sprintf('%.1fs', $row['elapsed']) ?>
+            <?php else: ?>
+              <span class="badge b-err">erro</span> <?= e((string) $row['error']) ?>
+            <?php endif; ?>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    </div>
+  <?php elseif (isset($runResult)): ?>
+    <div class="run-log"><strong>Nada a gerar</strong> — todos os conceitos já foram gerados ou estão na lista de falhas.</div>
+  <?php endif; ?>
   <div class="auto-actions">
     <form method="post" action="/admin/auto" class="inline">
       <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
@@ -49,11 +69,17 @@ $cats = array_keys($grouped);
       <span class="err">nunca rodou ainda</span> — o cron pode não estar disparando ou o PHP do cron é antigo (precisa 8.1+).
     <?php endif; ?>
   </p>
-  <details class="auto-cron">
-    <summary>Como ligar o cron (Hostinger)</summary>
-    <p class="hint" style="margin:.4rem 0 0;">hPanel → Cron Jobs → a cada 10 min (Minuto: <code>*/10</code>), comando:</p>
-    <code class="cron-cmd">/usr/bin/php /home/u740938289/public_html/scripts/worker.php 1</code>
-    <p class="hint" style="margin:.4rem 0 0;">Se "nunca rodou" persistir após o cron disparar, troque <code>/usr/bin/php</code> pelo PHP 8 (ex.: <code>/opt/alt/php82/usr/bin/php</code>).</p>
+  <details class="auto-cron" open>
+    <summary>Como ligar o cron (Hostinger) — e diagnosticar</summary>
+    <p class="hint" style="margin:.4rem 0 0;">hPanel → Cron Jobs → a cada 10 min (Minuto: <code>*/10</code>). Use este comando (ele grava a saída num log):</p>
+    <code class="cron-cmd">/usr/bin/php /home/u740938289/public_html/scripts/worker.php 1 &gt;&gt; /home/u740938289/public_html/database/worker-cron.log 2&gt;&amp;1</code>
+    <p class="hint" style="margin:.5rem 0 0;">Depois do cron disparar, abra <code>database/worker-cron.log</code> no Gerenciador de Arquivos. O que aparecer diz a causa:</p>
+    <ul class="hint" style="margin:.3rem 0 0; padding-left:1.1rem;">
+      <li><strong>Arquivo vazio / não existe</strong> → o cron não disparou ou o caminho do PHP está errado. Tente <code>/opt/alt/php82/usr/bin/php</code> ou só <code>php</code>.</li>
+      <li><strong>"requer PHP 8.1+"</strong> → o cron usa PHP antigo; troque o binário.</li>
+      <li><strong>"DEEPSEEK_API_KEY nao configurada"</strong> → preencha a chave no Diagnóstico.</li>
+      <li><strong>"auto: 1 gerado(s)"</strong> → funcionando! 🎉</li>
+    </ul>
   </details>
   <?php if (!empty($failures)): ?>
     <details class="auto-cron">

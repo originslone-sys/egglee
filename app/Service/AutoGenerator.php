@@ -21,7 +21,15 @@ final class AutoGenerator
 {
     public const MAX_ATTEMPTS = 3;
 
+    /** @var array<int, array{concept:string, lang:string, ok:bool, error:?string, elapsed:float}> */
+    private array $log = [];
+
     public function __construct(private SymbolRepository $repo = new SymbolRepository()) {}
+
+    public function lastLog(): array
+    {
+        return $this->log;
+    }
 
     /**
      * Gera até $maxArticles artigos com sucesso por execução, pulando falhas.
@@ -39,6 +47,7 @@ final class AutoGenerator
 
     public function tick(int $maxArticles = 1): array
     {
+        $this->log = [];
         Migrate::ensure(); // garante parent_id e demais colunas
         $done  = array_flip($this->repo->generatedIds());
         $skip  = array_flip(AutoStatus::skipIds(self::MAX_ATTEMPTS));
@@ -102,16 +111,19 @@ final class AutoGenerator
         $success = 0;
 
         foreach (Lang::LANGS as $lang) {
+            $t0 = microtime(true);
             try {
                 $content = DeepSeek::generate($item['id'], $item['category'], $item['en'], $lang, $related);
                 Database::reconnect(); // conexão pode ter caído durante a IA
                 $this->repo->ensureSymbol($item['id'], $item['category'], $related, $model, $parent);
                 $this->repo->saveLanguage($item['id'], $lang, $content);
                 $success++;
+                $this->log[] = ['concept' => $item['id'], 'lang' => $lang, 'ok' => true, 'error' => null, 'elapsed' => microtime(true) - $t0];
                 if (PHP_SAPI === 'cli') {
                     fwrite(STDOUT, "  ok {$item['id']} [$lang]\n");
                 }
             } catch (\Throwable $e) {
+                $this->log[] = ['concept' => $item['id'], 'lang' => $lang, 'ok' => false, 'error' => $e->getMessage(), 'elapsed' => microtime(true) - $t0];
                 if (PHP_SAPI === 'cli') {
                     fwrite(STDOUT, "  erro {$item['id']} [$lang]: {$e->getMessage()}\n");
                 }
