@@ -109,6 +109,8 @@ final class PublicController
         $siteUrl = rtrim((string) (\App\Core\Env::get('SITE_URL', '')), '/');
 
         $image = !empty($c['image_url']) ? (string) $c['image_url'] : null;
+        $parentInfo = !empty($c['parent_id']) ? $this->repo->cardById((string) $c['parent_id'], $lang) : null;
+        $children = $this->repo->childrenCards((string) $c['id'], $lang);
 
         $articleSchema = [
             '@context' => 'https://schema.org',
@@ -136,11 +138,20 @@ final class PublicController
             [
                 '@context' => 'https://schema.org',
                 '@type'    => 'BreadcrumbList',
-                'itemListElement' => [
-                    ['@type' => 'ListItem', 'position' => 1, 'name' => Lang::ui($lang, 'home'), 'item' => "$siteUrl/$lang"],
-                    ['@type' => 'ListItem', 'position' => 2, 'name' => Lang::categoryName($lang, (string) $c['category']), 'item' => $siteUrl . Lang::categoryUrl($lang, (string) $c['category'])],
-                    ['@type' => 'ListItem', 'position' => 3, 'name' => $c['h1']],
-                ],
+                'itemListElement' => (function () use ($lang, $c, $siteUrl, $parentInfo) {
+                    $crumbs = [
+                        ['@type' => 'ListItem', 'name' => Lang::ui($lang, 'home'), 'item' => "$siteUrl/$lang"],
+                        ['@type' => 'ListItem', 'name' => Lang::categoryName($lang, (string) $c['category']), 'item' => $siteUrl . Lang::categoryUrl($lang, (string) $c['category'])],
+                    ];
+                    if ($parentInfo) {
+                        $crumbs[] = ['@type' => 'ListItem', 'name' => $parentInfo['h1'], 'item' => $siteUrl . $parentInfo['href']];
+                    }
+                    $crumbs[] = ['@type' => 'ListItem', 'name' => $c['h1']];
+                    foreach ($crumbs as $i => &$cr) {
+                        $cr['position'] = $i + 1;
+                    }
+                    return $crumbs;
+                })(),
             ],
         ];
 
@@ -148,6 +159,8 @@ final class PublicController
             'lang'       => $lang,
             'c'          => $c,
             'related'    => $related,
+            'parentInfo' => $parentInfo,
+            'children'   => $children,
             'suggested'  => $this->repo->relatedArticles($lang, (string) $c['category'], (string) $c['symbol_id'], 6),
             'alternates' => $alternates,
             'title'      => $c['title'],

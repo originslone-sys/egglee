@@ -5,10 +5,12 @@ namespace App\Service;
 
 use App\Core\Database;
 use App\Core\Env;
+use App\Core\Migrate;
 use App\Repository\AutoStatus;
 use App\Repository\SymbolRepository;
 use App\Support\Dictionary;
 use App\Support\Lang;
+use App\Support\Variations;
 
 /**
  * Piloto automático: percorre o dicionário em ordem, pula o que já foi gerado
@@ -25,8 +27,19 @@ final class AutoGenerator
      * Gera até $maxArticles artigos com sucesso por execução, pulando falhas.
      * @return array{ok:int, failed:int, remaining:int, generated:int, total:int}
      */
+    /** Lista completa de conceitos: base (parent=null) + variações (com parent). */
+    public static function concepts(): array
+    {
+        $base = array_map(
+            fn($i) => $i + ['parent' => null],
+            Dictionary::all()
+        );
+        return array_merge($base, Variations::all());
+    }
+
     public function tick(int $maxArticles = 1): array
     {
+        Migrate::ensure(); // garante parent_id e demais colunas
         $done  = array_flip($this->repo->generatedIds());
         $skip  = array_flip(AutoStatus::skipIds(self::MAX_ATTEMPTS));
         $tried = [];
@@ -56,10 +69,10 @@ final class AutoGenerator
         return array_merge(['ok' => $ok, 'failedRun' => $failed], $this->progress());
     }
 
-    /** Próximo conceito do dicionário ainda não gerado nem pulado. */
+    /** Próximo conceito (base ou variação) ainda não gerado nem pulado. */
     private function next(array $done, array $skip, array $tried): ?array
     {
-        foreach (Dictionary::all() as $item) {
+        foreach (self::concepts() as $item) {
             $id = $item['id'];
             if (isset($done[$id]) || isset($skip[$id]) || isset($tried[$id])) {
                 continue;
@@ -73,14 +86,18 @@ final class AutoGenerator
     public function generateOne(array $item): bool
     {
         $model = Env::get('DEEPSEEK_MODEL', 'deepseek-v4-flash');
-        $related = Dictionary::siblings($item['id'], 3);
+        $parent = $item['parent'] ?? null;
+        // Variação: relaciona à mãe + alguns irmãos da categoria da mãe.
+        $related = $parent
+            ? array_merge([$parent], Dictionary::siblings($parent, 2))
+            : Dictionary::siblings($item['id'], 3);
         $success = 0;
 
         foreach (Lang::LANGS as $lang) {
             try {
                 $content = DeepSeek::generate($item['id'], $item['category'], $item['en'], $lang, $related);
                 Database::reconnect(); // conexão pode ter caído durante a IA
-                $this->repo->ensureSymbol($item['id'], $item['category'], $related, $model);
+                $this->repo->ensureSymbol($item['id'], $item['category'], $related, $model, $parent);
                 $this->repo->saveLanguage($item['id'], $lang, $content);
                 $success++;
                 if (PHP_SAPI === 'cli') {
@@ -119,7 +136,7 @@ final class AutoGenerator
     /** Números para o painel. */
     public function progress(): array
     {
-        $total = Dictionary::count();
+        $total = count(self::concepts());
         $generated = count($this->repo->generatedIds());
         $failedPerma = AutoStatus::countPermanent(self::MAX_ATTEMPTS);
         return [

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS `symbols` (
   `related`      JSON         NULL,                     -- ["spider","rat"]
   `status`       ENUM('draft','reviewed','published') NOT NULL DEFAULT 'draft',
   `model`        VARCHAR(64)  NULL,
+  `parent_id`    VARCHAR(64)  NULL,
   `image_url`              VARCHAR(500) NULL,
   `image_photographer`     VARCHAR(190) NULL,
   `image_photographer_url` VARCHAR(500) NULL,
