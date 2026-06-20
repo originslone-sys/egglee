@@ -90,10 +90,23 @@ final class AdminController
         @set_time_limit(0);
         ignore_user_abort(true);
         \App\Core\Migrate::ensure();
-        $r = (new \App\Service\AutoGenerator())->tick(1);
-        $this->redirect('/admin/generate?flash=' . rawurlencode(
-            "Automação: {$r['ok']} gerado(s), {$r['failedRun']} falha(s). Restantes: {$r['remaining']}."
-        ));
+        $gen = new \App\Service\AutoGenerator();
+        $r = $gen->tick(1);
+        // Renderiza com o log detalhado (mostra exatamente o que aconteceu).
+        echo View::render('admin/generate', [
+            'grouped'  => Dictionary::grouped(),
+            'results'  => null,
+            'symbolId' => null,
+            'auto'     => $gen->progress(),
+            'autoPublish' => \App\Core\Env::get('AUTO_PUBLISH', '1') !== '0',
+            'lastRun'  => @json_decode((string) @file_get_contents(dirname(__DIR__, 2) . '/database/last-run.json'), true) ?: null,
+            'failures' => \App\Repository\AutoStatus::failures(10),
+            'runLog'   => $gen->lastLog(),
+            'runResult'=> $r,
+            'csrf'     => Auth::csrf(),
+            'flash'    => "Execução: {$r['ok']} gerado(s), {$r['failedRun']} falha(s).",
+            'error'    => null,
+        ], 'admin/layout');
     }
 
     // ---------- Automação: ligar/desligar auto-publicação ----------
