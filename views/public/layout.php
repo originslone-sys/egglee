@@ -13,6 +13,7 @@ $hl = Lang::HREFLANG;
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= e($title) ?></title>
   <meta name="description" content="<?= e($description) ?>">
+  <?php if (!empty($noindex ?? null)): ?><meta name="robots" content="noindex, follow"><?php endif; ?>
   <link rel="canonical" href="<?= e($site . $canonical) ?>">
   <?php foreach (($alternates ?? []) as $l => $p): ?>
   <link rel="alternate" hreflang="<?= e($hl[$l]) ?>" href="<?= e($site . $p) ?>">

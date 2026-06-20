@@ -6,7 +6,7 @@ use function App\Core\e;
 <main class="wrap article">
   <p class="breadcrumbs">
     <a href="/<?= e($lang) ?>"><?= e(Lang::ui($lang, 'home')) ?></a> ›
-    <?= e(Lang::categoryName($lang, (string) ($c['category'] ?? ''))) ?> ›
+    <a href="<?= e(Lang::categoryUrl($lang, (string) ($c['category'] ?? ''))) ?>"><?= e(Lang::categoryName($lang, (string) ($c['category'] ?? ''))) ?></a> ›
     <?= e($c['h1']) ?>
   </p>
   <h1><?= e($c['h1']) ?></h1>
@@ -70,14 +70,17 @@ use function App\Core\e;
 
   <p class="closing"><?= e($c['closing']) ?></p>
 
-  <?php if ($related): ?>
-    <nav class="related">
+  <?php if (!empty($suggested)): ?>
+    <section class="suggested">
       <h2><?= e(Lang::ui($lang, 'related')) ?></h2>
-      <ul>
-        <?php foreach ($related as $r): ?>
-          <li><a href="<?= e($r['href']) ?>"><?= e($r['label']) ?></a></li>
-        <?php endforeach; ?>
-      </ul>
-    </nav>
+      <div class="acard-grid">
+        <?php foreach ($suggested as $card) { include __DIR__ . '/partials/card.php'; } ?>
+      </div>
+      <p class="suggested__more">
+        <a class="btn-more" href="<?= e(Lang::categoryUrl($lang, (string) $c['category'])) ?>">
+          <?= e(Lang::ui($lang, 'inCategory')) ?> <?= e(Lang::categoryName($lang, (string) $c['category'])) ?> →
+        </a>
+      </p>
+    </section>
   <?php endif; ?>
 </main>

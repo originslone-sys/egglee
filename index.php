@@ -93,15 +93,27 @@ try {
         exit;
     }
 
-    // ---- público: /{lang} ou /{lang}/{slug} ----
+    // ---- público ----
     $segments = array_values(array_filter(explode('/', $path), fn($s) => $s !== ''));
-    if (count($segments) === 1 && Lang::isValid($segments[0])) {
-        $pub->home($segments[0]);
-        exit;
-    }
-    if (count($segments) === 2 && Lang::isValid($segments[0])) {
-        $pub->article($segments[0], $segments[1]);
-        exit;
+    $lang = $segments[0] ?? '';
+    if (Lang::isValid($lang)) {
+        $n = count($segments);
+        if ($n === 1) {
+            $pub->home($lang);
+            exit;
+        }
+        if ($n === 2 && $segments[1] === Lang::SEARCH_PATH[$lang]) {
+            $pub->search($lang);
+            exit;
+        }
+        if ($n === 3 && $segments[1] === Lang::CATEGORY_PATH[$lang]) {
+            $pub->category($lang, $segments[2]);
+            exit;
+        }
+        if ($n === 2) {
+            $pub->article($lang, $segments[1]);
+            exit;
+        }
     }
 
     $pub->notFound();

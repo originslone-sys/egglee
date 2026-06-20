@@ -18,17 +18,76 @@ final class PublicController
             $this->notFound();
             return;
         }
-        $items = $this->repo->listLive($lang);
         $alternates = ['pt' => '/pt', 'es' => '/es', 'en' => '/en'];
 
         echo View::render('public/home', [
             'lang'       => $lang,
-            'items'      => $items,
+            'counts'     => $this->repo->categoryCounts($lang),
+            'recent'     => $this->repo->recent($lang, 8),
+            'popular'    => $this->repo->listLive($lang),
             'alternates' => $alternates,
             'title'      => 'egglee — ' . Lang::ui($lang, 'tagline'),
             'description'=> Lang::ui($lang, 'tagline'),
             'canonical'  => "/$lang",
             'jsonLd'     => [],
+            'image'      => null,
+        ], 'public/layout');
+    }
+
+    public function category(string $lang, string $slug): void
+    {
+        if (!Lang::isValid($lang)) {
+            $this->notFound();
+            return;
+        }
+        $cat = Lang::categoryFromSlug($lang, $slug);
+        if ($cat === null) {
+            $this->notFound();
+            return;
+        }
+        $items = $this->repo->listByCategory($lang, $cat);
+        $name = Lang::categoryName($lang, $cat);
+        $alternates = [];
+        foreach (Lang::LANGS as $l) {
+            $alternates[$l] = Lang::categoryUrl($l, $cat);
+        }
+        echo View::render('public/category', [
+            'lang'       => $lang,
+            'cat'        => $cat,
+            'name'       => $name,
+            'items'      => $items,
+            'alternates' => $alternates,
+            'title'      => $name . ' — ' . Lang::ui($lang, 'articlesIn') . ' egglee',
+            'description'=> Lang::ui($lang, 'articlesIn') . ' ' . mb_strtolower($name) . '. ' . Lang::ui($lang, 'tagline'),
+            'canonical'  => Lang::categoryUrl($lang, $cat),
+            'jsonLd'     => [],
+            'image'      => null,
+        ], 'public/layout');
+    }
+
+    public function search(string $lang): void
+    {
+        if (!Lang::isValid($lang)) {
+            $this->notFound();
+            return;
+        }
+        $q = trim((string) ($_GET['q'] ?? ''));
+        $items = $q !== '' ? $this->repo->search($lang, $q) : [];
+        $alternates = [];
+        foreach (Lang::LANGS as $l) {
+            $alternates[$l] = Lang::searchUrl($l);
+        }
+        echo View::render('public/search', [
+            'lang'       => $lang,
+            'q'          => $q,
+            'items'      => $items,
+            'alternates' => $alternates,
+            'title'      => Lang::ui($lang, 'searchTitle') . ($q !== '' ? ': ' . $q : '') . ' — egglee',
+            'description'=> Lang::ui($lang, 'searchTitle'),
+            'canonical'  => Lang::searchUrl($lang),
+            'jsonLd'     => [],
+            'image'      => null,
+            'noindex'    => true,
         ], 'public/layout');
     }
 
@@ -79,7 +138,8 @@ final class PublicController
                 '@type'    => 'BreadcrumbList',
                 'itemListElement' => [
                     ['@type' => 'ListItem', 'position' => 1, 'name' => Lang::ui($lang, 'home'), 'item' => "$siteUrl/$lang"],
-                    ['@type' => 'ListItem', 'position' => 2, 'name' => $c['h1']],
+                    ['@type' => 'ListItem', 'position' => 2, 'name' => Lang::categoryName($lang, (string) $c['category']), 'item' => $siteUrl . Lang::categoryUrl($lang, (string) $c['category'])],
+                    ['@type' => 'ListItem', 'position' => 3, 'name' => $c['h1']],
                 ],
             ],
         ];
@@ -88,6 +148,7 @@ final class PublicController
             'lang'       => $lang,
             'c'          => $c,
             'related'    => $related,
+            'suggested'  => $this->repo->relatedArticles($lang, (string) $c['category'], (string) $c['symbol_id'], 6),
             'alternates' => $alternates,
             'title'      => $c['title'],
             'description'=> $c['meta_description'],

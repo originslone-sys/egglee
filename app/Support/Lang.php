@@ -22,6 +22,57 @@ final class Lang
         return self::CATEGORY_NAMES[$lang][$cat] ?? ucfirst($cat);
     }
 
+    /** Lista canônica das categorias (na ordem de exibição). */
+    public static function categories(): array
+    {
+        return array_keys(self::CATEGORY_ICONS);
+    }
+
+    /** Slugs de categoria por idioma (para URLs amigáveis). */
+    public const CATEGORY_SLUGS = [
+        'pt' => ['animals'=>'animais','people'=>'pessoas','actions'=>'acoes','objects'=>'objetos','places'=>'lugares','feelings'=>'sentimentos','events'=>'acontecimentos','body'=>'corpo','nature'=>'natureza','spiritual'=>'espiritual'],
+        'es' => ['animals'=>'animales','people'=>'personas','actions'=>'acciones','objects'=>'objetos','places'=>'lugares','feelings'=>'sentimientos','events'=>'acontecimientos','body'=>'cuerpo','nature'=>'naturaleza','spiritual'=>'espiritual'],
+        'en' => ['animals'=>'animals','people'=>'people','actions'=>'actions','objects'=>'objects','places'=>'places','feelings'=>'feelings','events'=>'events','body'=>'body','nature'=>'nature','spiritual'=>'spiritual'],
+    ];
+
+    /** Ícone (emoji) por categoria. */
+    public const CATEGORY_ICONS = [
+        'animals'=>'🐾','people'=>'👥','actions'=>'🏃','objects'=>'🔑','places'=>'📍',
+        'feelings'=>'💜','events'=>'📅','body'=>'✋','nature'=>'🌿','spiritual'=>'🔮',
+    ];
+
+    /** Palavra de URL para a listagem de categoria e para a busca, por idioma. */
+    public const CATEGORY_PATH = ['pt'=>'categoria','es'=>'categoria','en'=>'category'];
+    public const SEARCH_PATH   = ['pt'=>'busca','es'=>'busca','en'=>'search'];
+
+    public static function categorySlug(string $lang, string $cat): string
+    {
+        return self::CATEGORY_SLUGS[$lang][$cat] ?? $cat;
+    }
+
+    /** Resolve a categoria (chave) a partir do slug localizado. */
+    public static function categoryFromSlug(string $lang, string $slug): ?string
+    {
+        $map = self::CATEGORY_SLUGS[$lang] ?? [];
+        $key = array_search($slug, $map, true);
+        return $key === false ? null : $key;
+    }
+
+    public static function categoryIcon(string $cat): string
+    {
+        return self::CATEGORY_ICONS[$cat] ?? '✦';
+    }
+
+    public static function categoryUrl(string $lang, string $cat): string
+    {
+        return '/' . $lang . '/' . self::CATEGORY_PATH[$lang] . '/' . self::categorySlug($lang, $cat);
+    }
+
+    public static function searchUrl(string $lang): string
+    {
+        return '/' . $lang . '/' . self::SEARCH_PATH[$lang];
+    }
+
     /** Textos da interface pública. */
     public const UI = [
         'pt' => [
@@ -35,6 +86,16 @@ final class Lang
             'indexSub'      => 'Escolha um símbolo e veja a interpretação completa.',
             'home'          => 'Início',
             'langName'      => 'PT',
+            'searchPh'      => 'Buscar um sonho… (ex: cobra, dente, água)',
+            'searchTitle'   => 'Buscar sonhos',
+            'searchFor'     => 'Resultados para',
+            'noResults'     => 'Nenhum resultado. Tente outra palavra.',
+            'categories'    => 'Categorias',
+            'browseAll'     => 'Explore por categoria',
+            'recent'        => 'Adicionados recentemente',
+            'readArticle'   => 'Ler interpretação',
+            'inCategory'    => 'Veja mais em',
+            'articlesIn'    => 'Sonhos sobre',
             'disclaimer'    => 'As interpretações da egglee reúnem tradição popular, simbologia cultural e psicologia, e têm caráter informativo e de entretenimento. Não substituem orientação profissional de saúde.',
         ],
         'es' => [
@@ -48,6 +109,16 @@ final class Lang
             'indexSub'      => 'Elige un símbolo y mira la interpretación completa.',
             'home'          => 'Inicio',
             'langName'      => 'ES',
+            'searchPh'      => 'Busca un sueño… (ej: serpiente, dientes, agua)',
+            'searchTitle'   => 'Buscar sueños',
+            'searchFor'     => 'Resultados para',
+            'noResults'     => 'Sin resultados. Prueba otra palabra.',
+            'categories'    => 'Categorías',
+            'browseAll'     => 'Explora por categoría',
+            'recent'        => 'Añadidos recientemente',
+            'readArticle'   => 'Ver interpretación',
+            'inCategory'    => 'Ver más en',
+            'articlesIn'    => 'Sueños sobre',
             'disclaimer'    => 'Las interpretaciones de egglee reúnen tradición popular, simbología cultural y psicología, con fines informativos y de entretenimiento. No sustituyen la orientación de un profesional de la salud.',
         ],
         'en' => [
@@ -61,6 +132,16 @@ final class Lang
             'indexSub'      => 'Pick a symbol and read the full interpretation.',
             'home'          => 'Home',
             'langName'      => 'EN',
+            'searchPh'      => 'Search a dream… (e.g. snake, teeth, water)',
+            'searchTitle'   => 'Search dreams',
+            'searchFor'     => 'Results for',
+            'noResults'     => 'No results. Try another word.',
+            'categories'    => 'Categories',
+            'browseAll'     => 'Browse by category',
+            'recent'        => 'Recently added',
+            'readArticle'   => 'Read interpretation',
+            'inCategory'    => 'See more in',
+            'articlesIn'    => 'Dreams about',
             'disclaimer'    => 'egglee interpretations blend folk tradition, cultural symbolism and psychology, for informational and entertainment purposes. They are not a substitute for professional health advice.',
         ],
     ];
