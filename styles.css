@@ -192,11 +192,13 @@ h1, h2, h3 { font-family: var(--font-head); font-weight: 600; line-height: 1.18;
 .cat-menu > summary { list-style: none; cursor: pointer; font-weight: 700; font-size: 0.85rem; color: var(--indigo-800);
   padding: 0.45rem 0.8rem; border-radius: 999px; background: var(--violet-100); white-space: nowrap; }
 .cat-menu > summary::-webkit-details-marker { display: none; }
-.cat-dropdown { position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 40; width: 250px;
+.cat-dropdown { position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 40;
+  width: min(400px, calc(100vw - 1.5rem));
   background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
-  padding: 0.4rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.15rem; }
-.cat-dropdown a { display: flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.55rem; border-radius: 9px;
-  text-decoration: none; color: var(--ink); font-size: 0.85rem; font-weight: 600; }
+  padding: 0.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.1rem; }
+.cat-dropdown a { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.6rem; border-radius: 9px;
+  text-decoration: none; color: var(--ink); font-size: 0.88rem; font-weight: 600; white-space: nowrap; min-width: 0; }
+.cat-dropdown a > span { flex: 0 0 auto; font-size: 1.05rem; }
 .cat-dropdown a:hover { background: var(--violet-100); }
 
 /* hero search */
@@ -279,6 +281,9 @@ h1, h2, h3 { font-family: var(--font-head); font-weight: 600; line-height: 1.18;
 @media (max-width: 720px) {
   .nav-search { order: 3; max-width: 100%; flex-basis: 100%; }
   .site-header__inner { flex-wrap: wrap; }
+}
+@media (max-width: 400px) {
+  .cat-dropdown { grid-template-columns: 1fr; }
 }
 
 /* respeita quem prefere menos movimento */
