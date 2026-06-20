@@ -13,6 +13,7 @@ final class Migrate
         self::addColumnIfMissing('symbols', 'image_photographer', 'VARCHAR(190) NULL');
         self::addColumnIfMissing('symbols', 'image_photographer_url', 'VARCHAR(500) NULL');
         self::addColumnIfMissing('symbols', 'image_page', 'VARCHAR(500) NULL');
+        self::addColumnIfMissing('symbols', 'parent_id', 'VARCHAR(64) NULL');
     }
 
     private static function addColumnIfMissing(string $table, string $column, string $definition): void

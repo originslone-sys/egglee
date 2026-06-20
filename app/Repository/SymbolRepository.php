@@ -274,14 +274,27 @@ final class SymbolRepository
     }
 
     /** Cria a linha do símbolo se não existir (sem mexer no status atual). */
-    public function ensureSymbol(string $id, string $category, array $related, ?string $model = null): void
+    public function ensureSymbol(string $id, string $category, array $related, ?string $model = null, ?string $parentId = null): void
     {
         Database::pdo()->prepare(
-            'INSERT INTO symbols (id, category, related, model, generated_at)
-             VALUES (?,?,?,?,NOW())
+            'INSERT INTO symbols (id, category, related, model, parent_id, generated_at)
+             VALUES (?,?,?,?,?,NOW())
              ON DUPLICATE KEY UPDATE category=VALUES(category), related=VALUES(related),
-               model=VALUES(model), generated_at=NOW()'
-        )->execute([$id, $category, json_encode(array_values($related), JSON_UNESCAPED_UNICODE), $model]);
+               model=VALUES(model), parent_id=VALUES(parent_id), generated_at=NOW()'
+        )->execute([$id, $category, json_encode(array_values($related), JSON_UNESCAPED_UNICODE), $model, $parentId]);
+    }
+
+    /** Card de um símbolo específico por idioma (ou null se não estiver no ar). */
+    public function cardById(string $id, string $lang): ?array
+    {
+        $cards = $this->cards('AND s.id = ?', [$id], $lang, 1);
+        return $cards[0] ?? null;
+    }
+
+    /** Variações (filhas) de um símbolo, no idioma dado. */
+    public function childrenCards(string $parentId, string $lang): array
+    {
+        return $this->cards('AND s.parent_id = ?', [$parentId], $lang, 0, 'c.h1 ASC');
     }
 
     /** Upsert do conteúdo de UM idioma. */

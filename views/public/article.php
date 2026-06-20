@@ -7,6 +7,9 @@ use function App\Core\e;
   <p class="breadcrumbs">
     <a href="/<?= e($lang) ?>"><?= e(Lang::ui($lang, 'home')) ?></a> ›
     <a href="<?= e(Lang::categoryUrl($lang, (string) ($c['category'] ?? ''))) ?>"><?= e(Lang::categoryName($lang, (string) ($c['category'] ?? ''))) ?></a> ›
+    <?php if (!empty($parentInfo)): ?>
+      <a href="<?= e($parentInfo['href']) ?>"><?= e($parentInfo['h1']) ?></a> ›
+    <?php endif; ?>
     <?= e($c['h1']) ?>
   </p>
   <h1><?= e($c['h1']) ?></h1>
@@ -69,6 +72,19 @@ use function App\Core\e;
   </section>
 
   <p class="closing"><?= e($c['closing']) ?></p>
+
+  <?php if (!empty($parentInfo)): ?>
+    <p class="parent-back"><a href="<?= e($parentInfo['href']) ?>">← <?= e($parentInfo['h1']) ?></a></p>
+  <?php endif; ?>
+
+  <?php if (!empty($children)): ?>
+    <section class="variations-hub">
+      <h2><?= e(Lang::ui($lang, 'variations')) ?></h2>
+      <div class="acard-grid">
+        <?php foreach ($children as $card) { include __DIR__ . '/partials/card.php'; } ?>
+      </div>
+    </section>
+  <?php endif; ?>
 
   <?php if (!empty($suggested)): ?>
     <section class="suggested">
