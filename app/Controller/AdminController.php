@@ -77,6 +77,7 @@ final class AdminController
         }
         @set_time_limit(0);
         ignore_user_abort(true);
+        \App\Core\Migrate::ensure(); // garante a coluna table_data em bancos antigos
 
         $item = Dictionary::find((string) ($_POST['concept'] ?? ''));
         if (!$item) {
@@ -181,6 +182,7 @@ final class AdminController
         if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
             $this->redirect('/admin?error=' . rawurlencode('Token inválido.'));
         }
+        \App\Core\Migrate::ensure();
         $id  = $_POST['id'] ?? '';
         $sym = $this->repo->find($id);
         if (!$sym) {
@@ -198,6 +200,7 @@ final class AdminController
                 'quickAnswer'     => trim($f['quickAnswer'] ?? ''),
                 'intro'           => trim($f['intro'] ?? ''),
                 'sections'        => $this->decodeJsonField($f['sections'] ?? '[]'),
+                'table'           => $this->decodeJsonField($f['table'] ?? 'null'),
                 'variations'      => $this->decodeJsonField($f['variations'] ?? '[]'),
                 'faq'             => $this->decodeJsonField($f['faq'] ?? '[]'),
                 'closing'         => trim($f['closing'] ?? ''),

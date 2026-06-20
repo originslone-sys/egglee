@@ -4,7 +4,11 @@ use function App\Core\e;
 /** @var string $lang */ /** @var array $c */ /** @var array $related */
 ?>
 <main class="wrap article">
-  <p class="breadcrumbs"><a href="/<?= e($lang) ?>"><?= e(Lang::ui($lang, 'home')) ?></a> › <?= e($c['h1']) ?></p>
+  <p class="breadcrumbs">
+    <a href="/<?= e($lang) ?>"><?= e(Lang::ui($lang, 'home')) ?></a> ›
+    <?= e(Lang::categoryName($lang, (string) ($c['category'] ?? ''))) ?> ›
+    <?= e($c['h1']) ?>
+  </p>
   <h1><?= e($c['h1']) ?></h1>
 
   <aside class="quick-answer">
@@ -22,6 +26,19 @@ use function App\Core\e;
       <p><?= e($s['body'] ?? '') ?></p>
     </section>
   <?php endforeach; ?>
+
+  <?php $tbl = $c['table_data'] ?? null; if (is_array($tbl) && !empty($tbl['rows'])): ?>
+    <section>
+      <?php if (!empty($tbl['title'])): ?><h2><?= e($tbl['title']) ?></h2><?php endif; ?>
+      <table class="meaning-table">
+        <tbody>
+          <?php foreach ($tbl['rows'] as $row): ?>
+            <tr><th scope="row"><?= e($row['label'] ?? '') ?></th><td><?= e($row['meaning'] ?? '') ?></td></tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </section>
+  <?php endif; ?>
 
   <section>
     <h2><?= e(Lang::ui($lang, 'variations')) ?></h2>

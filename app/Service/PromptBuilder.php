@@ -71,7 +71,13 @@ SEO REQUIREMENTS (bake these into the fields, do not add them separately):
 - metaDescription: 110-160 chars, includes the keyword, promises a clear answer, invites the click.
 - h1: keyword-forward, natural, distinct from the title.
 - quickAnswer: 120-360 chars, directly answers "what does it mean" in the first sentence.
-- sections: exactly 3 H2 blocks covering DISTINCT angles (folk tradition, psychological, emotional/spiritual).
+- sections: exactly 4 H2 blocks covering DISTINCT angles: (1) folk/popular tradition, (2) psychological
+  (Jung/archetypes), (3) emotional reading, (4) spiritual/religious reading (for pt, mention real
+  Brazilian beliefs like umbanda/espiritismo/cristianismo where natural; for es/en, the relevant local
+  spiritual traditions). Each must teach something concrete.
+- table: a scannable comparison table targeting long-tail searches. Pick the MOST relevant dimension for
+  THIS symbol (e.g. for a snake: by color; for money: by amount/context; for falling: by where you fall).
+  4-6 rows. Each row: a "label" (e.g. "Cobra preta") and a concise "meaning".
 - variations: exactly 3 real long-tail sub-meanings; each "keyword" must be a phrase a person would actually type.
 - faq: exactly 3 real questions, each answered in 2-3 sentences.
 - semanticKeywords: 5 related terms for topical depth.
@@ -85,10 +91,11 @@ Return ONLY a valid JSON object (no markdown, no comments, no text before or aft
   "metaDescription": "string 110-160 chars",
   "h1": "string",
   "quickAnswer": "string 120-360 chars",
-  "intro": "2 short paragraphs (~180-260 chars), separated by \\n",
-  "sections": [ { "heading": "H2", "body": "~160-220 chars" } ],
-  "variations": [ { "keyword": "long-tail phrase", "meaning": "~100-150 chars" } ],
-  "faq": [ { "question": "string", "answer": ">=80 chars" } ],
+  "intro": "2-3 paragraphs (~200-300 chars each), separated by \\n",
+  "sections": [ { "heading": "H2", "body": "~200-300 chars" } ],
+  "table": { "title": "table heading", "rows": [ { "label": "string", "meaning": "string" } ] },
+  "variations": [ { "keyword": "long-tail phrase", "meaning": "~120-180 chars" } ],
+  "faq": [ { "question": "string", "answer": ">=90 chars" } ],
   "closing": ">=120 chars",
   "semanticKeywords": ["string","string","string","string","string"]
 }
@@ -123,11 +130,12 @@ native {$L['name']} speaker would phrase a dream about this concept (e.g. how th
 actually type it into Google). Do NOT translate the English literally — use the
 real local expression. Build the slug from that phrase (pattern hint: "{$L['slugVerb']}-<term>").$relatedHint
 
-Write a focused, authoritative page for someone who just searched the meaning of this
-dream in {$L['name']}. Aim for roughly 600-800 words of total human-readable content
-across the fields — rich and genuinely helpful, no filler. Make it unique to
-{$L['name']}, not a translation of any other language. Every word must be valid
-{$L['name']} (Latin alphabet only — no Chinese/foreign characters).
+Write an in-depth, authoritative page for someone who just searched the meaning of this
+dream in {$L['name']}. Aim for roughly 800-1100 words of total human-readable content
+across the fields — rich, specific and genuinely helpful, NO filler and NO invented
+statistics or fake institutions. Make it unique to {$L['name']}, not a translation of
+any other language. Every word must be valid {$L['name']} (Latin alphabet only — no
+Chinese/foreign characters).
 
 Output the JSON object now.
 TXT;

@@ -10,6 +10,18 @@ final class Lang
 
     public const HREFLANG = ['pt' => 'pt-BR', 'es' => 'es-ES', 'en' => 'en-US'];
 
+    /** Nomes de categoria por idioma (para breadcrumb). */
+    public const CATEGORY_NAMES = [
+        'pt' => ['animals'=>'Animais','people'=>'Pessoas','actions'=>'Ações','objects'=>'Objetos','places'=>'Lugares','feelings'=>'Sentimentos','events'=>'Acontecimentos','body'=>'Corpo','nature'=>'Natureza','spiritual'=>'Espiritual'],
+        'es' => ['animals'=>'Animales','people'=>'Personas','actions'=>'Acciones','objects'=>'Objetos','places'=>'Lugares','feelings'=>'Sentimientos','events'=>'Acontecimientos','body'=>'Cuerpo','nature'=>'Naturaleza','spiritual'=>'Espiritual'],
+        'en' => ['animals'=>'Animals','people'=>'People','actions'=>'Actions','objects'=>'Objects','places'=>'Places','feelings'=>'Feelings','events'=>'Events','body'=>'Body','nature'=>'Nature','spiritual'=>'Spiritual'],
+    ];
+
+    public static function categoryName(string $lang, string $cat): string
+    {
+        return self::CATEGORY_NAMES[$lang][$cat] ?? ucfirst($cat);
+    }
+
     /** Textos da interface pública. */
     public const UI = [
         'pt' => [

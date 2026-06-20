@@ -81,7 +81,7 @@ final class DeepSeek
     public static function generate(string $id, string $category, string $conceptEn, string $lang, array $related = []): array
     {
         $messages = PromptBuilder::build($id, $category, $conceptEn, $lang, $related);
-        $maxTokens = (int) Env::get('DEEPSEEK_MAX_TOKENS', '4000');
+        $maxTokens = (int) Env::get('DEEPSEEK_MAX_TOKENS', '5000');
 
         // Re-tenta se a IA vazar caracteres não-latinos (ex.: CJK do modelo chinês).
         $lastErr = 'Falha desconhecida na IA.';
@@ -107,7 +107,7 @@ final class DeepSeek
     public static function testGeneration(int $timeout = 60): array
     {
         $messages = PromptBuilder::build('cat', 'animals', 'a cat', 'pt', []);
-        $res = self::request($messages, ['timeout' => $timeout, 'max_tokens' => (int) Env::get('DEEPSEEK_MAX_TOKENS', '3000')]);
+        $res = self::request($messages, ['timeout' => $timeout, 'max_tokens' => (int) Env::get('DEEPSEEK_MAX_TOKENS', '5000')]);
         return [
             'ok'      => $res['ok'],
             'elapsed' => $res['elapsed'],

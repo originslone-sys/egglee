@@ -9,7 +9,7 @@ use App\Support\Lang;
 /** Acesso aos símbolos e seu conteúdo por idioma. */
 final class SymbolRepository
 {
-    private const JSON_FIELDS = ['sections', 'variations', 'faq', 'semantic_keywords'];
+    private const JSON_FIELDS = ['sections', 'variations', 'faq', 'semantic_keywords', 'table_data'];
 
     /** Lista símbolos publicáveis (reviewed/published) com o conteúdo de um idioma. */
     public function listLive(string $lang): array
@@ -142,13 +142,13 @@ final class SymbolRepository
 
             $sql = 'INSERT INTO symbol_content
                 (symbol_id, lang, slug, title, meta_description, h1, quick_answer, intro,
-                 sections, variations, faq, closing, semantic_keywords)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                 sections, variations, faq, closing, table_data, semantic_keywords)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON DUPLICATE KEY UPDATE
                  slug=VALUES(slug), title=VALUES(title), meta_description=VALUES(meta_description),
                  h1=VALUES(h1), quick_answer=VALUES(quick_answer), intro=VALUES(intro),
                  sections=VALUES(sections), variations=VALUES(variations), faq=VALUES(faq),
-                 closing=VALUES(closing), semantic_keywords=VALUES(semantic_keywords)';
+                 closing=VALUES(closing), table_data=VALUES(table_data), semantic_keywords=VALUES(semantic_keywords)';
             $stmt = $pdo->prepare($sql);
             foreach ($languages as $lang => $c) {
                 $stmt->execute([
@@ -158,6 +158,7 @@ final class SymbolRepository
                     json_encode($c['variations'], JSON_UNESCAPED_UNICODE),
                     json_encode($c['faq'], JSON_UNESCAPED_UNICODE),
                     $c['closing'],
+                    json_encode($c['table'] ?? null, JSON_UNESCAPED_UNICODE),
                     json_encode($c['semanticKeywords'], JSON_UNESCAPED_UNICODE),
                 ]);
             }
@@ -195,13 +196,13 @@ final class SymbolRepository
         Database::pdo()->prepare(
             'INSERT INTO symbol_content
                 (symbol_id, lang, slug, title, meta_description, h1, quick_answer, intro,
-                 sections, variations, faq, closing, semantic_keywords)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                 sections, variations, faq, closing, table_data, semantic_keywords)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
              ON DUPLICATE KEY UPDATE
                  slug=VALUES(slug), title=VALUES(title), meta_description=VALUES(meta_description),
                  h1=VALUES(h1), quick_answer=VALUES(quick_answer), intro=VALUES(intro),
                  sections=VALUES(sections), variations=VALUES(variations), faq=VALUES(faq),
-                 closing=VALUES(closing), semantic_keywords=VALUES(semantic_keywords)'
+                 closing=VALUES(closing), table_data=VALUES(table_data), semantic_keywords=VALUES(semantic_keywords)'
         )->execute([
             $id, $lang, $c['slug'], $c['title'], $c['metaDescription'], $c['h1'],
             $c['quickAnswer'], $c['intro'],
@@ -209,6 +210,7 @@ final class SymbolRepository
             json_encode($c['variations'], JSON_UNESCAPED_UNICODE),
             json_encode($c['faq'], JSON_UNESCAPED_UNICODE),
             $c['closing'],
+            json_encode($c['table'] ?? null, JSON_UNESCAPED_UNICODE),
             json_encode($c['semanticKeywords'], JSON_UNESCAPED_UNICODE),
         ]);
     }

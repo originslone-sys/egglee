@@ -108,6 +108,11 @@ h1, h2, h3 { font-family: var(--font-head); font-weight: 600; line-height: 1.18;
 .quick-answer strong { display: inline-flex; align-items: center; gap: 0.4rem; color: #9a6a12; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.06em; }
 .quick-answer p { margin: 0.45rem 0 0; font-size: 1.1rem; color: var(--ink); }
 
+.meaning-table { width: 100%; border-collapse: collapse; margin: 0.6rem 0 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
+.meaning-table th, .meaning-table td { text-align: left; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.meaning-table tr:last-child th, .meaning-table tr:last-child td { border-bottom: none; }
+.meaning-table th { width: 38%; color: var(--violet-600); font-weight: 700; }
+
 .variations { list-style: none; padding: 0; display: grid; gap: 0.7rem; }
 .variations li { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 0.85rem 1rem; box-shadow: var(--shadow-sm); }
 .variations li strong { color: var(--violet-600); }

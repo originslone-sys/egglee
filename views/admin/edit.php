@@ -47,6 +47,7 @@ $jsonField = static function ($v): string {
         <label>Closing<textarea name="<?= $lang ?>[closing]" rows="2"><?= e($c['closing'] ?? '') ?></textarea></label>
 
         <label>Sections (JSON: [{heading, body}])<textarea class="json" name="<?= $lang ?>[sections]" rows="8"><?= e($jsonField($c['sections'] ?? [])) ?></textarea></label>
+        <label>Tabela (JSON: {title, rows:[{label, meaning}]})<textarea class="json" name="<?= $lang ?>[table]" rows="6"><?= e($jsonField($c['table_data'] ?? null)) ?></textarea></label>
         <label>Variations (JSON: [{keyword, meaning}])<textarea class="json" name="<?= $lang ?>[variations]" rows="6"><?= e($jsonField($c['variations'] ?? [])) ?></textarea></label>
         <label>FAQ (JSON: [{question, answer}])<textarea class="json" name="<?= $lang ?>[faq]" rows="6"><?= e($jsonField($c['faq'] ?? [])) ?></textarea></label>
         <label>Semantic keywords (JSON: ["...", "..."])<textarea class="json" name="<?= $lang ?>[semanticKeywords]" rows="3"><?= e($jsonField($c['semanticKeywords'] ?? [])) ?></textarea></label>
