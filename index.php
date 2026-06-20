@@ -103,6 +103,17 @@ try {
     $pub->notFound();
 } catch (\Throwable $e) {
     http_response_code(500);
-    $debug = Env::get('APP_DEBUG') === '1';
-    echo $debug ? '<pre>' . htmlspecialchars((string) $e) . '</pre>' : 'Erro interno.';
+    // Registra sempre (arquivo legível pelo app), com trace completo.
+    @file_put_contents(
+        "$root/database/error.log", // pasta bloqueada por .htaccess e ignorada no git
+        '[' . date('c') . '] ' . $e . "\n\n",
+        FILE_APPEND
+    );
+    if (Env::get('APP_DEBUG') === '1') {
+        echo '<pre>' . htmlspecialchars((string) $e) . '</pre>';
+    } else {
+        // Mostra só a mensagem (sem trace/paths) — diagnóstico sem expor o código.
+        echo '<p>Erro interno.</p><p style="color:#a00;font-family:monospace">'
+            . htmlspecialchars(get_class($e) . ': ' . $e->getMessage()) . '</p>';
+    }
 }

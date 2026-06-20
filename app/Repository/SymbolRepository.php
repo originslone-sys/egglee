@@ -27,9 +27,9 @@ final class SymbolRepository
     /** Página pública por idioma + slug. Retorna null se não existir/for draft. */
     public function findBySlug(string $lang, string $slug): ?array
     {
-        $sql = 'SELECT s.id, s.category, s.related, s.status,
-                       s.image_url, s.image_photographer, s.image_photographer_url, s.image_page,
-                       c.*
+        // s.*, c.* para ser resiliente a colunas novas (image_*, table_data)
+        // mesmo que a migração ainda não tenha rodado num banco antigo.
+        $sql = 'SELECT s.*, c.*
                 FROM symbol_content c
                 JOIN symbols s ON s.id = c.symbol_id
                 WHERE c.lang = ? AND c.slug = ? AND s.status IN ("reviewed","published")

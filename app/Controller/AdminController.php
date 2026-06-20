@@ -101,12 +101,16 @@ final class AdminController
             }
         }
 
-        // Imagem (Pexels) — busca uma vez se o símbolo ainda não tiver.
-        if (\App\Service\Pexels::enabled() && !$this->repo->imageUrl($item['id'])) {
-            $img = \App\Service\Pexels::search($item['en']) ?? \App\Service\Pexels::search($item['category']);
-            if ($img) {
-                $this->repo->setImage($item['id'], $img);
+        // Imagem (Pexels) — best-effort: nunca derruba a geração já concluída.
+        try {
+            if (\App\Service\Pexels::enabled() && !$this->repo->imageUrl($item['id'])) {
+                $img = \App\Service\Pexels::search($item['en']) ?? \App\Service\Pexels::search($item['category']);
+                if ($img) {
+                    $this->repo->setImage($item['id'], $img);
+                }
             }
+        } catch (\Throwable $e) {
+            // imagem é opcional; segue sem ela
         }
 
         echo View::render('admin/generate', [
