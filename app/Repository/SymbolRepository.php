@@ -24,6 +24,72 @@ final class SymbolRepository
         return $stmt->fetchAll();
     }
 
+    /** Cards (href, h1, categoria, imagem) — base reutilizável. */
+    private function cards(string $where, array $params, string $lang, int $limit = 0, string $order = 'c.h1 ASC'): array
+    {
+        $lim = $limit > 0 ? ' LIMIT ' . (int) $limit : '';
+        $sql = "SELECT s.id, s.category, c.slug, c.h1, s.image_url
+                FROM symbols s
+                JOIN symbol_content c ON c.symbol_id = s.id AND c.lang = ?
+                WHERE s.status IN ('reviewed','published') $where
+                ORDER BY $order$lim";
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->execute(array_merge([$lang], $params));
+        return array_map(fn($r) => [
+            'href'  => "/$lang/{$r['slug']}",
+            'h1'    => $r['h1'],
+            'category' => $r['category'],
+            'image' => $r['image_url'] ?? null,
+        ], $stmt->fetchAll());
+    }
+
+    /** Artigos de uma categoria. */
+    public function listByCategory(string $lang, string $category, int $limit = 0): array
+    {
+        return $this->cards('AND s.category = ?', [$category], $lang, $limit);
+    }
+
+    /** Mais recentes. */
+    public function recent(string $lang, int $limit = 8): array
+    {
+        return $this->cards('', [], $lang, $limit, 's.updated_at DESC');
+    }
+
+    /** Outros artigos da mesma categoria (para o fim do artigo). */
+    public function relatedArticles(string $lang, string $category, string $excludeId, int $limit = 6): array
+    {
+        return $this->cards('AND s.category = ? AND s.id <> ?', [$category, $excludeId], $lang, $limit, 'RAND()');
+    }
+
+    /** Busca por palavra no título/keywords/resumo. */
+    public function search(string $lang, string $q, int $limit = 40): array
+    {
+        $like = '%' . $q . '%';
+        return $this->cards(
+            'AND (c.h1 LIKE ? OR c.title LIKE ? OR c.quick_answer LIKE ? OR c.semantic_keywords LIKE ?)',
+            [$like, $like, $like, $like],
+            $lang,
+            $limit
+        );
+    }
+
+    /** Contagem de artigos por categoria (para o índice). */
+    public function categoryCounts(string $lang): array
+    {
+        $sql = "SELECT s.category, COUNT(*) AS n
+                FROM symbols s
+                JOIN symbol_content c ON c.symbol_id = s.id AND c.lang = ?
+                WHERE s.status IN ('reviewed','published')
+                GROUP BY s.category";
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->execute([$lang]);
+        $out = [];
+        foreach ($stmt->fetchAll() as $r) {
+            $out[$r['category']] = (int) $r['n'];
+        }
+        return $out;
+    }
+
     /** Página pública por idioma + slug. Retorna null se não existir/for draft. */
     public function findBySlug(string $lang, string $slug): ?array
     {
