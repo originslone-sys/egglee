@@ -96,6 +96,9 @@ code { background:var(--violet-100); padding:.1rem .35rem; border-radius:5px; fo
 .auto-cron summary { cursor:pointer; font-weight:700; color:var(--violet); }
 .cron-cmd { display:block; background:var(--indigo-900); color:#e7e2ff; padding:.6rem .8rem; border-radius:8px; margin-top:.4rem; font-size:.82rem; overflow-x:auto; }
 
+.pager { display:flex; align-items:center; justify-content:center; gap:1rem; margin:1.4rem 0; }
+.pager-info { font-size:.9rem; color:var(--muted); font-weight:700; }
+
 .queue-panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem 1.1rem; box-shadow:0 6px 20px -14px rgba(42,35,99,.4); display:flex; flex-wrap:wrap; align-items:center; gap:.8rem 1.2rem; }
 .queue-stats { display:flex; gap:1.2rem; flex-wrap:wrap; }
 .qstat { font-size:.85rem; color:var(--muted); font-weight:700; }

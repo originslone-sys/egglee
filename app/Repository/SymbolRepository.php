@@ -141,16 +141,23 @@ final class SymbolRepository
 
     // ---------------- Admin ----------------
 
-    /** Todos os símbolos (qualquer status) para o painel. */
-    public function listAll(): array
+    /** Símbolos para o painel (paginado). */
+    public function listAll(int $limit = 50, int $offset = 0): array
     {
         $sql = 'SELECT s.id, s.category, s.status, s.updated_at,
                        MAX(CASE WHEN c.lang="pt" THEN c.h1 END) AS h1_pt
                 FROM symbols s
                 LEFT JOIN symbol_content c ON c.symbol_id = s.id
                 GROUP BY s.id, s.category, s.status, s.updated_at
-                ORDER BY FIELD(s.status,"draft","reviewed","published"), s.updated_at DESC';
+                ORDER BY FIELD(s.status,"draft","reviewed","published"), s.updated_at DESC
+                LIMIT ' . max(1, $limit) . ' OFFSET ' . max(0, $offset);
         return Database::pdo()->query($sql)->fetchAll();
+    }
+
+    /** Total de símbolos (para paginação). */
+    public function countAll(): int
+    {
+        return (int) Database::pdo()->query('SELECT COUNT(*) FROM symbols')->fetchColumn();
     }
 
     /** Mapa id => status de todos os símbolos já criados. */

@@ -40,10 +40,20 @@ $cats = array_keys($grouped);
       ? 'Artigos gerados entram <strong>publicados</strong> automaticamente.'
       : 'Artigos gerados ficam como <strong>rascunho</strong> — publique em Artigos.' ?>
   </p>
+  <p class="hint" style="margin:.5rem 0 0;">
+    <strong>Última execução automática:</strong>
+    <?php if (!empty($lastRun)): ?>
+      <?= e($lastRun['time'] ?? '?') ?> — <?= (int) ($lastRun['ok'] ?? 0) ?> gerado(s),
+      <?= (int) ($lastRun['failedRun'] ?? 0) ?> falha(s) [<?= e($lastRun['sapi'] ?? '') ?>]
+    <?php else: ?>
+      <span class="err">nunca rodou ainda</span> — o cron pode não estar disparando ou o PHP do cron é antigo (precisa 8.1+).
+    <?php endif; ?>
+  </p>
   <details class="auto-cron">
     <summary>Como ligar o cron (Hostinger)</summary>
-    <p class="hint" style="margin:.4rem 0 0;">hPanel → Cron Jobs → a cada 30 min (Minuto: <code>*/30</code>), comando:</p>
+    <p class="hint" style="margin:.4rem 0 0;">hPanel → Cron Jobs → a cada 10 min (Minuto: <code>*/10</code>), comando:</p>
     <code class="cron-cmd">/usr/bin/php /home/u740938289/public_html/scripts/worker.php 1</code>
+    <p class="hint" style="margin:.4rem 0 0;">Se "nunca rodou" persistir após o cron disparar, troque <code>/usr/bin/php</code> pelo PHP 8 (ex.: <code>/opt/alt/php82/usr/bin/php</code>).</p>
   </details>
   <?php if (!empty($failures)): ?>
     <details class="auto-cron">
