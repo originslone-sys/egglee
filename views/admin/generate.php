@@ -6,6 +6,59 @@ $cats = array_keys($grouped);
 ?>
 <div class="page-head"><h1>Gerador</h1></div>
 
+<?php $pct = $auto['total'] > 0 ? round($auto['generated'] / $auto['total'] * 100) : 0; ?>
+<div class="auto-panel">
+  <div class="auto-head">
+    <strong>Piloto automático</strong>
+    <span class="hint">Gera o próximo conceito do dicionário (sem repetir). Configure o cron a cada 10 min.</span>
+  </div>
+  <div class="auto-bar"><span style="width: <?= $pct ?>%"></span></div>
+  <div class="auto-stats">
+    <span><strong><?= (int) $auto['generated'] ?></strong>/<?= (int) $auto['total'] ?> prontos</span>
+    <span><strong><?= (int) $auto['remaining'] ?></strong> restantes</span>
+    <span class="err"><strong><?= (int) $auto['failed'] ?></strong> com falha</span>
+  </div>
+  <div class="auto-actions">
+    <form method="post" action="/admin/auto" class="inline">
+      <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+      <button class="btn btn-primary">Gerar próximo agora</button>
+    </form>
+    <form method="post" action="/admin/auto-publish" class="inline">
+      <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+      <input type="hidden" name="on" value="<?= !empty($autoPublish) ? '0' : '1' ?>">
+      <button class="btn btn-sm">Auto-publicar: <strong><?= !empty($autoPublish) ? 'LIGADO' : 'DESLIGADO' ?></strong> (clique p/ <?= !empty($autoPublish) ? 'desligar' : 'ligar' ?>)</button>
+    </form>
+    <?php if (($auto['failed'] ?? 0) > 0): ?>
+      <form method="post" action="/admin/auto-reset" class="inline">
+        <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+        <button class="btn btn-sm">Tentar falhas de novo</button>
+      </form>
+    <?php endif; ?>
+  </div>
+  <p class="hint" style="margin:.5rem 0 0;">
+    <?= !empty($autoPublish)
+      ? 'Artigos gerados entram <strong>publicados</strong> automaticamente.'
+      : 'Artigos gerados ficam como <strong>rascunho</strong> — publique em Artigos.' ?>
+  </p>
+  <details class="auto-cron">
+    <summary>Como ligar o cron (Hostinger)</summary>
+    <p class="hint" style="margin:.4rem 0 0;">hPanel → Cron Jobs → a cada 30 min (Minuto: <code>*/30</code>), comando:</p>
+    <code class="cron-cmd">/usr/bin/php /home/u740938289/public_html/scripts/worker.php 1</code>
+  </details>
+  <?php if (!empty($failures)): ?>
+    <details class="auto-cron">
+      <summary><?= count($failures) ?> falha(s) recente(s)</summary>
+      <ul class="hint" style="margin:.4rem 0 0; padding-left:1.1rem;">
+        <?php foreach ($failures as $f): ?>
+          <li><code><?= e($f['concept_id']) ?></code> (<?= (int) $f['attempts'] ?>x): <?= e(mb_substr((string) $f['error'], 0, 120)) ?></li>
+        <?php endforeach; ?>
+      </ul>
+    </details>
+  <?php endif; ?>
+</div>
+
+<h2 class="sub-h">Gerar um específico (manual)</h2>
+
 <form method="post" action="/admin/generate" class="gen-form">
   <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
 

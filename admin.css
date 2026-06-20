@@ -84,6 +84,18 @@ code { background:var(--violet-100); padding:.1rem .35rem; border-radius:5px; fo
 
 .sub-h { font-family:var(--font-head); color:var(--indigo-900); margin:1.6rem 0 .6rem; font-size:1.2rem; }
 
+.auto-panel { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:1.1rem 1.2rem; box-shadow:0 6px 20px -14px rgba(42,35,99,.4); margin-bottom:1.4rem; }
+.auto-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:.5rem 1rem; }
+.auto-head strong { font-size:1.05rem; color:var(--indigo-900); }
+.auto-bar { height:10px; border-radius:999px; background:#eceaf3; overflow:hidden; margin:.7rem 0 .5rem; }
+.auto-bar span { display:block; height:100%; background:linear-gradient(90deg, var(--violet), var(--yolk)); }
+.auto-stats { display:flex; gap:1.2rem; flex-wrap:wrap; font-size:.9rem; color:var(--muted); }
+.auto-stats .err strong { color:var(--err); }
+.auto-actions { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.9rem; }
+.auto-cron { margin-top:.7rem; font-size:.9rem; }
+.auto-cron summary { cursor:pointer; font-weight:700; color:var(--violet); }
+.cron-cmd { display:block; background:var(--indigo-900); color:#e7e2ff; padding:.6rem .8rem; border-radius:8px; margin-top:.4rem; font-size:.82rem; overflow-x:auto; }
+
 .queue-panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem 1.1rem; box-shadow:0 6px 20px -14px rgba(42,35,99,.4); display:flex; flex-wrap:wrap; align-items:center; gap:.8rem 1.2rem; }
 .queue-stats { display:flex; gap:1.2rem; flex-wrap:wrap; }
 .qstat { font-size:.85rem; color:var(--muted); font-weight:700; }
