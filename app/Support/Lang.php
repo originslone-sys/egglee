@@ -8,7 +8,8 @@ final class Lang
 {
     public const LANGS = ['pt', 'es', 'en'];
 
-    public const HREFLANG = ['pt' => 'pt-BR', 'es' => 'es-ES', 'en' => 'en-US'];
+    // hreflang por IDIOMA (sem país): alcança todos os falantes, não só BR/ES/US.
+    public const HREFLANG = ['pt' => 'pt', 'es' => 'es', 'en' => 'en'];
 
     /** Nomes de categoria por idioma (para breadcrumb). */
     public const CATEGORY_NAMES = [

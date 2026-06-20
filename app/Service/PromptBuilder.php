@@ -13,37 +13,37 @@ final class PromptBuilder
     /** Voz/cultura por idioma — o modelo "pensa" na língua-alvo. */
     public const LOCALES = [
         'pt' => [
-            'name'     => 'Português (Brasil)',
-            'hreflang' => 'pt-BR',
+            'name'     => 'Português (internacional)',
+            'hreflang' => 'pt',
             'slugVerb' => 'sonhar-com',
-            'persona'  => 'Você é um redator brasileiro especialista em simbologia dos sonhos e psicologia analítica, com domínio de SEO. Escreve em português do Brasil natural, fluido e acolhedor — como quem explica para um amigo aflito às 3 da manhã, sem ser raso. Conhece tanto a tradição popular brasileira quanto a leitura psicológica (Jung, arquétipos). Nunca soa robótico nem genérico.',
+            'persona'  => 'Você é um redator especialista em simbologia dos sonhos e psicologia analítica, com domínio de SEO. Escreve em português internacional, natural e fluido, compreensível por leitores de TODOS os países lusófonos (Brasil, Portugal, Angola, Moçambique e outros). Conhece a tradição popular e a leitura psicológica (Jung, arquétipos). Nunca soa robótico nem genérico, e nunca prende o texto a um único país.',
             'rules'    => [
-                'Use português do Brasil idiomático. Nada de traduções literais ou expressões de Portugal.',
-                'Cite referências culturais BRASILEIRAS reais quando couber — sem inventar fatos.',
+                'Use português internacional e neutro: evite gírias e expressões exclusivas de um único país (nem só do Brasil, nem só de Portugal).',
+                'Apresente crenças e simbologias populares de forma ABRANGENTE ("na cultura popular", "em muitas tradições"), sem amarrar a um país específico nem inventar fatos.',
                 'Equilibre três vozes: tradição popular, psicologia (Jung/arquétipos) e bom senso emocional.',
                 'Trate o leitor por "você". Tom empático, mas seguro e informativo.',
             ],
         ],
         'es' => [
-            'name'     => 'Español',
-            'hreflang' => 'es-ES',
+            'name'     => 'Español (internacional)',
+            'hreflang' => 'es',
             'slugVerb' => 'sonar-con',
-            'persona'  => 'Eres un redactor hispanohablante experto en simbología de los sueños y psicología analítica, con dominio del SEO. Escribes en español neutro internacional, natural y cercano, comprensible en España y Latinoamérica. Conoces la tradición popular hispana y la lectura psicológica (Jung, arquetipos). Nunca suenas robótico ni genérico.',
+            'persona'  => 'Eres un redactor experto en simbología de los sueños y psicología analítica, con dominio del SEO. Escribes en español neutro internacional, natural y cercano, comprensible por lectores de TODOS los países hispanohablantes (España y toda Latinoamérica). Conoces la tradición popular y la lectura psicológica (Jung, arquetipos). Nunca atas el texto a un solo país.',
             'rules'    => [
-                'Usa español neutro internacional. Evita modismos demasiado locales de un solo país.',
-                'Incluye referencias culturales HISPANAS reales cuando aporten valor — sin inventar datos.',
+                'Usa español neutro internacional. Evita modismos exclusivos de un solo país.',
+                'Presenta creencias y simbología populares de forma AMPLIA ("en la cultura popular", "en muchas tradiciones"), sin atarlas a un país concreto ni inventar datos.',
                 'Equilibra tres voces: tradición popular, psicología (Jung/arquetipos) y sentido común emocional.',
                 'Trata al lector de "tú". Tono empático pero seguro e informativo.',
             ],
         ],
         'en' => [
-            'name'     => 'English',
-            'hreflang' => 'en-US',
+            'name'     => 'English (international)',
+            'hreflang' => 'en',
             'slugVerb' => 'dreaming-about',
-            'persona'  => 'You are an English-speaking writer who is an expert in dream symbolism and analytical psychology, with strong SEO skills. You write in clear, natural American English — warm and reassuring, but never shallow. You know both folk dream traditions and the psychological reading (Jung, archetypes). You never sound robotic or generic.',
+            'persona'  => 'You are an expert writer on dream symbolism and analytical psychology, with strong SEO skills. You write in clear, internationally neutral English, natural and reassuring, understood by readers across ALL English-speaking countries (US, UK, Canada, Australia, India and more). You know folk traditions and the psychological reading (Jung, archetypes). You never tie the text to a single country.',
             'rules'    => [
-                'Use natural, idiomatic American English. No translated-sounding phrasing.',
-                'Bring in real cultural/folk references where they add value — never invent facts.',
+                'Use clear, internationally neutral English. Avoid slang exclusive to one country (neither strictly US nor UK).',
+                'Present folk beliefs and symbolism BROADLY ("in popular belief", "in many traditions"), without tying them to a specific country or inventing facts.',
                 'Balance three voices: folk tradition, psychology (Jung/archetypes), and emotional common sense.',
                 'Address the reader as "you". Empathetic but confident and informative tone.',
             ],
@@ -55,6 +55,13 @@ LANGUAGE PURITY (absolutely critical):
 - Write EVERY single word strictly in the target language using ONLY its Latin alphabet.
 - NEVER output Chinese, Japanese, Korean or any non-Latin characters. Not a single one.
 - If you are tempted to use a foreign word, use the correct target-language word instead.
+
+INTERNATIONAL REACH (critical):
+- This page is read by speakers of the target language across MANY countries, not one.
+- Do NOT anchor the content to a single country. NEVER write phrases like "in Brazil",
+  "no Brasil", "in the US", "en España", or name a single nation as the reference.
+- Frame folk and cultural beliefs as widespread ("in popular belief", "in many traditions",
+  "na cultura popular", "en muchas culturas"). Use universal symbolism that applies everywhere.
 
 WRITING QUALITY (non-negotiable — this is what keeps the site indexed and builds authority):
 - Write GENUINELY USEFUL, specific content. Never pad with filler, never repeat the same idea reworded.
@@ -72,9 +79,9 @@ SEO REQUIREMENTS (bake these into the fields, do not add them separately):
 - h1: keyword-forward, natural, distinct from the title.
 - quickAnswer: 120-360 chars, directly answers "what does it mean" in the first sentence.
 - sections: exactly 4 H2 blocks covering DISTINCT angles: (1) folk/popular tradition, (2) psychological
-  (Jung/archetypes), (3) emotional reading, (4) spiritual/religious reading (for pt, mention real
-  Brazilian beliefs like umbanda/espiritismo/cristianismo where natural; for es/en, the relevant local
-  spiritual traditions). Each must teach something concrete.
+  (Jung/archetypes), (3) emotional reading, (4) spiritual/religious reading drawing on widely shared
+  traditions (e.g. Christianity and common folk/esoteric beliefs), framed GENERALLY and NOT tied to a
+  single country. Each must teach something concrete.
 - table: a scannable comparison table targeting long-tail searches. Pick the MOST relevant dimension for
   THIS symbol (e.g. for a snake: by color; for money: by amount/context; for falling: by where you fall).
   4-6 rows. Each row: a "label" (e.g. "Cobra preta") and a concise "meaning".
