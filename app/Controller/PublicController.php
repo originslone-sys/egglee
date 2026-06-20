@@ -49,15 +49,22 @@ final class PublicController
         $canonical = "/$lang/{$c['slug']}";
         $siteUrl = rtrim((string) (\App\Core\Env::get('SITE_URL', '')), '/');
 
+        $image = !empty($c['image_url']) ? (string) $c['image_url'] : null;
+
+        $articleSchema = [
+            '@context' => 'https://schema.org',
+            '@type'    => 'Article',
+            'headline' => $c['h1'],
+            'description' => $c['meta_description'],
+            'inLanguage'  => $lang,
+            'mainEntityOfPage' => $siteUrl . $canonical,
+        ];
+        if ($image) {
+            $articleSchema['image'] = $image;
+        }
+
         $jsonLd = [
-            [
-                '@context' => 'https://schema.org',
-                '@type'    => 'Article',
-                'headline' => $c['h1'],
-                'description' => $c['meta_description'],
-                'inLanguage'  => $lang,
-                'mainEntityOfPage' => $siteUrl . $canonical,
-            ],
+            $articleSchema,
             [
                 '@context' => 'https://schema.org',
                 '@type'    => 'FAQPage',
@@ -86,6 +93,7 @@ final class PublicController
             'description'=> $c['meta_description'],
             'canonical'  => $canonical,
             'jsonLd'     => $jsonLd,
+            'image'      => $image,
         ], 'public/layout');
     }
 

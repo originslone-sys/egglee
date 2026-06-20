@@ -40,6 +40,17 @@ $models = [
 </table>
 
 <div class="queue-panel" style="display:block; margin-top:1rem;">
+  <strong>Imagens (Pexels)</strong> —
+  <?= !empty($pexels) ? '<span class="badge b-pub">chave configurada</span>' : '<span class="badge b-err">sem chave</span>' ?>
+  <form method="post" action="/admin/set-pexels" style="display:flex; gap:.5rem; margin-top:.5rem; flex-wrap:wrap;">
+    <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+    <input type="password" name="pexels_key" placeholder="Cole a chave da API do Pexels" style="flex:1; min-width:220px;" autocomplete="off">
+    <button class="btn btn-primary">Salvar chave</button>
+  </form>
+  <p class="hint" style="margin:.3rem 0 0;">Crie grátis em pexels.com/api. Cada artigo gerado busca 1 foto pelo conceito.</p>
+</div>
+
+<div class="queue-panel" style="display:block; margin-top:1rem;">
   <strong>Geração real (1 idioma, com cronômetro)</strong> — mede quanto uma geração de verdade leva.
   <div style="margin-top:.5rem;">
     <a class="btn btn-pub" href="/admin/diagnose?gen=1">Testar geração real (pode levar ~30-60s)</a>

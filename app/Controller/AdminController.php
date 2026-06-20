@@ -101,6 +101,14 @@ final class AdminController
             }
         }
 
+        // Imagem (Pexels) — busca uma vez se o símbolo ainda não tiver.
+        if (\App\Service\Pexels::enabled() && !$this->repo->imageUrl($item['id'])) {
+            $img = \App\Service\Pexels::search($item['en']) ?? \App\Service\Pexels::search($item['category']);
+            if ($img) {
+                $this->repo->setImage($item['id'], $img);
+            }
+        }
+
         echo View::render('admin/generate', [
             'grouped'  => Dictionary::grouped(),
             'results'  => $results,
@@ -121,6 +129,7 @@ final class AdminController
         echo View::render('admin/diagnose', [
             'result'  => DeepSeek::diagnose(),
             'genTest' => $genTest,
+            'pexels'  => \App\Service\Pexels::enabled(),
             'csrf'    => Auth::csrf(),
             'flash'   => $_GET['flash'] ?? null,
             'error'   => $_GET['error'] ?? null,
@@ -142,6 +151,20 @@ final class AdminController
         $ok = \App\Core\EnvFile::set(dirname(__DIR__, 2), 'DEEPSEEK_MODEL', $model);
         $this->redirect('/admin/diagnose?' . ($ok
             ? 'flash=' . rawurlencode("Modelo alterado para $model.")
+            : 'error=' . rawurlencode('Não consegui gravar o .env (permissão).')));
+    }
+
+    // ---------- salvar a chave do Pexels (grava no .env) ----------
+    public function setPexels(): void
+    {
+        Auth::require();
+        if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
+            $this->redirect('/admin/diagnose?error=' . rawurlencode('Token inválido.'));
+        }
+        $key = trim($_POST['pexels_key'] ?? '');
+        $ok = \App\Core\EnvFile::set(dirname(__DIR__, 2), 'PEXELS_API_KEY', $key);
+        $this->redirect('/admin/diagnose?' . ($ok
+            ? 'flash=' . rawurlencode('Chave do Pexels salva.')
             : 'error=' . rawurlencode('Não consegui gravar o .env (permissão).')));
     }
 

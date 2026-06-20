@@ -9,6 +9,10 @@ final class Migrate
     public static function ensure(): void
     {
         self::addColumnIfMissing('symbol_content', 'table_data', 'JSON NULL AFTER `closing`');
+        self::addColumnIfMissing('symbols', 'image_url', 'VARCHAR(500) NULL');
+        self::addColumnIfMissing('symbols', 'image_photographer', 'VARCHAR(190) NULL');
+        self::addColumnIfMissing('symbols', 'image_photographer_url', 'VARCHAR(500) NULL');
+        self::addColumnIfMissing('symbols', 'image_page', 'VARCHAR(500) NULL');
     }
 
     private static function addColumnIfMissing(string $table, string $column, string $definition): void

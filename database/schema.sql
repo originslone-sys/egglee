@@ -21,6 +21,10 @@ CREATE TABLE IF NOT EXISTS `symbols` (
   `related`      JSON         NULL,                     -- ["spider","rat"]
   `status`       ENUM('draft','reviewed','published') NOT NULL DEFAULT 'draft',
   `model`        VARCHAR(64)  NULL,
+  `image_url`              VARCHAR(500) NULL,
+  `image_photographer`     VARCHAR(190) NULL,
+  `image_photographer_url` VARCHAR(500) NULL,
+  `image_page`             VARCHAR(500) NULL,
   `generated_at` DATETIME     NULL,
   `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
