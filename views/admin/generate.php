@@ -71,15 +71,14 @@ $cats = array_keys($grouped);
   </p>
   <details class="auto-cron" open>
     <summary>Como ligar o cron (Hostinger) — e diagnosticar</summary>
-    <p class="hint" style="margin:.4rem 0 0;">hPanel → Cron Jobs → a cada 10 min (Minuto: <code>*/10</code>). Use ESTE comando (caminho real do seu servidor, já preenchido):</p>
-    <code class="cron-cmd">/usr/bin/php <?= e($projectDir ?? '') ?>/scripts/worker.php 1 &gt;&gt; <?= e($projectDir ?? '') ?>/database/worker-cron.log 2&gt;&amp;1</code>
-    <p class="hint" style="margin:.5rem 0 0;">Depois do cron disparar, abra <code>database/worker-cron.log</code> no Gerenciador de Arquivos. O que aparecer diz a causa:</p>
-    <ul class="hint" style="margin:.3rem 0 0; padding-left:1.1rem;">
-      <li><strong>Arquivo vazio / não existe</strong> → o cron não disparou ou o caminho do PHP está errado. Tente <code>/opt/alt/php82/usr/bin/php</code> ou só <code>php</code>.</li>
-      <li><strong>"requer PHP 8.1+"</strong> → o cron usa PHP antigo; troque o binário.</li>
-      <li><strong>"DEEPSEEK_API_KEY nao configurada"</strong> → preencha a chave no Diagnóstico.</li>
-      <li><strong>"auto: 1 gerado(s)"</strong> → funcionando! 🎉</li>
-    </ul>
+    <p class="hint" style="margin:.4rem 0 0;">hPanel → Cron Jobs → a cada 10 min (Minuto: <code>*/10</code>). Comando (caminho real do seu servidor, já preenchido):</p>
+    <code class="cron-cmd">/usr/bin/php <?= e($projectDir ?? '') ?>/scripts/worker.php 1</code>
+    <p class="hint" style="margin:.6rem 0 0;">Pronto. O resultado aparece em "Ver resultado" no hPanel e na linha <strong>"Última execução"</strong> aqui em cima.</p>
+    <details style="margin-top:.5rem;">
+      <summary class="hint" style="cursor:pointer;">Versão com log em arquivo (opcional, p/ diagnóstico)</summary>
+      <code class="cron-cmd" style="margin-top:.4rem;">/usr/bin/php <?= e($projectDir ?? '') ?>/scripts/worker.php 1 &gt;&gt; <?= e($projectDir ?? '') ?>/database/worker-cron.log 2&gt;&amp;1</code>
+      <p class="hint" style="margin:.3rem 0 0;">Lê o arquivo <code>database/worker-cron.log</code> no Gerenciador. Vazio = cron/PHP; "PHP 8.1+" = binário; "DEEPSEEK_API_KEY" = chave; "auto: 1 gerado" = ok.</p>
+    </details>
   </details>
   <?php if (!empty($failures)): ?>
     <details class="auto-cron">
