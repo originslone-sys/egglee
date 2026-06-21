@@ -40,6 +40,16 @@ Env::load("$root/.env");
     'time' => date('c'), 'sapi' => PHP_SAPI, 'php' => PHP_VERSION, 'ok' => 0, 'failedRun' => 0,
 ]));
 
+// Interruptor de pausa (controlado pelo painel). O cron segue disparando,
+// mas a automação não gera nada quando desligada.
+if (Env::get('CRON_ENABLED', '1') === '0') {
+    @file_put_contents("$root/database/last-run.json", json_encode([
+        'time' => date('c'), 'sapi' => PHP_SAPI, 'php' => PHP_VERSION, 'ok' => 0, 'failedRun' => 0, 'paused' => true,
+    ]));
+    echo date('c') . " auto: pausado (automacao desligada no painel).\n";
+    exit(0);
+}
+
 if (!Env::get('DEEPSEEK_API_KEY')) {
     fwrite(STDERR, "egglee: DEEPSEEK_API_KEY nao configurada no .env — nada a gerar.\n");
     exit(1);
