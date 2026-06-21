@@ -72,6 +72,7 @@ final class AdminController
             'symbolId' => null,
             'auto'     => (new \App\Service\AutoGenerator())->progress(),
             'autoPublish' => \App\Core\Env::get('AUTO_PUBLISH', '1') !== '0',
+            'cronEnabled' => \App\Core\Env::get('CRON_ENABLED', '1') !== '0',
             'lastRun'  => @json_decode((string) @file_get_contents(dirname(__DIR__, 2) . '/database/last-run.json'), true) ?: null,
             'failures' => \App\Repository\AutoStatus::failures(10),
             'projectDir' => dirname(__DIR__, 2),
@@ -100,6 +101,7 @@ final class AdminController
             'symbolId' => null,
             'auto'     => $gen->progress(),
             'autoPublish' => \App\Core\Env::get('AUTO_PUBLISH', '1') !== '0',
+            'cronEnabled' => \App\Core\Env::get('CRON_ENABLED', '1') !== '0',
             'lastRun'  => @json_decode((string) @file_get_contents(dirname(__DIR__, 2) . '/database/last-run.json'), true) ?: null,
             'failures' => \App\Repository\AutoStatus::failures(10),
             'projectDir' => dirname(__DIR__, 2),
@@ -109,6 +111,21 @@ final class AdminController
             'flash'    => "Execução: {$r['ok']} gerado(s), {$r['failedRun']} falha(s).",
             'error'    => null,
         ], 'admin/layout');
+    }
+
+    // ---------- Automação: ligar/desligar a geração automática (cron) ----------
+    public function cronToggle(): void
+    {
+        Auth::require();
+        if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
+            $this->redirect('/admin/generate?error=' . rawurlencode('Token inválido.'));
+        }
+        $on = ($_POST['on'] ?? '1') === '1';
+        \App\Core\EnvFile::set(dirname(__DIR__, 2), 'CRON_ENABLED', $on ? '1' : '0');
+        $this->redirect('/admin/generate?flash=' . rawurlencode(
+            $on ? 'Automação LIGADA: o cron volta a gerar a cada execução.'
+                : 'Automação PAUSADA: o cron continua disparando, mas não gera nada.'
+        ));
     }
 
     // ---------- Automação: ligar/desligar auto-publicação ----------

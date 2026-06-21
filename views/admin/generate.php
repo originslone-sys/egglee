@@ -43,6 +43,11 @@ $cats = array_keys($grouped);
       <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
       <button class="btn btn-primary">Gerar próximo agora</button>
     </form>
+    <form method="post" action="/admin/cron-toggle" class="inline">
+      <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+      <input type="hidden" name="on" value="<?= !empty($cronEnabled) ? '0' : '1' ?>">
+      <button class="btn btn-sm <?= !empty($cronEnabled) ? 'btn-pub' : '' ?>">Automação (cron): <strong><?= !empty($cronEnabled) ? 'LIGADA' : 'PAUSADA' ?></strong> (clique p/ <?= !empty($cronEnabled) ? 'pausar' : 'ligar' ?>)</button>
+    </form>
     <form method="post" action="/admin/auto-publish" class="inline">
       <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
       <input type="hidden" name="on" value="<?= !empty($autoPublish) ? '0' : '1' ?>">
