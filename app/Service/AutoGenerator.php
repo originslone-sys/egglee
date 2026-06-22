@@ -74,6 +74,19 @@ final class AutoGenerator
             }
         }
 
+        // Frescor automático: "toca" a data de alguns artigos publicados antigos a
+        // cada execução, para o site nunca exibir datas muito desatualizadas.
+        $refreshed = 0;
+        try {
+            $refreshed = $this->repo->refreshStaleDates(30, 2);
+        } catch (\Throwable) {
+        }
+
+        // Conteúdo público mudou? Invalida o cache de página inteira.
+        if ($ok > 0 || $refreshed > 0) {
+            \App\Core\PageCache::clear();
+        }
+
         $result = array_merge(['ok' => $ok, 'failedRun' => $failed], $this->progress());
 
         // Heartbeat: registra a última execução (o painel mostra; revela se o cron roda).

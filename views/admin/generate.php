@@ -97,6 +97,22 @@ $cats = array_keys($grouped);
   <?php endif; ?>
 </div>
 
+<div class="auto-panel" style="margin-top:1rem;">
+  <div class="auto-head">
+    <strong>Atualizar datas dos artigos</strong>
+    <span class="hint">Renova a data "Atualizado em" dos artigos publicados mais antigos, para o site nunca exibir conteúdo com data muito velha.</span>
+  </div>
+  <form method="post" action="/admin/refresh-dates" class="inline" style="margin-top:.6rem; align-items:center; gap:.5rem; display:flex; flex-wrap:wrap;">
+    <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+    <label class="hint" style="display:flex; align-items:center; gap:.4rem;">
+      Mais antigos que
+      <input type="number" name="days" value="30" min="0" max="3650" style="width:5rem;"> dia(s)
+    </label>
+    <button class="btn btn-primary btn-sm">Atualizar datas agora</button>
+  </form>
+  <p class="hint" style="margin:.5rem 0 0;">O piloto automático já renova algumas datas a cada execução do cron — este botão é para forçar manualmente.</p>
+</div>
+
 <h2 class="sub-h">Gerar um específico (manual)</h2>
 
 <form method="post" action="/admin/generate" class="gen-form">

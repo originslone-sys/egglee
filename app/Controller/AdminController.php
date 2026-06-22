@@ -201,6 +201,8 @@ final class AdminController
             // imagem é opcional; segue sem ela
         }
 
+        \App\Core\PageCache::clear();
+
         echo View::render('admin/generate', [
             'grouped'  => Dictionary::grouped(),
             'results'  => $results,
@@ -246,6 +248,7 @@ final class AdminController
         \App\Core\EnvFile::set($root, 'CONTACT_EMAIL', trim($_POST['contact'] ?? ''));
         \App\Core\EnvFile::set($root, 'GA_ID', trim($_POST['ga_id'] ?? ''));
         \App\Core\EnvFile::set($root, 'GSC_VERIFICATION', trim($_POST['gsc_verify'] ?? ''));
+        \App\Core\PageCache::clear(); // anúncios/Analytics/verificação afetam o HTML cacheado
         $this->redirect('/admin/diagnose?flash=' . rawurlencode('Configurações salvas.'));
     }
 
@@ -295,6 +298,7 @@ final class AdminController
 
         if ($op === 'remove') {
             $this->repo->setImage($id, ['url' => null, 'photographer' => null, 'photographer_url' => null, 'page' => null]);
+            \App\Core\PageCache::clear();
             $this->redirect($back . '&flash=' . rawurlencode('Imagem removida.'));
         }
 
@@ -312,6 +316,7 @@ final class AdminController
             $this->redirect($back . '&error=' . rawurlencode('Nenhuma imagem encontrada para "' . $query . '".'));
         }
         $this->repo->setImage($id, $img);
+        \App\Core\PageCache::clear();
         $this->redirect($back . '&flash=' . rawurlencode('Imagem atualizada.'));
     }
 
@@ -325,6 +330,7 @@ final class AdminController
         $id = $_POST['id'] ?? '';
         if ($id !== '') {
             $this->repo->delete($id);
+            \App\Core\PageCache::clear();
         }
         $this->redirect('/admin/articles?flash=' . rawurlencode("Símbolo \"$id\" excluído."));
     }
@@ -385,6 +391,7 @@ final class AdminController
         } catch (\Throwable $e) {
             $this->redirect("/admin/edit?id=$id&error=" . rawurlencode('Erro ao salvar: ' . $e->getMessage()));
         }
+        \App\Core\PageCache::clear();
         $this->redirect("/admin/edit?id=$id&flash=" . rawurlencode('Salvo.'));
     }
 
@@ -400,8 +407,26 @@ final class AdminController
             $status = 'draft';
         }
         $this->repo->setStatus($id, $status);
+        \App\Core\PageCache::clear();
         $back = $_POST['back'] ?? '/admin/articles';
         $this->redirect($back . (str_contains($back, '?') ? '&' : '?') . 'flash=' . rawurlencode("Status: $status"));
+    }
+
+    // ---------- atualizar a data ("atualizado em") dos artigos ----------
+    public function refreshDates(): void
+    {
+        Auth::require();
+        if (!Auth::checkCsrf($_POST['csrf'] ?? null)) {
+            $this->redirect('/admin/generate?error=' . rawurlencode('Token inválido.'));
+        }
+        $days = max(0, (int) ($_POST['days'] ?? 30));
+        $n = $this->repo->refreshStaleDates($days, 1000);
+        \App\Core\PageCache::clear();
+        $this->redirect('/admin/generate?flash=' . rawurlencode(
+            $n > 0
+                ? "Datas atualizadas em $n artigo(s) com mais de $days dia(s)."
+                : 'Nenhum artigo estava desatualizado.'
+        ));
     }
 
     // ---------- helpers ----------

@@ -123,6 +123,11 @@ final class PublicController
         if ($image) {
             $articleSchema['image'] = $image;
         }
+        if (!empty($c['updated_at'])) {
+            $iso = date('c', strtotime((string) $c['updated_at']));
+            $articleSchema['dateModified'] = $iso;
+            $articleSchema['datePublished'] = $iso;
+        }
 
         $jsonLd = [
             $articleSchema,

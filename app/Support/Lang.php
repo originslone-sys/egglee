@@ -97,6 +97,7 @@ final class Lang
             'readArticle'   => 'Ler interpretação',
             'inCategory'    => 'Veja mais em',
             'articlesIn'    => 'Sonhos sobre',
+            'updatedOn'     => 'Atualizado em',
             'cookieMsg'     => 'Usamos cookies para melhorar sua experiência e exibir anúncios. Você aceita?',
             'cookieAccept'  => 'Aceitar',
             'cookieReject'  => 'Recusar',
@@ -124,6 +125,7 @@ final class Lang
             'readArticle'   => 'Ver interpretación',
             'inCategory'    => 'Ver más en',
             'articlesIn'    => 'Sueños sobre',
+            'updatedOn'     => 'Actualizado el',
             'cookieMsg'     => 'Usamos cookies para mejorar tu experiencia y mostrar anuncios. ¿Aceptas?',
             'cookieAccept'  => 'Aceptar',
             'cookieReject'  => 'Rechazar',
@@ -151,6 +153,7 @@ final class Lang
             'readArticle'   => 'Read interpretation',
             'inCategory'    => 'See more in',
             'articlesIn'    => 'Dreams about',
+            'updatedOn'     => 'Updated on',
             'cookieMsg'     => 'We use cookies to improve your experience and show ads. Do you accept?',
             'cookieAccept'  => 'Accept',
             'cookieReject'  => 'Reject',
@@ -167,5 +170,25 @@ final class Lang
     public static function ui(string $lang, string $key): string
     {
         return self::UI[$lang][$key] ?? '';
+    }
+
+    /** Nomes dos meses por idioma (1-based), para datas sem depender de locale do servidor. */
+    private const MONTHS = [
+        'pt' => ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'],
+        'es' => ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+        'en' => ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    ];
+
+    /** Data por extenso no idioma dado (ex.: "22 de junho de 2026" / "June 22, 2026"). */
+    public static function formatDate(string $lang, string $datetime): string
+    {
+        $ts = strtotime($datetime);
+        if ($ts === false) {
+            return '';
+        }
+        $d = (int) date('j', $ts);
+        $m = self::MONTHS[$lang][(int) date('n', $ts)] ?? '';
+        $y = date('Y', $ts);
+        return $lang === 'en' ? "$m $d, $y" : "$d de $m de $y";
     }
 }

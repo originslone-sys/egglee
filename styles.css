@@ -100,6 +100,8 @@ h1, h2, h3 { font-family: var(--font-head); font-weight: 600; line-height: 1.18;
 .breadcrumbs { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.4rem; }
 .breadcrumbs a { color: var(--muted); }
 
+.article-meta { font-size: 0.82rem; color: var(--muted); margin: 0.1rem 0 0.2rem; }
+
 .article-hero { margin: 1rem 0 0; }
 .article-hero img { width: 100%; height: auto; aspect-ratio: 940 / 600; object-fit: cover; border-radius: 14px; box-shadow: var(--shadow); display: block; }
 .article-hero figcaption { font-size: 0.78rem; color: var(--muted); margin-top: 0.4rem; text-align: right; }
