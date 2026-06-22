@@ -98,6 +98,7 @@ final class Lang
             'inCategory'    => 'Veja mais em',
             'articlesIn'    => 'Sonhos sobre',
             'updatedOn'     => 'Atualizado em',
+            'imageAlt'      => 'Imagem ilustrativa sobre o significado de',
             'cookieMsg'     => 'Usamos cookies para melhorar sua experiência e exibir anúncios. Você aceita?',
             'cookieAccept'  => 'Aceitar',
             'cookieReject'  => 'Recusar',
@@ -126,6 +127,7 @@ final class Lang
             'inCategory'    => 'Ver más en',
             'articlesIn'    => 'Sueños sobre',
             'updatedOn'     => 'Actualizado el',
+            'imageAlt'      => 'Imagen ilustrativa sobre el significado de',
             'cookieMsg'     => 'Usamos cookies para mejorar tu experiencia y mostrar anuncios. ¿Aceptas?',
             'cookieAccept'  => 'Aceptar',
             'cookieReject'  => 'Rechazar',
@@ -154,6 +156,7 @@ final class Lang
             'inCategory'    => 'See more in',
             'articlesIn'    => 'Dreams about',
             'updatedOn'     => 'Updated on',
+            'imageAlt'      => 'Illustrative image about the meaning of',
             'cookieMsg'     => 'We use cookies to improve your experience and show ads. Do you accept?',
             'cookieAccept'  => 'Accept',
             'cookieReject'  => 'Reject',
@@ -190,5 +193,18 @@ final class Lang
         $m = self::MONTHS[$lang][(int) date('n', $ts)] ?? '';
         $y = date('Y', $ts);
         return $lang === 'en' ? "$m $d, $y" : "$d de $m de $y";
+    }
+
+    /** Texto alternativo descritivo da imagem do artigo (acessibilidade e SEO). */
+    public static function imageAlt(string $lang, string $h1): string
+    {
+        $h1 = trim($h1);
+        $prefix = self::UI[$lang]['imageAlt'] ?? '';
+        if ($h1 === '') {
+            return $prefix;
+        }
+        // Minúscula na 1ª letra para a frase fluir ("...significado de sonhar com cobra").
+        $h1 = mb_strtolower(mb_substr($h1, 0, 1)) . mb_substr($h1, 1);
+        return trim("$prefix $h1");
     }
 }

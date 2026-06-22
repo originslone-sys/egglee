@@ -24,7 +24,7 @@ use function App\Core\e;
 
   <?php if (!empty($c['image_url'])): ?>
     <figure class="article-hero">
-      <img src="<?= e($c['image_url']) ?>" alt="<?= e($c['h1']) ?>" loading="eager" width="940" height="600">
+      <img src="<?= e($c['image_url']) ?>" alt="<?= e(Lang::imageAlt($lang, (string) $c['h1'])) ?>" loading="eager" width="940" height="600">
       <?php if (!empty($c['image_photographer'])): ?>
         <figcaption>Foto: <a href="<?= e($c['image_photographer_url']) ?>" rel="nofollow noopener" target="_blank"><?= e($c['image_photographer']) ?></a> / <a href="https://www.pexels.com" rel="nofollow noopener" target="_blank">Pexels</a></figcaption>
       <?php endif; ?>
