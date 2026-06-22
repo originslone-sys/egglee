@@ -182,6 +182,31 @@ final class PublicController
         echo "Sitemap: $siteUrl/sitemap.xml\n";
     }
 
+    public function page(string $lang, string $key): void
+    {
+        if (!Lang::isValid($lang)) {
+            $this->notFound();
+            return;
+        }
+        $email = \App\Core\Env::get('CONTACT_EMAIL', 'contato@egglee.com');
+        $siteHost = preg_replace('#^https?://#', '', rtrim((string) \App\Core\Env::get('SITE_URL', 'egglee.com'), '/'));
+        $alternates = [];
+        foreach (Lang::LANGS as $l) {
+            $alternates[$l] = \App\Support\Pages::url($l, $key);
+        }
+        echo View::render('public/page', [
+            'lang'       => $lang,
+            'pageTitle'  => \App\Support\Pages::title($lang, $key),
+            'bodyHtml'   => \App\Support\Pages::body($lang, $key, $email, $siteHost),
+            'alternates' => $alternates,
+            'title'      => \App\Support\Pages::title($lang, $key) . ' — egglee',
+            'description'=> \App\Support\Pages::title($lang, $key) . ' — egglee.',
+            'canonical'  => \App\Support\Pages::url($lang, $key),
+            'jsonLd'     => [],
+            'image'      => null,
+        ], 'public/layout');
+    }
+
     public function sitemap(): void
     {
         $siteUrl = rtrim((string) (\App\Core\Env::get('SITE_URL', '')), '/');
@@ -189,6 +214,9 @@ final class PublicController
         $urls = [];
         foreach (Lang::LANGS as $lang) {
             $urls[] = "$siteUrl/$lang";
+            foreach (['about', 'privacy', 'cookies', 'terms', 'contact'] as $pk) {
+                $urls[] = $siteUrl . \App\Support\Pages::url($lang, $pk);
+            }
             foreach ($this->repo->listLive($lang) as $it) {
                 $urls[] = "$siteUrl/$lang/{$it['slug']}";
             }

@@ -32,6 +32,8 @@ use function App\Core\e;
     <p><?= e($p) ?></p>
   <?php endforeach; ?>
 
+  <?php include __DIR__ . '/partials/ad.php'; /* anúncio no meio do conteúdo */ ?>
+
   <?php foreach (($c['sections'] ?? []) as $s): ?>
     <section>
       <h2><?= e($s['heading'] ?? '') ?></h2>

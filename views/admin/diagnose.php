@@ -51,6 +51,18 @@ $models = [
 </div>
 
 <div class="queue-panel" style="display:block; margin-top:1rem;">
+  <strong>Monetização e contato</strong>
+  <form method="post" action="/admin/set-monetize" style="display:grid; gap:.5rem; margin-top:.5rem; max-width:520px;">
+    <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+    <label class="hint">AdSense Client (ca-pub-...) <input name="adsense" value="<?= e($adsense ?? '') ?>" placeholder="ca-pub-XXXXXXXXXXXXXXXX"></label>
+    <label class="hint">AdSense Slot (opcional, p/ anúncio no meio do artigo) <input name="adslot" value="<?= e($adslot ?? '') ?>" placeholder="1234567890"></label>
+    <label class="hint">E-mail de contato (aparece nas páginas legais) <input name="contact" value="<?= e($contact ?? '') ?>" placeholder="contato@egglee.com"></label>
+    <button class="btn btn-primary">Salvar</button>
+  </form>
+  <p class="hint" style="margin:.4rem 0 0;">Só com o AdSense Client preenchido E o visitante aceitando os cookies os anúncios carregam. O "Slot" é opcional (sem ele, ative o <em>Auto Ads</em> no painel do AdSense).</p>
+</div>
+
+<div class="queue-panel" style="display:block; margin-top:1rem;">
   <strong>Geração real (1 idioma, com cronômetro)</strong> — mede quanto uma geração de verdade leva.
   <div style="margin-top:.5rem;">
     <a class="btn btn-pub" href="/admin/diagnose?gen=1">Testar geração real (pode levar ~30-60s)</a>

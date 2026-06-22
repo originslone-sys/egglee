@@ -86,6 +86,7 @@ try {
             $path === '/admin/articles'                   => $admin->articles(),
             $path === '/admin/diagnose'                   => $admin->diagnose(),
             $path === '/admin/set-model' && $method==='POST'=> $admin->setModel(),
+            $path === '/admin/set-monetize' && $method==='POST'=> $admin->setMonetize(),
             $path === '/admin/set-pexels' && $method==='POST'=> $admin->setPexels(),
             $path === '/admin/delete' && $method==='POST' => $admin->deleteSymbol(),
             $path === '/admin/image' && $method==='POST' => $admin->image(),
@@ -115,6 +116,11 @@ try {
             exit;
         }
         if ($n === 2) {
+            $pageKey = \App\Support\Pages::keyFromSlug($lang, $segments[1]);
+            if ($pageKey !== null) {
+                $pub->page($lang, $pageKey);
+                exit;
+            }
             $pub->article($lang, $segments[1]);
             exit;
         }
