@@ -9,11 +9,14 @@ $hl = Lang::HREFLANG;
 $adsClient = Env::get('ADSENSE_CLIENT'); // ex.: ca-pub-XXXXXXXXXXXXXXXX
 $consent = ($_COOKIE['egglee_consent'] ?? '') === '1';
 $adsOn = $adsClient && $consent; // anúncios só com chave configurada E consentimento
+$gaId = Env::get('GA_ID');               // GA4: ex. G-XXXXXXXXXX (só com consentimento)
+$gscVerify = Env::get('GSC_VERIFICATION'); // token de verificação do Search Console
 ?><!doctype html>
 <html lang="<?= e($hl[$lang] ?? 'pt-BR') ?>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <?php if ($gscVerify): ?><meta name="google-site-verification" content="<?= e($gscVerify) ?>"><?php endif; ?>
   <title><?= e($title) ?></title>
   <meta name="description" content="<?= e($description) ?>">
   <?php if (!empty($noindex ?? null)): ?><meta name="robots" content="noindex, follow"><?php endif; ?>
@@ -51,6 +54,16 @@ $adsOn = $adsClient && $consent; // anúncios só com chave configurada E consen
 
   <?php if ($adsOn): ?>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<?= e($adsClient) ?>" crossorigin="anonymous"></script>
+  <?php endif; ?>
+
+  <?php if ($gaId && $consent): ?>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=<?= e($gaId) ?>"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', <?= json_encode($gaId, JSON_UNESCAPED_SLASHES) ?>);
+  </script>
   <?php endif; ?>
 </head>
 <body>
