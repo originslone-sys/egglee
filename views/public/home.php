@@ -17,7 +17,7 @@ $cats = Lang::categories();
 </section>
 
 <main class="wrap-wide">
-  <h2 class="section-title"><?= e(Lang::ui($lang, 'browseAll')) ?></h2>
+  <h2 class="section-title" id="categorias"><?= e(Lang::ui($lang, 'browseAll')) ?></h2>
   <ul class="cat-grid">
     <?php foreach ($cats as $c): $n = $counts[$c] ?? 0; ?>
       <li>
@@ -44,5 +44,8 @@ $cats = Lang::categories();
         <li><a href="/<?= e($lang) ?>/<?= e($p['slug']) ?>"><?= e($p['h1']) ?></a></li>
       <?php endforeach; ?>
     </ul>
+    <p class="home-more">
+      <a class="btn-more" href="#categorias"><?= e(Lang::ui($lang, 'browseAll')) ?> →</a>
+    </p>
   <?php endif; ?>
 </main>

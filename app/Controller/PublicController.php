@@ -24,7 +24,7 @@ final class PublicController
             'lang'       => $lang,
             'counts'     => $this->repo->categoryCounts($lang),
             'recent'     => $this->repo->recent($lang, 8),
-            'popular'    => $this->repo->listLive($lang),
+            'popular'    => $this->repo->listLive($lang, 60),
             'alternates' => $alternates,
             'title'      => 'egglee — ' . Lang::ui($lang, 'tagline'),
             'description'=> Lang::ui($lang, 'tagline'),

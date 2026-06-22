@@ -262,6 +262,7 @@ h1, h2, h3 { font-family: var(--font-head); font-weight: 600; line-height: 1.18;
 .suggested { margin-top: 2.6rem; border-top: 1px solid var(--line); padding-top: 1.6rem; }
 .suggested h2 { font-size: 1.35rem; }
 .suggested__more { margin: 0.4rem 0 0; }
+.home-more { margin: 1rem 0 0; text-align: center; }
 .btn-more { display: inline-block; font-weight: 800; text-decoration: none; color: var(--violet-600); }
 
 /* footer v2 */

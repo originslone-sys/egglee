@@ -11,14 +11,18 @@ final class SymbolRepository
 {
     private const JSON_FIELDS = ['sections', 'variations', 'faq', 'semantic_keywords', 'table_data'];
 
-    /** Lista símbolos publicáveis (reviewed/published) com o conteúdo de um idioma. */
-    public function listLive(string $lang): array
+    /** Lista símbolos publicáveis (reviewed/published) com o conteúdo de um idioma.
+     *  Sem limite (padrão) devolve tudo em ordem alfabética — usado no sitemap.
+     *  Com limite, devolve os mais recentes — usado na home (lista enxuta). */
+    public function listLive(string $lang, int $limit = 0): array
     {
-        $sql = 'SELECT s.id, c.slug, c.h1
+        $lim = $limit > 0 ? ' LIMIT ' . (int) $limit : '';
+        $order = $limit > 0 ? 's.updated_at DESC' : 'c.h1 ASC';
+        $sql = "SELECT s.id, c.slug, c.h1
                 FROM symbols s
                 JOIN symbol_content c ON c.symbol_id = s.id AND c.lang = ?
-                WHERE s.status IN ("reviewed","published")
-                ORDER BY c.h1 ASC';
+                WHERE s.status IN ('reviewed','published')
+                ORDER BY $order$lim";
         $stmt = Database::pdo()->prepare($sql);
         $stmt->execute([$lang]);
         return $stmt->fetchAll();
