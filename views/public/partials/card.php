@@ -6,7 +6,7 @@ use function App\Core\e;
 <a class="acard" href="<?= e($card['href']) ?>">
   <div class="acard__media">
     <?php if (!empty($card['image'])): ?>
-      <img src="<?= e($card['image']) ?>" alt="" loading="lazy">
+      <img src="<?= e($card['image']) ?>" alt="<?= e($card['h1'] ?? '') ?>" loading="lazy">
     <?php else: ?>
       <span class="acard__icon"><?= Lang::categoryIcon($card['category'] ?? '') ?></span>
     <?php endif; ?>
