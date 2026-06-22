@@ -83,6 +83,7 @@ try {
             $path === '/admin/cron-toggle' && $method==='POST'=> $admin->cronToggle(),
             $path === '/admin/auto-publish' && $method==='POST'=> $admin->autoPublish(),
             $path === '/admin/auto-reset' && $method==='POST'=> $admin->autoReset(),
+            $path === '/admin/refresh-dates' && $method==='POST'=> $admin->refreshDates(),
             $path === '/admin/articles'                   => $admin->articles(),
             $path === '/admin/diagnose'                   => $admin->diagnose(),
             $path === '/admin/set-model' && $method==='POST'=> $admin->setModel(),
@@ -99,6 +100,14 @@ try {
     }
 
     // ---- público ----
+    // Cache de página inteira (só visitantes sem cookie de consentimento).
+    if (\App\Core\PageCache::cacheable($path, $method)) {
+        if (\App\Core\PageCache::serveFresh($path)) {
+            exit;
+        }
+        \App\Core\PageCache::begin($path);
+    }
+
     $segments = array_values(array_filter(explode('/', $path), fn($s) => $s !== ''));
     $lang = $segments[0] ?? '';
     if (Lang::isValid($lang)) {

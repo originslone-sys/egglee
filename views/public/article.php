@@ -14,6 +14,14 @@ use function App\Core\e;
   </p>
   <h1><?= e($c['h1']) ?></h1>
 
+  <?php if (!empty($c['updated_at'])): ?>
+    <p class="article-meta">
+      <time datetime="<?= e(date('Y-m-d', strtotime((string) $c['updated_at']))) ?>">
+        <?= e(Lang::ui($lang, 'updatedOn')) ?> <?= e(Lang::formatDate($lang, (string) $c['updated_at'])) ?>
+      </time>
+    </p>
+  <?php endif; ?>
+
   <?php if (!empty($c['image_url'])): ?>
     <figure class="article-hero">
       <img src="<?= e($c['image_url']) ?>" alt="<?= e($c['h1']) ?>" loading="eager" width="940" height="600">

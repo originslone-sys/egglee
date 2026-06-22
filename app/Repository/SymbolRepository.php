@@ -205,6 +205,32 @@ final class SymbolRepository
         $stmt->execute([$status, $id]);
     }
 
+    /**
+     * "Toca" a data dos artigos publicados/revisados mais antigos que $days dias,
+     * gravando AGORA em updated_at — assim o site nunca exibe datas muito antigas.
+     * Retorna quantos artigos foram atualizados.
+     */
+    public function refreshStaleDates(int $days = 30, int $limit = 500): int
+    {
+        $pdo = Database::pdo();
+        $sel = $pdo->prepare(
+            "SELECT id FROM symbols
+             WHERE status IN ('reviewed','published')
+               AND updated_at < (NOW() - INTERVAL ? DAY)
+             ORDER BY updated_at ASC
+             LIMIT " . max(1, $limit)
+        );
+        $sel->execute([max(0, $days)]);
+        $ids = array_map(fn($r) => $r['id'], $sel->fetchAll());
+        if (!$ids) {
+            return 0;
+        }
+        $in = implode(',', array_fill(0, count($ids), '?'));
+        $pdo->prepare("UPDATE symbols SET updated_at = NOW() WHERE id IN ($in)")->execute($ids);
+        $pdo->prepare("UPDATE symbol_content SET updated_at = NOW() WHERE symbol_id IN ($in)")->execute($ids);
+        return count($ids);
+    }
+
     /** Exclui o símbolo (o conteúdo por idioma cai junto via ON DELETE CASCADE). */
     public function delete(string $id): void
     {
