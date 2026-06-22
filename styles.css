@@ -294,6 +294,30 @@ h1, h2, h3 { font-family: var(--font-head); font-weight: 600; line-height: 1.18;
   .cat-dropdown { grid-template-columns: 1fr; }
 }
 
+/* banner de consentimento de cookies */
+.cookie-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+  background: var(--indigo-900); color: #eee9ff; padding: 0.9rem 1.1rem;
+  display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap;
+  box-shadow: 0 -8px 30px -12px rgba(0,0,0,.5); }
+.cookie-bar p { margin: 0; font-size: 0.9rem; max-width: 60ch; }
+.cookie-bar a { color: var(--yolk); }
+.cookie-actions { display: flex; gap: 0.5rem; }
+.ck-btn { border: 0; border-radius: 999px; padding: 0.55rem 1.1rem; font: inherit; font-weight: 800; cursor: pointer; }
+.ck-accept { background: var(--yolk); color: #5a3d00; }
+.ck-reject { background: rgba(255,255,255,.12); color: #eee9ff; }
+
+/* slot de anúncio */
+.ad-slot { margin: 1.6rem 0; text-align: center; min-height: 1px; overflow: hidden; }
+
+/* links legais no footer */
+.foot-legal { display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem; margin: 1.4rem 0 0.6rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,.12); }
+.foot-legal a { font-size: 0.85rem; text-decoration: none; }
+
+/* página estática (legal/institucional) */
+.static-page .page-body h2 { font-size: 1.3rem; margin: 1.6rem 0 0.5rem; }
+.static-page .page-body ul { padding-left: 1.2rem; }
+.static-page .page-body li { margin: 0.3rem 0; }
+
 /* respeita quem prefere menos movimento */
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; }

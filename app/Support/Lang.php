@@ -97,6 +97,10 @@ final class Lang
             'readArticle'   => 'Ler interpretação',
             'inCategory'    => 'Veja mais em',
             'articlesIn'    => 'Sonhos sobre',
+            'cookieMsg'     => 'Usamos cookies para melhorar sua experiência e exibir anúncios. Você aceita?',
+            'cookieAccept'  => 'Aceitar',
+            'cookieReject'  => 'Recusar',
+            'cookieMore'    => 'Saber mais',
             'disclaimer'    => 'As interpretações da egglee reúnem tradição popular, simbologia cultural e psicologia, e têm caráter informativo e de entretenimento. Não substituem orientação profissional de saúde.',
         ],
         'es' => [
@@ -120,6 +124,10 @@ final class Lang
             'readArticle'   => 'Ver interpretación',
             'inCategory'    => 'Ver más en',
             'articlesIn'    => 'Sueños sobre',
+            'cookieMsg'     => 'Usamos cookies para mejorar tu experiencia y mostrar anuncios. ¿Aceptas?',
+            'cookieAccept'  => 'Aceptar',
+            'cookieReject'  => 'Rechazar',
+            'cookieMore'    => 'Saber más',
             'disclaimer'    => 'Las interpretaciones de egglee reúnen tradición popular, simbología cultural y psicología, con fines informativos y de entretenimiento. No sustituyen la orientación de un profesional de la salud.',
         ],
         'en' => [
@@ -143,6 +151,10 @@ final class Lang
             'readArticle'   => 'Read interpretation',
             'inCategory'    => 'See more in',
             'articlesIn'    => 'Dreams about',
+            'cookieMsg'     => 'We use cookies to improve your experience and show ads. Do you accept?',
+            'cookieAccept'  => 'Accept',
+            'cookieReject'  => 'Reject',
+            'cookieMore'    => 'Learn more',
             'disclaimer'    => 'egglee interpretations blend folk tradition, cultural symbolism and psychology, for informational and entertainment purposes. They are not a substitute for professional health advice.',
         ],
     ];

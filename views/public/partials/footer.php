@@ -25,6 +25,11 @@ $cats = Lang::categories();
         </ul>
       </div>
     </div>
+    <nav class="foot-legal">
+      <?php foreach (['about','contact','privacy','cookies','terms'] as $pk): ?>
+        <a href="<?= e(\App\Support\Pages::url($lang, $pk)) ?>"><?= e(\App\Support\Pages::title($lang, $pk)) ?></a>
+      <?php endforeach; ?>
+    </nav>
     <p class="disclaimer"><?= e(Lang::ui($lang, 'disclaimer')) ?></p>
     <p class="disclaimer">© <?= date('Y') ?> egglee</p>
   </div>

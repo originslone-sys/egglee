@@ -6,6 +6,9 @@ use function App\Core\asset;
 
 $site = rtrim((string) Env::get('SITE_URL', ''), '/');
 $hl = Lang::HREFLANG;
+$adsClient = Env::get('ADSENSE_CLIENT'); // ex.: ca-pub-XXXXXXXXXXXXXXXX
+$consent = ($_COOKIE['egglee_consent'] ?? '') === '1';
+$adsOn = $adsClient && $consent; // anúncios só com chave configurada E consentimento
 ?><!doctype html>
 <html lang="<?= e($hl[$lang] ?? 'pt-BR') ?>">
 <head>
@@ -45,10 +48,34 @@ $hl = Lang::HREFLANG;
   <?php endforeach; ?>
 
   <link rel="stylesheet" href="<?= e(asset('styles.css')) ?>">
+
+  <?php if ($adsOn): ?>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<?= e($adsClient) ?>" crossorigin="anonymous"></script>
+  <?php endif; ?>
 </head>
 <body>
   <?php include __DIR__ . '/partials/header.php'; ?>
   <?= $content ?>
   <?php include __DIR__ . '/partials/footer.php'; ?>
+
+  <?php if (($_COOKIE['egglee_consent'] ?? '') === ''): ?>
+  <div class="cookie-bar" id="cookie-bar">
+    <p><?= e(Lang::ui($lang, 'cookieMsg')) ?> <a href="<?= e(\App\Support\Pages::url($lang, 'cookies')) ?>"><?= e(Lang::ui($lang, 'cookieMore')) ?></a></p>
+    <div class="cookie-actions">
+      <button type="button" data-consent="0" class="ck-btn ck-reject"><?= e(Lang::ui($lang, 'cookieReject')) ?></button>
+      <button type="button" data-consent="1" class="ck-btn ck-accept"><?= e(Lang::ui($lang, 'cookieAccept')) ?></button>
+    </div>
+  </div>
+  <script>
+    document.querySelectorAll('#cookie-bar .ck-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var v = b.getAttribute('data-consent');
+        document.cookie = 'egglee_consent=' + v + ';path=/;max-age=31536000;samesite=Lax';
+        document.getElementById('cookie-bar').style.display = 'none';
+        if (v === '1') location.reload(); // recarrega para ativar os anúncios
+      });
+    });
+  </script>
+  <?php endif; ?>
 </body>
 </html>
