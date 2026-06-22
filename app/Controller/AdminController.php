@@ -225,6 +225,8 @@ final class AdminController
             'adsense' => (string) \App\Core\Env::get('ADSENSE_CLIENT', ''),
             'adslot'  => (string) \App\Core\Env::get('ADSENSE_SLOT', ''),
             'contact' => (string) \App\Core\Env::get('CONTACT_EMAIL', ''),
+            'gaId'    => (string) \App\Core\Env::get('GA_ID', ''),
+            'gscVerify' => (string) \App\Core\Env::get('GSC_VERIFICATION', ''),
             'csrf'    => Auth::csrf(),
             'flash'   => $_GET['flash'] ?? null,
             'error'   => $_GET['error'] ?? null,
@@ -242,6 +244,8 @@ final class AdminController
         \App\Core\EnvFile::set($root, 'ADSENSE_CLIENT', trim($_POST['adsense'] ?? ''));
         \App\Core\EnvFile::set($root, 'ADSENSE_SLOT', trim($_POST['adslot'] ?? ''));
         \App\Core\EnvFile::set($root, 'CONTACT_EMAIL', trim($_POST['contact'] ?? ''));
+        \App\Core\EnvFile::set($root, 'GA_ID', trim($_POST['ga_id'] ?? ''));
+        \App\Core\EnvFile::set($root, 'GSC_VERIFICATION', trim($_POST['gsc_verify'] ?? ''));
         $this->redirect('/admin/diagnose?flash=' . rawurlencode('Configurações salvas.'));
     }
 

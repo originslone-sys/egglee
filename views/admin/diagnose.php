@@ -57,9 +57,12 @@ $models = [
     <label class="hint">AdSense Client (ca-pub-...) <input name="adsense" value="<?= e($adsense ?? '') ?>" placeholder="ca-pub-XXXXXXXXXXXXXXXX"></label>
     <label class="hint">AdSense Slot (opcional, p/ anúncio no meio do artigo) <input name="adslot" value="<?= e($adslot ?? '') ?>" placeholder="1234567890"></label>
     <label class="hint">E-mail de contato (aparece nas páginas legais) <input name="contact" value="<?= e($contact ?? '') ?>" placeholder="contato@egglee.com"></label>
+    <label class="hint">Google Analytics 4 (G-...) <input name="ga_id" value="<?= e($gaId ?? '') ?>" placeholder="G-XXXXXXXXXX"></label>
+    <label class="hint">Search Console — token de verificação <input name="gsc_verify" value="<?= e($gscVerify ?? '') ?>" placeholder="conteúdo da meta google-site-verification"></label>
     <button class="btn btn-primary">Salvar</button>
   </form>
   <p class="hint" style="margin:.4rem 0 0;">Só com o AdSense Client preenchido E o visitante aceitando os cookies os anúncios carregam. O "Slot" é opcional (sem ele, ative o <em>Auto Ads</em> no painel do AdSense).</p>
+  <p class="hint" style="margin:.3rem 0 0;"><strong>Analytics</strong> carrega só após o consentimento de cookies (igual aos anúncios). <strong>Search Console</strong>: ao verificar pelo método "tag HTML", copie só o valor do atributo <code>content</code> da meta para o campo acima — a tag aparece em todas as páginas.</p>
 </div>
 
 <div class="queue-panel" style="display:block; margin-top:1rem;">
