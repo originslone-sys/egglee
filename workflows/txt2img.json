@@ -1,0 +1,119 @@
+{
+  "1": {
+    "inputs": { "ckpt_name": "famegrid_zib.safetensors" },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": { "title": "Load Checkpoint" }
+  },
+  "2": {
+    "inputs": {
+      "lora_name": "detail_tweaker_xl.safetensors",
+      "strength_model": 0.7,
+      "strength_clip": 0.7,
+      "model": ["1", 0],
+      "clip": ["1", 1]
+    },
+    "class_type": "LoraLoader",
+    "_meta": { "title": "LoRA - Detail Tweaker XL" }
+  },
+  "3": {
+    "inputs": {
+      "lora_name": "skin_detail_xl.safetensors",
+      "strength_model": 0.6,
+      "strength_clip": 0.6,
+      "model": ["2", 0],
+      "clip": ["2", 1]
+    },
+    "class_type": "LoraLoader",
+    "_meta": { "title": "LoRA - Skin Detail XL" }
+  },
+  "4": {
+    "inputs": {
+      "lora_name": "mobile_photography.safetensors",
+      "strength_model": 0.5,
+      "strength_clip": 0.5,
+      "model": ["3", 0],
+      "clip": ["3", 1]
+    },
+    "class_type": "LoraLoader",
+    "_meta": { "title": "LoRA - Mobile Photography" }
+  },
+  "5": {
+    "inputs": {
+      "lora_name": "eye_detail_xl.safetensors",
+      "strength_model": 0.6,
+      "strength_clip": 0.6,
+      "model": ["4", 0],
+      "clip": ["4", 1]
+    },
+    "class_type": "LoraLoader",
+    "_meta": { "title": "LoRA - Eye Detail XL" }
+  },
+  "6": {
+    "inputs": {
+      "lora_name": "hand_fix_xl.safetensors",
+      "strength_model": 0.7,
+      "strength_clip": 0.7,
+      "model": ["5", 0],
+      "clip": ["5", 1]
+    },
+    "class_type": "LoraLoader",
+    "_meta": { "title": "LoRA - Hand Fix XL" }
+  },
+  "7": {
+    "inputs": {
+      "text": "{{positive_prompt}}",
+      "clip": ["6", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Positive Prompt" }
+  },
+  "8": {
+    "inputs": {
+      "text": "worst quality, low quality, blurry, deformed, ugly, disfigured, bad anatomy, bad hands, extra fingers, missing fingers, watermark, signature, text",
+      "clip": ["6", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Negative Prompt" }
+  },
+  "9": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": { "title": "Empty Latent" }
+  },
+  "10": {
+    "inputs": {
+      "seed": "{{seed}}",
+      "steps": 30,
+      "cfg": 7.0,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": ["6", 0],
+      "positive": ["7", 0],
+      "negative": ["8", 0],
+      "latent_image": ["9", 0]
+    },
+    "class_type": "KSampler",
+    "_meta": { "title": "KSampler" }
+  },
+  "11": {
+    "inputs": {
+      "samples": ["10", 0],
+      "vae": ["1", 2]
+    },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAE Decode" }
+  },
+  "12": {
+    "inputs": {
+      "filename_prefix": "txt2img",
+      "images": ["11", 0]
+    },
+    "class_type": "SaveImage",
+    "_meta": { "title": "Save Image" }
+  }
+}
