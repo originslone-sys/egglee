@@ -11,5 +11,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY handler.py .
 COPY workflows/ /workflows/
+COPY characters/ /characters/
 
 CMD ["python", "-u", "handler.py"]

@@ -7,14 +7,16 @@ import base64
 import uuid
 import copy
 import random
+import os
 from pathlib import Path
 
 COMFYUI_URL = "http://127.0.0.1:8188"
-COMFYUI_DIR = Path("/workspace/ComfyUI")
+WORKSPACE = Path(os.environ.get("WORKSPACE", "/runpod-volume"))
+COMFYUI_DIR = WORKSPACE / "ComfyUI"
 OUTPUT_DIR = COMFYUI_DIR / "output"
 INPUT_DIR = COMFYUI_DIR / "input"
-WORKFLOW_DIRS = [Path("/workspace/workflows"), Path("/workflows")]
-CHARACTERS_DIR = Path("/workspace/characters")
+WORKFLOW_DIRS = [WORKSPACE / "workflows", Path("/workflows")]
+CHARACTERS_DIRS = [WORKSPACE / "characters", Path("/characters")]
 
 
 def wait_for_comfyui(timeout=120):
@@ -93,10 +95,11 @@ def load_workflow(name: str) -> dict:
 
 
 def load_character(name: str) -> dict:
-    path = CHARACTERS_DIR / f"{name}.json"
-    if not path.exists():
-        raise FileNotFoundError(f"Character '{name}' not found in {CHARACTERS_DIR}")
-    return json.loads(path.read_text())
+    for d in CHARACTERS_DIRS:
+        path = d / f"{name}.json"
+        if path.exists():
+            return json.loads(path.read_text())
+    raise FileNotFoundError(f"Character '{name}' not found")
 
 
 def apply_character(inputs: dict, character: dict) -> dict:
@@ -180,7 +183,7 @@ def handler(job):
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 INPUT_DIR.mkdir(parents=True, exist_ok=True)
-CHARACTERS_DIR.mkdir(parents=True, exist_ok=True)
+(WORKSPACE / "characters").mkdir(parents=True, exist_ok=True)
 
 print("Starting ComfyUI...")
 subprocess.Popen(
