@@ -82,28 +82,47 @@ hf_download "$MODELS/vae" \
     "vae-ft-mse-840000-ema-pruned.safetensors"
 
 # ── LoRAs ─────────────────────────────────────────────────────────────────────
-# How to find a CivitAI model ID: go to the LoRA page → the number in the URL
-#   civitai.com/models/{MODEL_ID}/lora-name
-# Then fill in the ID below and uncomment the line.
+
+civitai_file_download() {
+    local dest_dir=$1
+    local url=$2
+    local filename=$3
+    local dest="$dest_dir/$filename"
+
+    if [ -f "$dest" ]; then
+        echo "  ⏭️  $filename already exists"
+        return 0
+    fi
+
+    echo "  ⬇️  Downloading $filename..."
+    if ! wget -q --show-progress \
+        --header="Authorization: Bearer $CIVITAI_TOKEN" \
+        -O "$dest" "$url"; then
+        rm -f "$dest"
+        echo "  ❌ Failed: $filename"
+        return 1
+    fi
+    echo "  ✅ $filename"
+}
 
 echo ""
 echo "=== LoRAs ==="
 
-# Detail Tweaker XL — overall detail and sharpness enhancement
-civitai_download "$MODELS/loras" "122359" "detail_tweaker_xl.safetensors"
+civitai_file_download "$MODELS/loras" \
+    "https://civitai.com/api/download/models/465640?fileId=384580" \
+    "detail_tweaker_xl.safetensors"
 
-# Skin Detail XL — natural skin texture (search "skin detail xl" on CivitAI)
-# civitai_download "$MODELS/loras" "SKIN_DETAIL_MODEL_ID" "skin_detail_xl.safetensors"
+civitai_file_download "$MODELS/loras" \
+    "https://civitai.com/api/download/models/2965913?fileId=2845322" \
+    "skin_detail_xl.safetensors"
 
-# Mobile Photography / Natural Light — smartphone-style lighting
-# (search "mobile photography lora" or "natural light xl" on CivitAI)
-# civitai_download "$MODELS/loras" "MOBILE_PHOTO_MODEL_ID" "mobile_photography.safetensors"
+civitai_file_download "$MODELS/loras" \
+    "https://civitai.com/api/download/models/2431035?fileId=2321609" \
+    "mobile_photography.safetensors"
 
-# Eye Detail XL — sharp, realistic eyes (search "eye detail xl")
-# civitai_download "$MODELS/loras" "EYE_DETAIL_MODEL_ID" "eye_detail_xl.safetensors"
-
-# Hand Fix XL — corrects hand anatomy (search "detailed hands xl" or "hand fix")
-# civitai_download "$MODELS/loras" "HAND_FIX_MODEL_ID" "hand_fix_xl.safetensors"
+civitai_file_download "$MODELS/loras" \
+    "https://civitai.com/api/download/models/1003317?fileId=909066" \
+    "hand_fix_xl.safetensors"
 
 # ── Upscaler ──────────────────────────────────────────────────────────────────
 

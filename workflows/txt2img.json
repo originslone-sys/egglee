@@ -39,43 +39,32 @@
   },
   "5": {
     "inputs": {
-      "lora_name": "eye_detail_xl.safetensors",
-      "strength_model": 0.6,
-      "strength_clip": 0.6,
+      "lora_name": "hand_fix_xl.safetensors",
+      "strength_model": 0.7,
+      "strength_clip": 0.7,
       "model": ["4", 0],
       "clip": ["4", 1]
     },
     "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Eye Detail XL" }
+    "_meta": { "title": "LoRA - Hand Fix XL" }
   },
   "6": {
     "inputs": {
-      "lora_name": "hand_fix_xl.safetensors",
-      "strength_model": 0.7,
-      "strength_clip": 0.7,
-      "model": ["5", 0],
-      "clip": ["5", 1]
-    },
-    "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Hand Fix XL" }
-  },
-  "7": {
-    "inputs": {
       "text": "{{positive_prompt}}",
-      "clip": ["6", 1]
+      "clip": ["5", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": { "title": "Positive Prompt" }
   },
-  "8": {
+  "7": {
     "inputs": {
       "text": "worst quality, low quality, blurry, deformed, ugly, disfigured, bad anatomy, bad hands, extra fingers, missing fingers, watermark, signature, text",
-      "clip": ["6", 1]
+      "clip": ["5", 1]
     },
     "class_type": "CLIPTextEncode",
     "_meta": { "title": "Negative Prompt" }
   },
-  "9": {
+  "8": {
     "inputs": {
       "width": 1024,
       "height": 1024,
@@ -84,7 +73,7 @@
     "class_type": "EmptyLatentImage",
     "_meta": { "title": "Empty Latent" }
   },
-  "10": {
+  "9": {
     "inputs": {
       "seed": "{{seed}}",
       "steps": 30,
@@ -92,26 +81,26 @@
       "sampler_name": "dpmpp_2m_sde",
       "scheduler": "karras",
       "denoise": 1.0,
-      "model": ["6", 0],
-      "positive": ["7", 0],
-      "negative": ["8", 0],
-      "latent_image": ["9", 0]
+      "model": ["5", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["8", 0]
     },
     "class_type": "KSampler",
     "_meta": { "title": "KSampler" }
   },
-  "11": {
+  "10": {
     "inputs": {
-      "samples": ["10", 0],
+      "samples": ["9", 0],
       "vae": ["1", 2]
     },
     "class_type": "VAEDecode",
     "_meta": { "title": "VAE Decode" }
   },
-  "12": {
+  "11": {
     "inputs": {
       "filename_prefix": "txt2img",
-      "images": ["11", 0]
+      "images": ["10", 0]
     },
     "class_type": "SaveImage",
     "_meta": { "title": "Save Image" }
