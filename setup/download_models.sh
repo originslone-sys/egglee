@@ -160,6 +160,27 @@ hf_download "$MODELS/vae" \
     "Kijai/WanVideo_comfy" \
     "Wan2_1_VAE_bf16.safetensors"
 
+# ── IPAdapter FaceID ──────────────────────────────────────────────────────────
+
+echo ""
+echo "=== IPAdapter FaceID (face consistency) ==="
+
+# CLIP Vision (ViT-H) — usado pelo IPAdapter FaceID
+hf_download "$MODELS/clip_vision" \
+    "h94/IP-Adapter" \
+    "models/image_encoder/model.safetensors" \
+    "sd1.5_clipvision.safetensors"
+
+# IPAdapter FaceID Plus V2 — modelo principal
+hf_download "$MODELS/ipadapter" \
+    "h94/IP-Adapter-FaceID" \
+    "ip-adapter-faceid-plusv2_sd15.bin"
+
+# FaceID LoRA — carregada automaticamente pelo IPAdapterUnifiedLoaderFaceID
+hf_download "$MODELS/loras" \
+    "h94/IP-Adapter-FaceID" \
+    "ip-adapter-faceid-plusv2_sd15_lora.safetensors"
+
 echo ""
 echo "✅ All models downloaded!"
 echo "   You can now build and deploy the Docker image."

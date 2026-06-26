@@ -15,8 +15,8 @@ cd "$COMFYUI_DIR"
 pip install -r requirements.txt
 
 mkdir -p models/checkpoints models/loras models/vae \
-         models/upscale_models models/clip \
-         models/diffusion_models input output
+         models/upscale_models models/clip models/clip_vision \
+         models/ipadapter models/diffusion_models input output
 
 echo "=== Installing Custom Nodes ==="
 cd custom_nodes
@@ -36,6 +36,10 @@ install_node() {
 install_node "ComfyUI-Manager"          "https://github.com/ltdrdata/ComfyUI-Manager.git"
 install_node "ComfyUI-WanVideoWrapper"  "https://github.com/kijai/ComfyUI-WanVideoWrapper.git"
 install_node "ComfyUI-VideoHelperSuite" "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git"
+install_node "ComfyUI_IPAdapter_plus"   "https://github.com/cubiq/ComfyUI_IPAdapter_plus.git"
+
+pip install insightface onnxruntime
+echo "  ✅ insightface + onnxruntime"
 
 echo ""
 echo "=== Copying workflows to volume ==="
