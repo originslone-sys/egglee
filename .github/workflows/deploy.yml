@@ -1,0 +1,60 @@
+name: Build & Deploy Worker
+
+on:
+  push:
+    branches: [claude/inspiring-ramanujan-j5qm8z]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  update-endpoint:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: vars.RUNPOD_ENDPOINT_ID != ''
+
+    steps:
+      - name: Update RunPod endpoint image
+        run: |
+          curl -s -X PATCH \
+            "https://api.runpod.io/graphql?api_key=${{ secrets.RUNPOD_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "query": "mutation { updateEndpoint(input: { id: \"${{ vars.RUNPOD_ENDPOINT_ID }}\", imageName: \"ghcr.io/${{ github.repository }}:latest\" }) { id imageName } }"
+            }'
+          echo "Endpoint updated: ${{ vars.RUNPOD_ENDPOINT_ID }}"
