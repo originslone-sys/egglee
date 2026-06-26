@@ -5,6 +5,7 @@ set -e
 
 : "${CIVITAI_TOKEN:?Set CIVITAI_TOKEN before running: export CIVITAI_TOKEN=xxxx}"
 
+WORKSPACE="${WORKSPACE:-/workspace}"
 MODELS="$WORKSPACE/ComfyUI/models"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 # Steps: launch any GPU pod → attach the volume → open the terminal → run this script.
 set -e
 
-WORKSPACE="/workspace"
+WORKSPACE="${WORKSPACE:-/workspace}"
 COMFYUI_DIR="$WORKSPACE/ComfyUI"
 
 echo "=== Installing ComfyUI ==="
