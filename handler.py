@@ -17,7 +17,6 @@ OUTPUT_DIR = COMFYUI_DIR / "output"
 INPUT_DIR = COMFYUI_DIR / "input"
 WORKFLOW_DIRS = [WORKSPACE / "workflows", Path("/workflows")]
 CHARACTERS_DIRS = [WORKSPACE / "characters", Path("/characters")]
-VENV_PYTHON = WORKSPACE / "venv" / "bin" / "python"
 
 
 def wait_for_comfyui(timeout=120):
@@ -187,11 +186,9 @@ INPUT_DIR.mkdir(parents=True, exist_ok=True)
 (WORKSPACE / "characters").mkdir(parents=True, exist_ok=True)
 
 print("Starting ComfyUI...")
-python_bin = str(VENV_PYTHON) if VENV_PYTHON.exists() else "python3"
-print(f"Using Python: {python_bin}")
 subprocess.Popen(
     [
-        python_bin, "main.py",
+        "python", "main.py",
         "--listen", "0.0.0.0",
         "--port", "8188",
         "--disable-auto-launch",
