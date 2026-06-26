@@ -139,7 +139,7 @@ hf_download "$MODELS/clip" \
 # Wan2.1 VAE
 hf_download "$MODELS/vae" \
     "Kijai/WanVideo_comfy" \
-    "wan_2.1_vae.safetensors"
+    "Wan2_1_VAE_bf16.safetensors"
 
 echo ""
 echo "✅ All models downloaded!"
