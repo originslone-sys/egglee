@@ -1,4 +1,4 @@
-FROM runpod/pytorch:2.1.0-py3.10-cuda12.1.1-runtime-ubuntu22.04
+FROM python:3.10-slim
 
 WORKDIR /
 
