@@ -1,0 +1,111 @@
+{
+  "1": {
+    "inputs": {
+      "model": "Wan2_1-I2V-14B-480P_fp8_e4m3fn.safetensors",
+      "base_precision": "fp8_e4m3fn",
+      "load_device": "main_device"
+    },
+    "class_type": "WanVideoModelLoader",
+    "_meta": { "title": "Load Wan2.1 I2V Model" }
+  },
+  "2": {
+    "inputs": {
+      "clip_name": "umt5-xxl-enc-bf16.safetensors",
+      "type": "wan"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": { "title": "Load Text Encoder" }
+  },
+  "3": {
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": { "title": "Load VAE" }
+  },
+  "4": {
+    "inputs": {
+      "image": "{{input_image}}",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": { "title": "Load Input Image" }
+  },
+  "5": {
+    "inputs": {
+      "positive": "{{positive_prompt}}",
+      "negative": "{{negative_prompt}}",
+      "force_offload": true,
+      "clip": ["2", 0]
+    },
+    "class_type": "WanVideoTextEncode",
+    "_meta": { "title": "Text Encode" }
+  },
+  "6": {
+    "inputs": {
+      "image": ["4", 0],
+      "vae": ["3", 0],
+      "clip_vision_output": ["7", 0]
+    },
+    "class_type": "WanVideoImageClipEncode",
+    "_meta": { "title": "Image Clip Encode (I2V)" }
+  },
+  "7": {
+    "inputs": {
+      "clip_name": "clip_vision_h.safetensors"
+    },
+    "class_type": "CLIPVisionLoader",
+    "_meta": { "title": "Load CLIP Vision" }
+  },
+  "8": {
+    "inputs": {
+      "width": 832,
+      "height": 480,
+      "num_frames": 81,
+      "batch_size": 1
+    },
+    "class_type": "EmptyWanLatentVideo",
+    "_meta": { "title": "Empty Latent Video" }
+  },
+  "9": {
+    "inputs": {
+      "seed": "{{seed}}",
+      "steps": 30,
+      "cfg": 6.0,
+      "shift": 8.0,
+      "scheduler": "unipc",
+      "force_offload": true,
+      "model": ["1", 0],
+      "positive": ["5", 0],
+      "negative": ["5", 1],
+      "image_cond": ["6", 0],
+      "latent": ["8", 0]
+    },
+    "class_type": "WanVideoSampler",
+    "_meta": { "title": "Video Sampler" }
+  },
+  "10": {
+    "inputs": {
+      "enable_vae_tiling": false,
+      "auto_tile_size": true,
+      "samples": ["9", 0],
+      "vae": ["3", 0]
+    },
+    "class_type": "WanVideoDecode",
+    "_meta": { "title": "Video Decode" }
+  },
+  "11": {
+    "inputs": {
+      "frame_rate": 24,
+      "loop_count": 0,
+      "filename_prefix": "img2video",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 19,
+      "save_metadata": false,
+      "images": ["10", 0]
+    },
+    "class_type": "VHS_VideoCombine",
+    "_meta": { "title": "Save Video" }
+  }
+}
