@@ -14,6 +14,7 @@ COMFYUI_DIR = Path("/workspace/ComfyUI")
 OUTPUT_DIR = COMFYUI_DIR / "output"
 INPUT_DIR = COMFYUI_DIR / "input"
 WORKFLOW_DIRS = [Path("/workspace/workflows"), Path("/workflows")]
+CHARACTERS_DIR = Path("/workspace/characters")
 
 
 def wait_for_comfyui(timeout=120):
@@ -91,6 +92,32 @@ def load_workflow(name: str) -> dict:
     raise FileNotFoundError(f"Workflow '{name}' not found")
 
 
+def load_character(name: str) -> dict:
+    path = CHARACTERS_DIR / f"{name}.json"
+    if not path.exists():
+        raise FileNotFoundError(f"Character '{name}' not found in {CHARACTERS_DIR}")
+    return json.loads(path.read_text())
+
+
+def apply_character(inputs: dict, character: dict) -> dict:
+    base_positive = character.get("positive_prompt", "")
+    base_negative = character.get("negative_prompt", "")
+    scene_positive = inputs.get("positive_prompt", "")
+    scene_negative = inputs.get("negative_prompt", "")
+
+    if base_positive and scene_positive:
+        inputs["positive_prompt"] = f"{base_positive}, {scene_positive}"
+    elif base_positive:
+        inputs["positive_prompt"] = base_positive
+
+    if base_negative and scene_negative:
+        inputs["negative_prompt"] = f"{base_negative}, {scene_negative}"
+    elif base_negative:
+        inputs["negative_prompt"] = base_negative
+
+    return inputs
+
+
 def save_input_image(b64_data: str) -> str:
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
     img_bytes = base64.b64decode(b64_data)
@@ -111,6 +138,11 @@ def handler(job):
             return {"error": "Provide 'workflow' (full JSON) or 'workflow_name'"}
 
         inputs = dict(job_input.get("inputs", {}))
+
+        # Apply character profile if specified
+        if "character" in job_input:
+            character = load_character(job_input["character"])
+            inputs = apply_character(inputs, character)
 
         # Handle seed: -1 or missing → random
         if inputs.get("seed", -1) == -1:
@@ -148,6 +180,7 @@ def handler(job):
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 INPUT_DIR.mkdir(parents=True, exist_ok=True)
+CHARACTERS_DIR.mkdir(parents=True, exist_ok=True)
 
 print("Starting ComfyUI...")
 subprocess.Popen(

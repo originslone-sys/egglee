@@ -1,0 +1,5 @@
+{
+  "name": "Example Model",
+  "positive_prompt": "25 year old woman, 1.68m tall, slim athletic body, long dark brown wavy hair, light brown skin, green eyes, natural makeup, photorealistic, hyperrealistic",
+  "negative_prompt": "blonde hair, blue eyes, obese, overweight, old, wrinkles, plastic skin, doll-like"
+}
