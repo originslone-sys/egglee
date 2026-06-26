@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run this ONCE on a RunPod pod with your Network Volume mounted at /workspace.
 # Requires: export CIVITAI_TOKEN=your_token
-set -e
+set -eo pipefail
 
 : "${CIVITAI_TOKEN:?Set CIVITAI_TOKEN before running: export CIVITAI_TOKEN=xxxx}"
 
@@ -58,9 +58,12 @@ hf_download() {
     fi
 
     echo "  ⬇️  Downloading $filename from HuggingFace..."
-    wget -q --show-progress \
-        -O "$dest" \
-        "https://huggingface.co/$repo/resolve/main/$filepath"
+    if ! wget -q --show-progress -O "$dest" \
+        "https://huggingface.co/$repo/resolve/main/$filepath"; then
+        rm -f "$dest"
+        echo "  ❌ Failed to download $filename"
+        return 1
+    fi
     echo "  ✅ $filename"
 }
 
@@ -106,6 +109,9 @@ civitai_download "$MODELS/loras" "122359" "detail_tweaker_xl.safetensors"
 
 echo ""
 echo "=== Upscaler ==="
+hf_download "$MODELS/upscale_models" \
+    "Kim2091/4x-UltraSharp" \
+    "4x-UltraSharp.pth" || \
 hf_download "$MODELS/upscale_models" \
     "uwg/upscalers" \
     "ESRGAN/4x-UltraSharp.pth" \
