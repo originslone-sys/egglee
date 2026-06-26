@@ -1,0 +1,159 @@
+{
+  "1": {
+    "inputs": { "ckpt_name": "famegrid_zib.safetensors" },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": { "title": "Load Checkpoint" }
+  },
+  "2": {
+    "inputs": {
+      "lora_name": "detail_tweaker_xl.safetensors",
+      "strength_model": 0.7,
+      "strength_clip": 0.7,
+      "model": ["1", 0],
+      "clip": ["1", 1]
+    },
+    "class_type": "LoraLoader",
+    "_meta": { "title": "LoRA - Detail Tweaker XL" }
+  },
+  "3": {
+    "inputs": {
+      "lora_name": "skin_detail_xl.safetensors",
+      "strength_model": 0.6,
+      "strength_clip": 0.6,
+      "model": ["2", 0],
+      "clip": ["2", 1]
+    },
+    "class_type": "LoraLoader",
+    "_meta": { "title": "LoRA - Skin Detail XL" }
+  },
+  "4": {
+    "inputs": {
+      "lora_name": "mobile_photography.safetensors",
+      "strength_model": 0.5,
+      "strength_clip": 0.5,
+      "model": ["3", 0],
+      "clip": ["3", 1]
+    },
+    "class_type": "LoraLoader",
+    "_meta": { "title": "LoRA - Mobile Photography" }
+  },
+  "5": {
+    "inputs": {
+      "lora_name": "hand_fix_xl.safetensors",
+      "strength_model": 0.7,
+      "strength_clip": 0.7,
+      "model": ["4", 0],
+      "clip": ["4", 1]
+    },
+    "class_type": "LoraLoader",
+    "_meta": { "title": "LoRA - Hand Fix XL" }
+  },
+  "6": {
+    "inputs": {
+      "preset": "FACEID PLUS V2",
+      "lora_strength": 0.5,
+      "provider": "CPU",
+      "model": ["5", 0]
+    },
+    "class_type": "IPAdapterUnifiedLoaderFaceID",
+    "_meta": { "title": "IPAdapter Unified Loader FaceID" }
+  },
+  "7": {
+    "inputs": {
+      "clip_name": "sd1.5_clipvision.safetensors"
+    },
+    "class_type": "CLIPVisionLoader",
+    "_meta": { "title": "Load CLIP Vision" }
+  },
+  "8": {
+    "inputs": {
+      "provider": "CPU",
+      "model_name": "buffalo_l"
+    },
+    "class_type": "IPAdapterInsightFaceLoader",
+    "_meta": { "title": "IPAdapter InsightFace Loader" }
+  },
+  "9": {
+    "inputs": {
+      "image": "{{face_image}}",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": { "title": "Load Reference Face" }
+  },
+  "10": {
+    "inputs": {
+      "weight": 1.0,
+      "weight_faceidv2": 1.0,
+      "weight_type": "linear",
+      "combine_embeds": "average",
+      "start_at": 0.0,
+      "end_at": 1.0,
+      "embeds_scaling": "K+V",
+      "model": ["6", 0],
+      "ipadapter": ["6", 1],
+      "image": ["9", 0],
+      "clip_vision": ["7", 0],
+      "insightface": ["8", 0]
+    },
+    "class_type": "IPAdapterFaceID",
+    "_meta": { "title": "IPAdapter FaceID" }
+  },
+  "11": {
+    "inputs": {
+      "text": "{{positive_prompt}}",
+      "clip": ["5", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Positive Prompt" }
+  },
+  "12": {
+    "inputs": {
+      "text": "worst quality, low quality, blurry, deformed, ugly, disfigured, bad anatomy, bad hands, extra fingers, missing fingers, watermark, signature, text",
+      "clip": ["5", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Negative Prompt" }
+  },
+  "13": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": { "title": "Empty Latent" }
+  },
+  "14": {
+    "inputs": {
+      "seed": "{{seed}}",
+      "steps": 30,
+      "cfg": 7.0,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": ["10", 0],
+      "positive": ["11", 0],
+      "negative": ["12", 0],
+      "latent_image": ["13", 0]
+    },
+    "class_type": "KSampler",
+    "_meta": { "title": "KSampler" }
+  },
+  "15": {
+    "inputs": {
+      "samples": ["14", 0],
+      "vae": ["1", 2]
+    },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAE Decode" }
+  },
+  "16": {
+    "inputs": {
+      "filename_prefix": "faceid",
+      "images": ["15", 0]
+    },
+    "class_type": "SaveImage",
+    "_meta": { "title": "Save Image" }
+  }
+}
