@@ -18,7 +18,7 @@ app = Flask(__name__)
 ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID", "").strip()
 API_KEY = os.environ.get("RUNPOD_API_KEY", "").strip()
 
-BASE_URL = f"https://api.runpod.io/v2/{ENDPOINT_ID}"
+BASE_URL = f"https://api.runpod.ai/v2/{ENDPOINT_ID}"
 HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
 
