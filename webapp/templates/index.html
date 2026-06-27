@@ -82,6 +82,11 @@
       <label for="useCharacter">Usar character fixo da modelo</label>
     </div>
 
+    <div class="check">
+      <input type="checkbox" id="hires">
+      <label for="hires">Alta definição (mais nítido, mais lento)</label>
+    </div>
+
     <label>Prompt (cena, roupa, pose, lugar…)</label>
     <textarea id="prompt" placeholder="sitting on a beach, white bikini, golden hour"></textarea>
 
@@ -176,8 +181,12 @@ $('goBtn').addEventListener('click', async () => {
   if (wf === 'txt2img_faceid' && !faceB64) return setStatus('Envie a foto de referência do rosto.', true);
   if ((wf === 'img2img' || wf === 'img2video') && !inputB64) return setStatus('Envie a imagem de entrada.', true);
 
+  // "Alta definição" troca o txt2img pela variante com hires fix
+  let wfName = wf;
+  if ($('hires').checked && wf === 'txt2img') wfName = 'txt2img_hd';
+
   const body = {
-    workflow_name: wf,
+    workflow_name: wfName,
     prompt: $('prompt').value.trim(),
     negative_prompt: $('negative').value.trim(),
     seed: $('seed').value.trim() || '-1',
