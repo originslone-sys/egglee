@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Egglee · Painel de Geração</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root {
     --bg: #0d1117; --panel: #161b22; --border: #30363d;
@@ -63,6 +64,11 @@
     background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
   }
   button.hd:hover { border-color: var(--accent); color: var(--accent); }
+  .dataset { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .dstitle { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .dshelp { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  button.go.ds { background: #1f6feb; }
+  button.go.ds:hover { background: #388bfd; }
 </style>
 </head>
 <body>
@@ -127,6 +133,22 @@
 
     <button class="go" id="goBtn">Gerar</button>
     <div class="status" id="status"></div>
+
+    <div class="dataset">
+      <div class="dstitle">🎓 Dataset de treino (LoRA)</div>
+      <div class="dshelp">Sobe a foto âncora e gera um conjunto variado para treinar o LoRA da personagem.</div>
+      <div class="drop" id="anchorDrop">Clique para enviar a foto âncora
+        <input type="file" id="anchorFile" accept="image/*" class="hidden">
+      </div>
+      <div class="row">
+        <div>
+          <label>Qtd. imagens</label>
+          <input type="number" id="dsCount" value="36" min="8" max="60">
+        </div>
+      </div>
+      <button class="go ds" id="dsBtn">Gerar dataset (.zip)</button>
+      <div class="status" id="dsStatus"></div>
+    </div>
   </div>
 
   <div class="result" id="result">
@@ -163,6 +185,115 @@ function wireDrop(dropId, fileId, setter, previewLabel) {
 }
 wireDrop('faceDrop', 'faceFile', v => faceB64 = v, 'Trocar foto');
 wireDrop('inputDrop', 'inputFile', v => inputB64 = v, 'Trocar imagem');
+
+let anchorB64 = null;
+wireDrop('anchorDrop', 'anchorFile', v => anchorB64 = v, 'Trocar âncora');
+
+// Prompts variados para o dataset (foco em variedade de ângulo/expressão/cena).
+const DATASET_PROMPTS = [
+  "closeup portrait, looking at camera, neutral expression, soft daylight",
+  "closeup portrait, gentle smile, natural window light",
+  "face closeup, three quarter view, looking away",
+  "face closeup, side profile, soft lighting",
+  "closeup, laughing, candid expression",
+  "closeup, serious expression, direct gaze",
+  "upper body, bedroom mirror selfie, black crop top",
+  "upper body, standing by the window, white t-shirt",
+  "upper body, outdoors, golden hour sunlight",
+  "upper body, cafe background, casual sweater",
+  "half body, sitting on bed, oversized hoodie",
+  "half body, kitchen background, tank top",
+  "portrait, hair tied back, gym outfit",
+  "portrait, hair down, evening indoor light",
+  "portrait, looking over shoulder, casual top",
+  "portrait, soft shadows, plain wall background",
+  "upper body, beach background, summer top",
+  "upper body, car selfie, daylight",
+  "portrait, slight smile, freckles visible, daylight",
+  "portrait, looking up, natural light",
+  "half body, living room, jeans and t-shirt",
+  "upper body, balcony, city background",
+  "portrait, overcast soft light, neutral makeup",
+  "closeup, eyes detail, catchlight in eyes",
+  "upper body, park background, light jacket",
+  "portrait, warm indoor lamp light",
+  "half body, bedroom, casual loungewear",
+  "upper body, studio softbox lighting, plain background",
+  "portrait, windblown hair, outdoor daylight",
+  "upper body, mirror selfie, sporty outfit",
+  "portrait, relaxed expression, morning light",
+  "closeup, natural skin texture, soft focus background",
+  "upper body, bookshelf background, cardigan",
+  "portrait, candid laugh, sunlight",
+  "half body, standing, hallway background",
+  "upper body, plain studio, confident pose"
+];
+
+$('dsBtn').addEventListener('click', runDataset);
+
+async function runDataset() {
+  if (!anchorB64) return setDs('Envie a foto âncora primeiro.', true);
+  if (typeof JSZip === 'undefined') return setDs('JSZip não carregou; recarregue a página.', true);
+  const total = Math.max(8, Math.min(60, parseInt($('dsCount').value) || 36));
+  const zip = new JSZip();
+  let ok = 0;
+  $('dsBtn').disabled = true;
+
+  for (let i = 0; i < total; i++) {
+    const prompt = DATASET_PROMPTS[i % DATASET_PROMPTS.length];
+    setDs('Gerando ' + (i + 1) + '/' + total + '…');
+    try {
+      const body = {
+        workflow_name: 'txt2img_faceid',
+        character: 'model',
+        prompt: prompt,
+        seed: '-1',
+        batch_size: 1,
+        face_image_b64: anchorB64,
+      };
+      const img = await generateOne(body);
+      if (img) {
+        zip.file('img_' + String(ok + 1).padStart(3, '0') + '.png', img, { base64: true });
+        ok++;
+      }
+    } catch (e) { /* pula falha e continua */ }
+  }
+
+  if (ok === 0) { $('dsBtn').disabled = false; return setDs('Nenhuma imagem gerada.', true); }
+  setDs('Empacotando ' + ok + ' imagens…');
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'dataset.zip'; a.click();
+  setDs('✓ Dataset pronto: ' + ok + ' imagens baixadas (dataset.zip)');
+  $('dsBtn').disabled = false;
+}
+
+// Dispara um job e retorna o base64 da 1ª imagem (ou null).
+async function generateOne(body) {
+  const r = await fetch('/api/generate', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+  const data = await r.json();
+  if (!r.ok || data.error) throw new Error(data.error || ('HTTP ' + r.status));
+  const result = (data.status === 'COMPLETED') ? data : await pollOnce(data.id);
+  const out = (result.output && result.output.outputs) || [];
+  return out.length ? out[0].data : null;
+}
+
+function pollOnce(id) {
+  return new Promise((resolve, reject) => {
+    const t = setInterval(async () => {
+      try {
+        const r = await fetch('/api/status/' + id, { headers: headers() });
+        const data = await r.json();
+        if (data.status === 'COMPLETED') { clearInterval(t); resolve(data); }
+        else if (data.status === 'FAILED') { clearInterval(t); reject(new Error('job falhou')); }
+      } catch (e) { /* segue tentando */ }
+    }, 2000);
+  });
+}
+
+function setDs(msg, err) {
+  const s = $('dsStatus'); s.textContent = msg; s.classList.toggle('err', !!err);
+}
 
 // Config / status dot
 fetch('/api/config').then(r => r.json()).then(c => {
