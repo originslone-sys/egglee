@@ -20,6 +20,13 @@ INPUT_DIR = COMFYUI_DIR / "input"
 WORKFLOW_DIRS = [Path("/workflows"), WORKSPACE / "workflows"]
 CHARACTERS_DIRS = [Path("/characters"), WORKSPACE / "characters"]
 
+DEFAULT_NEGATIVE = (
+    "plastic skin, airbrushed, smooth skin, cgi, 3d render, doll, caricature, "
+    "oversaturated, overexposed, dramatic makeup, heavy makeup, worst quality, "
+    "low quality, blurry, deformed, ugly, bad anatomy, bad hands, extra fingers, "
+    "missing fingers, watermark, signature, text"
+)
+
 
 def wait_for_comfyui(timeout=120):
     start = time.time()
@@ -148,6 +155,10 @@ def handler(job):
         if "character" in job_input:
             character = load_character(job_input["character"])
             inputs = apply_character(inputs, character)
+
+        # Garante um negativo padrão (os workflows usam {{negative_prompt}})
+        if not inputs.get("negative_prompt"):
+            inputs["negative_prompt"] = DEFAULT_NEGATIVE
 
         # Handle seed: -1 or missing → random
         if inputs.get("seed", -1) == -1:

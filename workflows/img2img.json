@@ -7,8 +7,8 @@
   "2": {
     "inputs": {
       "lora_name": "detail_tweaker_xl.safetensors",
-      "strength_model": 0.7,
-      "strength_clip": 0.7,
+      "strength_model": 0.35,
+      "strength_clip": 0.2,
       "model": ["1", 0],
       "clip": ["1", 1]
     },
@@ -18,8 +18,8 @@
   "3": {
     "inputs": {
       "lora_name": "skin_detail_xl.safetensors",
-      "strength_model": 0.6,
-      "strength_clip": 0.6,
+      "strength_model": 0.4,
+      "strength_clip": 0.3,
       "model": ["2", 0],
       "clip": ["2", 1]
     },
@@ -29,8 +29,8 @@
   "4": {
     "inputs": {
       "lora_name": "mobile_photography.safetensors",
-      "strength_model": 0.5,
-      "strength_clip": 0.5,
+      "strength_model": 0.4,
+      "strength_clip": 0.3,
       "model": ["3", 0],
       "clip": ["3", 1]
     },
@@ -40,8 +40,8 @@
   "5": {
     "inputs": {
       "lora_name": "hand_fix_xl.safetensors",
-      "strength_model": 0.7,
-      "strength_clip": 0.7,
+      "strength_model": 0.5,
+      "strength_clip": 0.0,
       "model": ["4", 0],
       "clip": ["4", 1]
     },
@@ -74,7 +74,7 @@
   },
   "9": {
     "inputs": {
-      "text": "worst quality, low quality, blurry, deformed, ugly, bad anatomy, bad hands, extra fingers, missing fingers, watermark, signature, text",
+      "text": "{{negative_prompt}}",
       "clip": ["5", 1]
     },
     "class_type": "CLIPTextEncode",
@@ -84,7 +84,7 @@
     "inputs": {
       "seed": "{{seed}}",
       "steps": 30,
-      "cfg": 7.0,
+      "cfg": 4.5,
       "sampler_name": "dpmpp_2m_sde",
       "scheduler": "karras",
       "denoise": 0.6,
