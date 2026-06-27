@@ -9,6 +9,7 @@ Variáveis de ambiente (configurar no Railway):
   RUNPOD_API_KEY       API key do RunPod
 """
 import os
+import json
 import requests
 from flask import Flask, request, jsonify, render_template
 
@@ -82,15 +83,18 @@ def generate():
     except requests.RequestException as e:
         return jsonify({"error": f"Falha de rede ao chamar o RunPod: {e}"}), 502
 
-    if r.status_code == 404:
-        return jsonify({"error": f"RunPod retornou 404 — verifique o RUNPOD_ENDPOINT_ID "
-                                 f"(atual: '{ENDPOINT_ID}'). Confira na página do endpoint."}), 502
-    if r.status_code == 401:
-        return jsonify({"error": "RunPod retornou 401 — RUNPOD_API_KEY inválida."}), 502
+    if not r.ok:
+        try:
+            detail = json.dumps(r.json())[:400]
+        except ValueError:
+            detail = (r.text or "")[:400]
+        msg = f"RunPod respondeu {r.status_code}: {detail}"
+        print("GENERATE ERROR:", msg, flush=True)
+        return jsonify({"error": msg}), 502
     try:
-        return jsonify(r.json()), (200 if r.ok else 502)
+        return jsonify(r.json()), 200
     except ValueError:
-        return jsonify({"error": f"Resposta inesperada do RunPod ({r.status_code}): {r.text[:300]}"}), 502
+        return jsonify({"error": f"Resposta não-JSON do RunPod ({r.status_code}): {r.text[:300]}"}), 502
 
 
 @app.route("/api/status/<job_id>")
