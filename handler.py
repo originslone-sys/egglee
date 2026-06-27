@@ -28,7 +28,7 @@ DEFAULT_NEGATIVE = (
 )
 
 
-def wait_for_comfyui(timeout=120):
+def wait_for_comfyui(timeout=300):
     start = time.time()
     while time.time() - start < timeout:
         try:
