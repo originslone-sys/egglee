@@ -60,7 +60,7 @@
   },
   "7": {
     "inputs": {
-      "clip_name": "sd1.5_clipvision.safetensors"
+      "clip_name": "CLIP-ViT-H-14.safetensors"
     },
     "class_type": "CLIPVisionLoader",
     "_meta": { "title": "Load CLIP Vision" }
