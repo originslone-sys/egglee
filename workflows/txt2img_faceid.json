@@ -109,7 +109,7 @@
     "_meta": { "title": "Negative Prompt" }
   },
   "14": {
-    "inputs": { "width": 832, "height": 1216, "batch_size": 1 },
+    "inputs": { "width": 832, "height": 1216, "batch_size": "{{batch_size}}" },
     "class_type": "EmptyLatentImage",
     "_meta": { "title": "Empty Latent" }
   },

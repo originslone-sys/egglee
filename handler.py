@@ -160,6 +160,12 @@ def handler(job):
         if not inputs.get("negative_prompt"):
             inputs["negative_prompt"] = DEFAULT_NEGATIVE
 
+        # Quantidade de imagens (os workflows usam {{batch_size}})
+        try:
+            inputs["batch_size"] = max(1, min(8, int(inputs.get("batch_size", 1))))
+        except (TypeError, ValueError):
+            inputs["batch_size"] = 1
+
         # Handle seed: -1 or missing → random
         if inputs.get("seed", -1) == -1:
             inputs["seed"] = random.randint(0, 2**32 - 1)
