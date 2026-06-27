@@ -243,9 +243,11 @@ async function runDataset() {
   for (let i = 0; i < total; i++) {
     const prompt = DATASET_PROMPTS[i % DATASET_PROMPTS.length];
     const body = {
-      workflow_name: 'txt2img_faceid',
-      character: 'model',
-      prompt: prompt,
+      // Workflow dedicado: FaceID forte + SEM descrição facial do character,
+      // para a identidade vir 100% da âncora (dataset consistente).
+      workflow_name: 'dataset_faceid',
+      prompt: prompt + ', photorealistic, hyperrealistic, amateur photo, natural skin texture, highly detailed',
+      negative_prompt: 'thick eyebrows, bushy eyebrows, heavy eyebrows, big lips, plump lips, heavy makeup, dramatic makeup, plastic skin, airbrushed, cgi, 3d render, doll, caricature, oversaturated, deformed, bad anatomy, blurry, low quality, watermark, text',
       seed: '-1',
       batch_size: 1,
       face_image_b64: anchorB64,
