@@ -190,13 +190,15 @@ let anchorB64 = null;
 wireDrop('anchorDrop', 'anchorFile', v => anchorB64 = v, 'Trocar âncora');
 
 // Prompts variados para o dataset (foco em variedade de ângulo/expressão/cena).
+// Apenas cena/enquadramento/roupa/luz/ângulo — SEM descrição de rosto
+// (olhos, sardas, expressões), para a identidade vir 100% da âncora.
 const DATASET_PROMPTS = [
-  "closeup portrait, looking at camera, neutral expression, soft daylight",
-  "closeup portrait, gentle smile, natural window light",
-  "face closeup, three quarter view, looking away",
+  "closeup portrait, soft daylight, plain background",
+  "closeup portrait, natural window light",
+  "face closeup, three quarter view",
   "face closeup, side profile, soft lighting",
-  "closeup, laughing, candid expression",
-  "closeup, serious expression, direct gaze",
+  "closeup, soft indoor light",
+  "closeup, soft focus background",
   "upper body, bedroom mirror selfie, black crop top",
   "upper body, standing by the window, white t-shirt",
   "upper body, outdoors, golden hour sunlight",
@@ -209,24 +211,24 @@ const DATASET_PROMPTS = [
   "portrait, soft shadows, plain wall background",
   "upper body, beach background, summer top",
   "upper body, car selfie, daylight",
-  "portrait, slight smile, freckles visible, daylight",
+  "portrait, daylight, plain background",
   "portrait, looking up, natural light",
   "half body, living room, jeans and t-shirt",
   "upper body, balcony, city background",
-  "portrait, overcast soft light, neutral makeup",
-  "closeup, eyes detail, catchlight in eyes",
+  "portrait, overcast soft light",
+  "closeup, gentle smile, soft light",
   "upper body, park background, light jacket",
   "portrait, warm indoor lamp light",
   "half body, bedroom, casual loungewear",
   "upper body, studio softbox lighting, plain background",
   "portrait, windblown hair, outdoor daylight",
   "upper body, mirror selfie, sporty outfit",
-  "portrait, relaxed expression, morning light",
-  "closeup, natural skin texture, soft focus background",
+  "portrait, morning light",
+  "closeup, soft focus background, natural light",
   "upper body, bookshelf background, cardigan",
-  "portrait, candid laugh, sunlight",
-  "half body, standing, hallway background",
-  "upper body, plain studio, confident pose"
+  "portrait, sunlight, outdoor",
+  "half body, hallway background",
+  "upper body, plain studio"
 ];
 
 $('dsBtn').addEventListener('click', runDataset);
