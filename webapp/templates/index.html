@@ -57,7 +57,12 @@
   .spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .hidden { display: none; }
-  .dl { margin-top: 12px; font-size: 13px; color: var(--accent); text-decoration: none; }
+  .dl { margin-top: 8px; font-size: 13px; color: var(--accent); text-decoration: none; }
+  button.hd {
+    margin-top: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer;
+    background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
+  }
+  button.hd:hover { border-color: var(--accent); color: var(--accent); }
 </style>
 </head>
 <body>
@@ -82,10 +87,6 @@
       <label for="useCharacter">Usar character fixo da modelo</label>
     </div>
 
-    <div class="check">
-      <input type="checkbox" id="hires">
-      <label for="hires">Alta definição (mais nítido, mais lento)</label>
-    </div>
 
     <label>Prompt (cena, roupa, pose, lugar…)</label>
     <textarea id="prompt" placeholder="sitting on a beach, white bikini, golden hour"></textarea>
@@ -176,17 +177,13 @@ function headers() {
   return {'Content-Type': 'application/json'};
 }
 
-$('goBtn').addEventListener('click', async () => {
+$('goBtn').addEventListener('click', () => {
   const wf = $('workflow').value;
   if (wf === 'txt2img_faceid' && !faceB64) return setStatus('Envie a foto de referência do rosto.', true);
   if ((wf === 'img2img' || wf === 'img2video') && !inputB64) return setStatus('Envie a imagem de entrada.', true);
 
-  // "Alta definição" troca o txt2img pela variante com hires fix
-  let wfName = wf;
-  if ($('hires').checked && wf === 'txt2img') wfName = 'txt2img_hd';
-
   const body = {
-    workflow_name: wfName,
+    workflow_name: wf,
     prompt: $('prompt').value.trim(),
     negative_prompt: $('negative').value.trim(),
     seed: $('seed').value.trim() || '-1',
@@ -196,8 +193,27 @@ $('goBtn').addEventListener('click', async () => {
   if (faceB64 && wf === 'txt2img_faceid') body.face_image_b64 = faceB64;
   if (inputB64 && (wf === 'img2img' || wf === 'img2video')) body.input_image_b64 = inputB64;
 
+  runJob(body, 'Enviando para a fila…');
+});
+
+// Envia a imagem escolhida para o workflow de upscale (alta definição)
+function upscaleImage(b64) {
+  const body = {
+    workflow_name: 'upscale',
+    prompt: $('prompt').value.trim(),
+    negative_prompt: $('negative').value.trim(),
+    seed: '-1',
+    batch_size: 1,
+    input_image_b64: b64,
+  };
+  if ($('useCharacter').checked) body.character = 'model';
+  runJob(body, 'Gerando alta definição…');
+}
+
+async function runJob(body, loadingMsg) {
+  if (polling) clearInterval(polling);
   $('goBtn').disabled = true;
-  showLoading('Enviando para a fila…');
+  showLoading(loadingMsg);
   try {
     const r = await fetch('/api/generate', {method: 'POST', headers: headers(), body: JSON.stringify(body)});
     const data = await r.json();
@@ -207,7 +223,7 @@ $('goBtn').addEventListener('click', async () => {
   } catch (e) {
     $('goBtn').disabled = false; showError(e.message);
   }
-});
+}
 
 function pollStatus(id) {
   let n = 0;
@@ -245,6 +261,10 @@ function done(data) {
       const img = document.createElement('img');
       img.src = src;
       cell.appendChild(img);
+      const btn = document.createElement('button');
+      btn.className = 'hd'; btn.textContent = '✨ Alta definição';
+      btn.onclick = () => upscaleImage(o.data);
+      cell.appendChild(btn);
       cell.appendChild(dl(src, o.filename));
     }
     r.appendChild(cell);
