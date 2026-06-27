@@ -97,7 +97,7 @@ echo "=== Checkpoint (SDXL) ==="
 # Formato: https://civitai.com/api/download/models/<versionId>?fileId=<fileId>
 # (mesma forma das URLs dos LoRAs). O nome do arquivo DEVE ser sdxl_checkpoint.safetensors.
 civitai_file_download "$MODELS/checkpoints" \
-    "PASTE_SDXL_CHECKPOINT_DOWNLOAD_URL_HERE" \
+    "https://civitai.com/api/download/models/1977579?fileId=1875177" \
     "sdxl_checkpoint.safetensors"
 
 # ── VAE ───────────────────────────────────────────────────────────────────────
