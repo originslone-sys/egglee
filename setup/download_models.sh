@@ -186,6 +186,19 @@ hf_download "$MODELS/loras" \
     "h94/IP-Adapter-FaceID" \
     "ip-adapter-faceid-plusv2_sdxl_lora.safetensors"
 
+# ── Detection models (FaceDetailer / Hand Detailer via Impact Pack) ───────────
+
+echo ""
+echo "=== Detection models (rosto e mãos) ==="
+
+hf_download "$MODELS/ultralytics/bbox" \
+    "Bingsu/adetailer" \
+    "face_yolov8m.pt"
+
+hf_download "$MODELS/ultralytics/bbox" \
+    "Bingsu/adetailer" \
+    "hand_yolov8s.pt"
+
 echo ""
 echo "✅ All models downloaded!"
 echo "   You can now build and deploy the Docker image."
