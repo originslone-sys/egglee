@@ -14,12 +14,15 @@ RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /tmp/Comfy
     && pip install --no-cache-dir -r /tmp/ComfyUI/requirements.txt \
     && rm -rf /tmp/ComfyUI
 
-# Custom node dependencies (WanVideo, VideoHelperSuite, IPAdapter + FaceID).
-RUN pip install --no-cache-dir insightface onnxruntime \
+# Custom node dependencies (WanVideo, VideoHelperSuite, IPAdapter+FaceID,
+# Impact Pack + Subpack for FaceDetailer/hand detailer).
+RUN pip install --no-cache-dir insightface onnxruntime ultralytics dill \
     && for repo in \
         https://github.com/kijai/ComfyUI-WanVideoWrapper.git \
         https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git \
-        https://github.com/cubiq/ComfyUI_IPAdapter_plus.git ; do \
+        https://github.com/cubiq/ComfyUI_IPAdapter_plus.git \
+        https://github.com/ltdrdata/ComfyUI-Impact-Pack.git \
+        https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git ; do \
         name=$(basename "$repo" .git); \
         git clone --depth 1 "$repo" "/tmp/$name" || continue; \
         if [ -f "/tmp/$name/requirements.txt" ]; then \

@@ -16,6 +16,8 @@ mkdir -p "$COMFYUI_DIR/models/checkpoints" "$COMFYUI_DIR/models/loras" \
          "$COMFYUI_DIR/models/vae" "$COMFYUI_DIR/models/upscale_models" \
          "$COMFYUI_DIR/models/clip" "$COMFYUI_DIR/models/clip_vision" \
          "$COMFYUI_DIR/models/ipadapter" "$COMFYUI_DIR/models/diffusion_models" \
+         "$COMFYUI_DIR/models/ultralytics/bbox" "$COMFYUI_DIR/models/ultralytics/segm" \
+         "$COMFYUI_DIR/models/sams" \
          "$COMFYUI_DIR/input" "$COMFYUI_DIR/output"
 
 echo "=== Installing Custom Nodes (code only) ==="
@@ -36,6 +38,8 @@ install_node "ComfyUI-Manager"          "https://github.com/ltdrdata/ComfyUI-Man
 install_node "ComfyUI-WanVideoWrapper"  "https://github.com/kijai/ComfyUI-WanVideoWrapper.git"
 install_node "ComfyUI-VideoHelperSuite" "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git"
 install_node "ComfyUI_IPAdapter_plus"   "https://github.com/cubiq/ComfyUI_IPAdapter_plus.git"
+install_node "ComfyUI-Impact-Pack"      "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git"
+install_node "ComfyUI-Impact-Subpack"   "https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git"
 
 echo ""
 echo "=== Copying workflows to volume ==="
