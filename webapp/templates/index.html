@@ -66,11 +66,6 @@
 
 <div class="wrap">
   <div class="controls">
-    {% if needs_password %}
-    <label>Senha do painel</label>
-    <input type="text" id="password" placeholder="senha">
-    {% endif %}
-
     <label>Workflow</label>
     <select id="workflow">
       <option value="txt2img">Texto → Imagem</option>
@@ -157,9 +152,7 @@ function setStatus(msg, err) {
   const s = $('status'); s.textContent = msg; s.classList.toggle('err', !!err);
 }
 function headers() {
-  const h = {'Content-Type': 'application/json'};
-  const p = $('password'); if (p && p.value) h['X-App-Password'] = p.value;
-  return h;
+  return {'Content-Type': 'application/json'};
 }
 
 $('goBtn').addEventListener('click', async () => {
