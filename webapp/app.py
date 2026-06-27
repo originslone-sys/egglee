@@ -33,6 +33,11 @@ def _build_input(body: dict) -> dict:
     seed = str(body.get("seed", "-1"))
     inputs["seed"] = int(seed) if seed.lstrip("-").isdigit() else -1
 
+    try:
+        inputs["batch_size"] = max(1, min(8, int(body.get("batch_size", 1))))
+    except (TypeError, ValueError):
+        inputs["batch_size"] = 1
+
     if body.get("face_image_b64"):
         inputs["face_image_b64"] = body["face_image_b64"]
     if body.get("input_image_b64"):
