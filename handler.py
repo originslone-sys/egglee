@@ -15,8 +15,10 @@ WORKSPACE = Path(os.environ.get("WORKSPACE", "/runpod-volume"))
 COMFYUI_DIR = WORKSPACE / "ComfyUI"
 OUTPUT_DIR = COMFYUI_DIR / "output"
 INPUT_DIR = COMFYUI_DIR / "input"
-WORKFLOW_DIRS = [WORKSPACE / "workflows", Path("/workflows")]
-CHARACTERS_DIRS = [WORKSPACE / "characters", Path("/characters")]
+# Image-baked workflows/characters take precedence so they always match the
+# repo (the volume may hold stale copies from an earlier setup run).
+WORKFLOW_DIRS = [Path("/workflows"), WORKSPACE / "workflows"]
+CHARACTERS_DIRS = [Path("/characters"), WORKSPACE / "characters"]
 
 
 def wait_for_comfyui(timeout=120):
