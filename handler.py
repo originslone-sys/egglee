@@ -153,9 +153,10 @@ def handler(job):
         if inputs.get("seed", -1) == -1:
             inputs["seed"] = random.randint(0, 2**32 - 1)
 
-        # Handle base64 input image → save to ComfyUI input dir
-        if "input_image_b64" in inputs:
-            inputs["input_image"] = save_input_image(inputs.pop("input_image_b64"))
+        # Handle any base64 input image (e.g. input_image_b64, face_image_b64)
+        # → save to ComfyUI input dir and expose the filename under the base key.
+        for key in [k for k in list(inputs) if k.endswith("_b64")]:
+            inputs[key[:-4]] = save_input_image(inputs.pop(key))
 
         if inputs:
             workflow = inject_inputs(workflow, inputs)
