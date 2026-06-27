@@ -51,7 +51,7 @@
   "6": {
     "inputs": {
       "lora_name": "ip-adapter-faceid-plusv2_sdxl_lora.safetensors",
-      "strength_model": 0.35,
+      "strength_model": 0.4,
       "model": ["5", 0]
     },
     "class_type": "LoraLoaderModelOnly",
@@ -79,12 +79,12 @@
   },
   "11": {
     "inputs": {
-      "weight": 0.6,
-      "weight_faceidv2": 0.5,
+      "weight": 0.75,
+      "weight_faceidv2": 0.6,
       "weight_type": "linear",
       "combine_embeds": "average",
       "start_at": 0.0,
-      "end_at": 0.6,
+      "end_at": 0.75,
       "embeds_scaling": "K+V",
       "model": ["6", 0],
       "ipadapter": ["7", 0],
@@ -134,8 +134,50 @@
     "class_type": "VAEDecode",
     "_meta": { "title": "VAE Decode" }
   },
+  "18": {
+    "inputs": { "model_name": "bbox/face_yolov8m.pt" },
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": { "title": "Face Detector" }
+  },
+  "19": {
+    "inputs": {
+      "guide_size": 512,
+      "guide_size_for": true,
+      "max_size": 1024,
+      "seed": "{{seed}}",
+      "steps": 25,
+      "cfg": 4.5,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 0.45,
+      "feather": 5,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "bbox_threshold": 0.5,
+      "bbox_dilation": 10,
+      "bbox_crop_factor": 3.0,
+      "sam_detection_hint": "center-1",
+      "sam_dilation": 0,
+      "sam_threshold": 0.93,
+      "sam_bbox_expansion": 0,
+      "sam_mask_hint_threshold": 0.7,
+      "sam_mask_hint_use_negative": "False",
+      "drop_size": 10,
+      "wildcard": "",
+      "cycle": 1,
+      "image": ["16", 0],
+      "model": ["11", 0],
+      "clip": ["5", 1],
+      "vae": ["1", 2],
+      "positive": ["12", 0],
+      "negative": ["13", 0],
+      "bbox_detector": ["18", 0]
+    },
+    "class_type": "FaceDetailer",
+    "_meta": { "title": "Face Detailer (FaceID)" }
+  },
   "17": {
-    "inputs": { "filename_prefix": "faceid", "images": ["16", 0] },
+    "inputs": { "filename_prefix": "faceid", "images": ["19", 0] },
     "class_type": "SaveImage",
     "_meta": { "title": "Save Image" }
   }
