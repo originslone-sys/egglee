@@ -45,6 +45,28 @@ print(primary['downloadUrl'])
     echo "  ✅ $filename"
 }
 
+civitai_file_download() {
+    local dest_dir=$1
+    local url=$2
+    local filename=$3
+    local dest="$dest_dir/$filename"
+
+    if [ -f "$dest" ]; then
+        echo "  ⏭️  $filename already exists"
+        return 0
+    fi
+
+    echo "  ⬇️  Downloading $filename..."
+    if ! wget -q --show-progress \
+        --header="Authorization: Bearer $CIVITAI_TOKEN" \
+        -O "$dest" "$url"; then
+        rm -f "$dest"
+        echo "  ❌ Failed: $filename"
+        return 1
+    fi
+    echo "  ✅ $filename"
+}
+
 hf_download() {
     local dest_dir=$1
     local repo=$2
@@ -70,8 +92,13 @@ hf_download() {
 # ── Checkpoint ────────────────────────────────────────────────────────────────
 
 echo ""
-echo "=== Checkpoint ==="
-civitai_download "$MODELS/checkpoints" "2533927" "famegrid_zib.safetensors"
+echo "=== Checkpoint (SDXL) ==="
+# Cole abaixo a URL de download direta do seu checkpoint SDXL escolhido no CivitAI.
+# Formato: https://civitai.com/api/download/models/<versionId>?fileId=<fileId>
+# (mesma forma das URLs dos LoRAs). O nome do arquivo DEVE ser sdxl_checkpoint.safetensors.
+civitai_file_download "$MODELS/checkpoints" \
+    "https://civitai.com/api/download/models/1977579?fileId=1875177" \
+    "sdxl_checkpoint.safetensors"
 
 # ── VAE ───────────────────────────────────────────────────────────────────────
 
@@ -82,28 +109,6 @@ hf_download "$MODELS/vae" \
     "vae-ft-mse-840000-ema-pruned.safetensors"
 
 # ── LoRAs ─────────────────────────────────────────────────────────────────────
-
-civitai_file_download() {
-    local dest_dir=$1
-    local url=$2
-    local filename=$3
-    local dest="$dest_dir/$filename"
-
-    if [ -f "$dest" ]; then
-        echo "  ⏭️  $filename already exists"
-        return 0
-    fi
-
-    echo "  ⬇️  Downloading $filename..."
-    if ! wget -q --show-progress \
-        --header="Authorization: Bearer $CIVITAI_TOKEN" \
-        -O "$dest" "$url"; then
-        rm -f "$dest"
-        echo "  ❌ Failed: $filename"
-        return 1
-    fi
-    echo "  ✅ $filename"
-}
 
 echo ""
 echo "=== LoRAs ==="
@@ -160,26 +165,26 @@ hf_download "$MODELS/vae" \
     "Kijai/WanVideo_comfy" \
     "Wan2_1_VAE_bf16.safetensors"
 
-# ── IPAdapter FaceID ──────────────────────────────────────────────────────────
+# ── IPAdapter FaceID (SDXL) ───────────────────────────────────────────────────
 
 echo ""
-echo "=== IPAdapter FaceID (face consistency) ==="
+echo "=== IPAdapter FaceID SDXL (face consistency) ==="
 
-# CLIP Vision (ViT-H) — usado pelo IPAdapter FaceID
+# CLIP Vision (ViT-H) — usado pelo IPAdapter FaceID Plus V2
 hf_download "$MODELS/clip_vision" \
     "h94/IP-Adapter" \
     "models/image_encoder/model.safetensors" \
-    "sd1.5_clipvision.safetensors"
+    "CLIP-ViT-H-14.safetensors"
 
-# IPAdapter FaceID Plus V2 — modelo principal
+# IPAdapter FaceID Plus V2 SDXL — modelo principal
 hf_download "$MODELS/ipadapter" \
     "h94/IP-Adapter-FaceID" \
-    "ip-adapter-faceid-plusv2_sd15.bin"
+    "ip-adapter-faceid-plusv2_sdxl.bin"
 
-# FaceID LoRA — carregada automaticamente pelo IPAdapterUnifiedLoaderFaceID
+# FaceID LoRA SDXL — carregada automaticamente pelo IPAdapterUnifiedLoaderFaceID
 hf_download "$MODELS/loras" \
     "h94/IP-Adapter-FaceID" \
-    "ip-adapter-faceid-plusv2_sd15_lora.safetensors"
+    "ip-adapter-faceid-plusv2_sdxl_lora.safetensors"
 
 echo ""
 echo "✅ All models downloaded!"

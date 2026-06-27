@@ -1,6 +1,6 @@
 {
   "1": {
-    "inputs": { "ckpt_name": "famegrid_zib.safetensors" },
+    "inputs": { "ckpt_name": "sdxl_checkpoint.safetensors" },
     "class_type": "CheckpointLoaderSimple",
     "_meta": { "title": "Load Checkpoint" }
   },
