@@ -1,5 +1,6 @@
 """Banco Postgres para metadados da biblioteca de mídia."""
 import os
+from contextlib import closing
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -12,59 +13,66 @@ def enabled() -> bool:
 
 
 def _conn():
-    return psycopg2.connect(DATABASE_URL)
+    # closing() garante que a conexão seja fechada (psycopg2 com `with` só
+    # gerencia a transação, não fecha — isso causava vazamento de conexões).
+    return closing(psycopg2.connect(DATABASE_URL))
 
 
 def init():
     if not enabled():
         return
-    with _conn() as c, c.cursor() as cur:
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS media (
-                id SERIAL PRIMARY KEY,
-                r2_key TEXT NOT NULL,
-                type TEXT DEFAULT 'image',
-                prompt TEXT,
-                seed BIGINT,
-                workflow TEXT,
-                folder TEXT DEFAULT 'Geral',
-                favorite BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT NOW()
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS media (
+                    id SERIAL PRIMARY KEY,
+                    r2_key TEXT NOT NULL,
+                    type TEXT DEFAULT 'image',
+                    prompt TEXT,
+                    seed BIGINT,
+                    workflow TEXT,
+                    folder TEXT DEFAULT 'Geral',
+                    favorite BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+                """
             )
-            """
-        )
         c.commit()
 
 
 def insert(r2_key, type="image", prompt="", seed=None, workflow="", folder="Geral"):
-    with _conn() as c, c.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute(
-            "INSERT INTO media (r2_key, type, prompt, seed, workflow, folder) "
-            "VALUES (%s, %s, %s, %s, %s, %s) RETURNING *",
-            (r2_key, type, prompt, seed, workflow, folder),
-        )
-        row = cur.fetchone()
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "INSERT INTO media (r2_key, type, prompt, seed, workflow, folder) "
+                "VALUES (%s, %s, %s, %s, %s, %s) RETURNING *",
+                (r2_key, type, prompt, seed, workflow, folder),
+            )
+            row = cur.fetchone()
         c.commit()
         return row
 
 
-def list_media(limit=200, offset=0):
-    with _conn() as c, c.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute(
-            "SELECT * FROM media ORDER BY created_at DESC LIMIT %s OFFSET %s",
-            (limit, offset),
-        )
-        return cur.fetchall()
+def list_media(limit=300, offset=0):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "SELECT * FROM media ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                (limit, offset),
+            )
+            return cur.fetchall()
 
 
 def get(media_id):
-    with _conn() as c, c.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT * FROM media WHERE id = %s", (media_id,))
-        return cur.fetchone()
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM media WHERE id = %s", (media_id,))
+            return cur.fetchone()
 
 
 def delete(media_id):
-    with _conn() as c, c.cursor() as cur:
-        cur.execute("DELETE FROM media WHERE id = %s", (media_id,))
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("DELETE FROM media WHERE id = %s", (media_id,))
         c.commit()
