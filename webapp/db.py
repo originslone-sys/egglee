@@ -39,6 +39,17 @@ def init():
             )
             # Migração: garante a coluna tags se a tabela já existia
             cur.execute("ALTER TABLE media ADD COLUMN IF NOT EXISTS tags TEXT DEFAULT ''")
+            # Pastas como entidade própria (podem existir vazias)
+            cur.execute(
+                "CREATE TABLE IF NOT EXISTS folders ("
+                "id SERIAL PRIMARY KEY, name TEXT UNIQUE NOT NULL, "
+                "created_at TIMESTAMP DEFAULT NOW())"
+            )
+            cur.execute("INSERT INTO folders(name) VALUES ('Geral') ON CONFLICT DO NOTHING")
+            cur.execute(
+                "INSERT INTO folders(name) SELECT DISTINCT folder FROM media "
+                "WHERE folder IS NOT NULL ON CONFLICT DO NOTHING"
+            )
         c.commit()
 
 
@@ -75,13 +86,45 @@ def list_media(limit=400, offset=0, folder=None, favorite=False, q=None):
             return cur.fetchall()
 
 
-def folders():
+def list_folders():
     with _conn() as c:
         with c.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
-                "SELECT folder, COUNT(*) AS n FROM media GROUP BY folder ORDER BY folder"
+                """
+                SELECT f.name AS folder,
+                       COALESCE(m.n, 0) AS n
+                FROM folders f
+                LEFT JOIN (SELECT folder, COUNT(*) n FROM media GROUP BY folder) m
+                       ON m.folder = f.name
+                ORDER BY (f.name = 'Geral') DESC, f.name
+                """
             )
             return cur.fetchall()
+
+
+def create_folder(name):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("INSERT INTO folders(name) VALUES (%s) ON CONFLICT DO NOTHING", (name,))
+        c.commit()
+
+
+def rename_folder(old, new):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("UPDATE folders SET name = %s WHERE name = %s", (new, old))
+            cur.execute("UPDATE media SET folder = %s WHERE folder = %s", (new, old))
+        c.commit()
+
+
+def delete_folder(name):
+    if name == "Geral":
+        return
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("UPDATE media SET folder = 'Geral' WHERE folder = %s", (name,))
+            cur.execute("DELETE FROM folders WHERE name = %s", (name,))
+        c.commit()
 
 
 def get(media_id):
