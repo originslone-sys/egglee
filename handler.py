@@ -10,6 +10,32 @@ import random
 import os
 from pathlib import Path
 
+# Film grain opcional (realismo). Falha de import não derruba o worker.
+try:
+    import io as _io
+    import numpy as _np
+    from PIL import Image as _Image
+    _GRAIN_OK = True
+except Exception:
+    _GRAIN_OK = False
+
+
+def add_film_grain(png_bytes: bytes, intensity: float = 4.0) -> bytes:
+    """Adiciona grão monocromático sutil (ruído de luminância) para realismo."""
+    if not _GRAIN_OK:
+        return png_bytes
+    try:
+        img = _Image.open(_io.BytesIO(png_bytes)).convert("RGB")
+        arr = _np.asarray(img).astype(_np.float32)
+        noise = _np.random.normal(0.0, intensity, arr.shape[:2])
+        arr += noise[..., None]
+        arr = _np.clip(arr, 0, 255).astype("uint8")
+        out = _io.BytesIO()
+        _Image.fromarray(arr).save(out, format="PNG")
+        return out.getvalue()
+    except Exception:
+        return png_bytes
+
 COMFYUI_URL = "http://127.0.0.1:8188"
 WORKSPACE = Path(os.environ.get("WORKSPACE", "/runpod-volume"))
 COMFYUI_DIR = WORKSPACE / "ComfyUI"
@@ -70,7 +96,8 @@ def collect_outputs(job_history: dict) -> list:
             subdir = img.get("subfolder", "")
             path = OUTPUT_DIR / subdir / img["filename"] if subdir else OUTPUT_DIR / img["filename"]
             if path.exists():
-                data = base64.b64encode(path.read_bytes()).decode()
+                raw = add_film_grain(path.read_bytes())
+                data = base64.b64encode(raw).decode()
                 outputs.append({"type": "image", "filename": img["filename"], "data": data})
 
         for vid in node_output.get("videos", []):
