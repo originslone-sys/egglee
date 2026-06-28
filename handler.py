@@ -89,14 +89,14 @@ def wait_for_completion(prompt_id: str, timeout: int = 600) -> dict:
     raise TimeoutError(f"Job {prompt_id} timed out after {timeout}s")
 
 
-def collect_outputs(job_history: dict) -> list:
+def collect_outputs(job_history: dict, grain: bool = True) -> list:
     outputs = []
     for node_output in job_history.get("outputs", {}).values():
         for img in node_output.get("images", []):
             subdir = img.get("subfolder", "")
             path = OUTPUT_DIR / subdir / img["filename"] if subdir else OUTPUT_DIR / img["filename"]
             if path.exists():
-                raw = add_film_grain(path.read_bytes())
+                raw = add_film_grain(path.read_bytes()) if grain else path.read_bytes()
                 data = base64.b64encode(raw).decode()
                 outputs.append({"type": "image", "filename": img["filename"], "data": data})
 
@@ -219,7 +219,7 @@ def handler(job):
         return {
             "status": "success",
             "prompt_id": prompt_id,
-            "outputs": collect_outputs(history),
+            "outputs": collect_outputs(history, grain=not job_input.get("no_grain")),
         }
 
     except Exception as e:

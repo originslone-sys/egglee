@@ -18,6 +18,12 @@ OUT="$WORKSPACE/ComfyUI/models/loras"
 
 mkdir -p "$DATA_DIR" "$OUT"
 
+# Backup do LoRA v1 antes de sobrescrever (preserva a versão anterior)
+if [ -f "$OUT/egglee_character.safetensors" ] && [ ! -f "$OUT/egglee_character_v1.safetensors" ]; then
+    cp "$OUT/egglee_character.safetensors" "$OUT/egglee_character_v1.safetensors"
+    echo "Backup do LoRA atual salvo como egglee_character_v1.safetensors"
+fi
+
 echo "=== Preparando dataset ==="
 if [ -f "$TRAIN_DIR/dataset.zip" ]; then
     rm -rf "$TRAIN_DIR/_imgs"
