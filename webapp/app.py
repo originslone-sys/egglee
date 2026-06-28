@@ -118,6 +118,10 @@ def config():
     return jsonify({
         "configured": bool(ENDPOINT_ID and API_KEY),
         "library": db.enabled() and storage.enabled(),
+        "has_db": db.enabled(),
+        "has_r2": storage.enabled(),
+        "r2_missing": [k for k in ("R2_ENDPOINT", "R2_ACCESS_KEY", "R2_SECRET_KEY", "R2_BUCKET")
+                       if not os.environ.get(k, "").strip()],
     })
 
 
