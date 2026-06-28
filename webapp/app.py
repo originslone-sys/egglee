@@ -205,7 +205,7 @@ def library_list():
             favorite=request.args.get("favorite") == "1",
             q=request.args.get("q") or None,
         )
-        folders = db.folders()
+        folders = db.list_folders()
     except Exception as e:
         print("LIBRARY LIST ERROR:", e, flush=True)
         return jsonify({"items": [], "folders": [], "configured": True, "error": str(e)})
@@ -224,6 +224,37 @@ def library_list():
         })
     folders = [{"folder": f["folder"], "n": f["n"]} for f in folders]
     return jsonify({"items": items, "folders": folders, "configured": True})
+
+
+@app.route("/api/folders", methods=["POST"])
+@login_required
+def folder_create():
+    name = (request.get_json(force=True).get("name") or "").strip()
+    if not name:
+        return jsonify({"ok": False, "reason": "nome vazio"}), 400
+    db.create_folder(name)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/folders/rename", methods=["POST"])
+@login_required
+def folder_rename():
+    b = request.get_json(force=True)
+    old, new = (b.get("old") or "").strip(), (b.get("new") or "").strip()
+    if not old or not new or old == "Geral":
+        return jsonify({"ok": False, "reason": "inválido"}), 400
+    db.rename_folder(old, new)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/folders/delete", methods=["POST"])
+@login_required
+def folder_delete():
+    name = (request.get_json(force=True).get("name") or "").strip()
+    if not name or name == "Geral":
+        return jsonify({"ok": False, "reason": "inválido"}), 400
+    db.delete_folder(name)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/library/favorite", methods=["POST"])

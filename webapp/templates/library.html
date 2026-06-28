@@ -51,6 +51,14 @@
   .lb .tags { display:flex; gap:8px; align-items:center; }
   .lb .tags input { padding:7px 10px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:7px; width:340px; }
   .lb .tags button { padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; z-index:60; }
+  .modal.show { display:flex; }
+  .modal .box { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:22px; width:340px; max-height:70vh; overflow:auto; }
+  .modal .mt { font-size:15px; font-weight:600; margin-bottom:14px; }
+  .mfolders { display:flex; flex-direction:column; gap:8px; }
+  .mf { text-align:left; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer; font-size:14px; }
+  .mf:hover { border-color:var(--blue); }
+  .mf.new { color:var(--accent); border-style:dashed; }
 </style>
 </head>
 <body>
@@ -76,6 +84,13 @@
     </div>
     <div class="grid" id="grid"></div>
     <div class="empty" id="empty" style="display:none"></div>
+  </div>
+</div>
+
+<div class="modal" id="moveModal">
+  <div class="box">
+    <div class="mt">Mover <span id="moveCount"></span> para…</div>
+    <div id="moveFolders" class="mfolders"></div>
   </div>
 </div>
 
@@ -107,21 +122,58 @@ async function load() {
   renderGrid();
 }
 
+let allFolders = [];
 function renderSide(folders) {
+  allFolders = folders;
   const total = folders.reduce((s,f)=>s+f.n,0);
-  let html = '<div class="grp">Filtros</div>';
-  html += link('Todos', total, !curFolder && !curFav, () => { curFolder=''; curFav=false; load(); });
-  html += link('⭐ Favoritos', '', curFav, () => { curFav=true; curFolder=''; load(); });
-  html += '<div class="grp">Pastas</div>';
+  const side = $('side'); side.innerHTML = '';
+  side.appendChild(grp('Filtros'));
+  side.appendChild(navItem('Todos', total, !curFolder && !curFav, () => { curFolder=''; curFav=false; load(); }));
+  side.appendChild(navItem('⭐ Favoritos', '', curFav, () => { curFav=true; curFolder=''; load(); }));
+
+  const ph = grp('Pastas');
+  const add = document.createElement('span');
+  add.textContent = '＋'; add.title = 'Nova pasta';
+  add.style.cssText = 'float:right;cursor:pointer;color:var(--accent);font-size:14px';
+  add.onclick = createFolder; ph.appendChild(add);
+  side.appendChild(ph);
+
   folders.forEach(f => {
-    html += link(f.folder, f.n, curFolder===f.folder, () => { curFolder=f.folder; curFav=false; load(); });
+    const row = navItem(f.folder, f.n, curFolder===f.folder && !curFav, () => { curFolder=f.folder; curFav=false; load(); });
+    if (f.folder !== 'Geral') {
+      const fa = row.querySelector('.fa');
+      const ed = document.createElement('span'); ed.textContent='✏️'; ed.title='Renomear';
+      ed.style.cssText='cursor:pointer;margin-left:6px;font-size:11px';
+      ed.onclick = e => { e.stopPropagation(); renameFolder(f.folder); };
+      const rm = document.createElement('span'); rm.textContent='🗑'; rm.title='Excluir';
+      rm.style.cssText='cursor:pointer;margin-left:4px;font-size:11px';
+      rm.onclick = e => { e.stopPropagation(); deleteFolder(f.folder); };
+      fa.appendChild(ed); fa.appendChild(rm);
+    }
+    side.appendChild(row);
   });
-  $('side').innerHTML = html;
 }
-function link(label, n, active, fn) {
-  const id = 'lk' + Math.random().toString(36).slice(2);
-  setTimeout(() => { const el=document.getElementById(id); if(el) el.onclick=fn; }, 0);
-  return `<a id="${id}" class="${active?'active':''}"><span>${label}</span><span class="n">${n}</span></a>`;
+function grp(t){ const d=document.createElement('div'); d.className='grp'; d.textContent=t; return d; }
+function navItem(label, n, active, fn){
+  const a=document.createElement('a'); a.className=active?'active':'';
+  a.innerHTML = `<span>${label}</span><span class="fa"><span class="n">${n}</span></span>`;
+  a.onclick = fn; return a;
+}
+
+async function createFolder(){
+  const name = prompt('Nome da nova pasta:'); if(!name) return;
+  await fetch('/api/folders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name.trim()})});
+  load();
+}
+async function renameFolder(old){
+  const nn = prompt('Renomear pasta:', old); if(!nn||nn.trim()===old) return;
+  await fetch('/api/folders/rename',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({old,new:nn.trim()})});
+  if(curFolder===old) curFolder=nn.trim(); load();
+}
+async function deleteFolder(name){
+  if(!confirm('Excluir a pasta "'+name+'"? As imagens voltam para Geral.')) return;
+  await fetch('/api/folders/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  if(curFolder===name) curFolder=''; load();
 }
 
 function renderGrid() {
@@ -193,12 +245,27 @@ async function bulkDelete() {
   await fetch('/api/library/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ids:[...selected]})});
   selected.clear(); load();
 }
-async function bulkMove() {
+function bulkMove() {
   if (!selected.size) return;
-  const folder = prompt('Mover para qual pasta? (digite o nome; cria se não existir)');
-  if (!folder) return;
+  $('moveCount').textContent = selected.size + (selected.size>1?' itens':' item');
+  const box = $('moveFolders'); box.innerHTML = '';
+  allFolders.forEach(f => {
+    const b = document.createElement('button'); b.className = 'mf';
+    b.textContent = f.folder + ' (' + f.n + ')';
+    b.onclick = () => doMove(f.folder); box.appendChild(b);
+  });
+  const nb = document.createElement('button'); nb.className = 'mf new'; nb.textContent = '＋ Nova pasta';
+  nb.onclick = async () => {
+    const n = prompt('Nome da nova pasta:'); if (!n) return;
+    await fetch('/api/folders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n.trim()})});
+    doMove(n.trim());
+  };
+  box.appendChild(nb);
+  $('moveModal').classList.add('show');
+}
+async function doMove(folder) {
   await fetch('/api/library/move', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ids:[...selected], folder})});
-  selected.clear(); load();
+  $('moveModal').classList.remove('show'); selected.clear(); load();
 }
 async function bulkZip() {
   if (!selected.size) return;
@@ -235,6 +302,7 @@ function openLb(it) {
 }
 function closeLb() { $('lb').classList.remove('show'); $('lbContent').innerHTML=''; lbId=null; }
 $('lb').addEventListener('click', e => { if (e.target.id === 'lb') closeLb(); });
+$('moveModal').addEventListener('click', e => { if (e.target.id === 'moveModal') $('moveModal').classList.remove('show'); });
 async function saveTags() {
   if (!lbId) return;
   await fetch('/api/library/tags', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:lbId, tags:$('lbTags').value})});
