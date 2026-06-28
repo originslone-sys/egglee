@@ -4,33 +4,53 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Egglee · Biblioteca</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#2ea043; --danger:#f85149; }
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#2ea043; --accent2:#238636; --danger:#f85149; --blue:#1f6feb; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
-  header { padding:14px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:16px; }
-  header h1 { font-size:17px; margin:0; }
+  header { padding:12px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:16px; }
+  header h1 { font-size:16px; margin:0; }
   header a { color:var(--muted); text-decoration:none; font-size:14px; }
   header a:hover { color:var(--text); }
   .spacer { flex:1; }
-  .wrap { padding:24px; }
-  .count { color:var(--muted); font-size:13px; margin-bottom:16px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:14px; }
+  #search { padding:7px 11px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:7px; width:240px; font-size:13px; }
+  .layout { display:flex; min-height:calc(100vh - 49px); }
+  .side { width:210px; border-right:1px solid var(--border); padding:16px 10px; flex-shrink:0; }
+  .side .grp { font-size:11px; color:var(--muted); text-transform:uppercase; margin:14px 8px 6px; }
+  .side a { display:flex; justify-content:space-between; padding:7px 10px; border-radius:6px; color:var(--text); text-decoration:none; font-size:13px; cursor:pointer; }
+  .side a:hover { background:var(--panel); }
+  .side a.active { background:var(--panel); color:var(--accent); }
+  .side a .n { color:var(--muted); font-size:11px; }
+  .main { flex:1; padding:16px 20px; }
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .toolbar .count { color:var(--muted); font-size:13px; }
+  button.tb { font-size:13px; padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; }
+  button.tb:hover { border-color:var(--muted); }
+  button.tb.on { border-color:var(--blue); color:var(--blue); }
+  button.tb.danger { color:var(--danger); }
+  button.tb.danger:hover { border-color:var(--danger); }
+  button.tb:disabled { opacity:.4; cursor:default; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
   .cell { background:var(--panel); border:1px solid var(--border); border-radius:10px; overflow:hidden; position:relative; }
-  .cell img, .cell video { width:100%; display:block; aspect-ratio:3/4; object-fit:cover; cursor:pointer; }
-  .meta { padding:8px 10px; font-size:11px; color:var(--muted); }
+  .cell.sel { outline:2px solid var(--blue); }
+  .cell .thumb { width:100%; aspect-ratio:3/4; object-fit:cover; display:block; cursor:pointer; }
+  .star { position:absolute; top:7px; right:7px; font-size:18px; cursor:pointer; filter:drop-shadow(0 1px 2px #000); user-select:none; }
+  .chk { position:absolute; top:7px; left:7px; width:20px; height:20px; cursor:pointer; }
+  .meta { padding:7px 10px; font-size:11px; color:var(--muted); }
   .meta .wf { color:var(--text); font-weight:600; }
-  .acts { display:flex; gap:8px; padding:0 10px 10px; }
-  .acts a, .acts button { font-size:12px; padding:5px 8px; border-radius:6px; border:1px solid var(--border);
-                          background:#0d1117; color:var(--text); text-decoration:none; cursor:pointer; }
+  .acts { display:flex; gap:6px; padding:0 10px 10px; }
+  .acts a, .acts button { font-size:12px; padding:4px 8px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); text-decoration:none; cursor:pointer; }
   .acts .del { color:var(--danger); }
-  .acts .del:hover { border-color:var(--danger); }
   .empty { color:var(--muted); text-align:center; padding:60px 20px; }
-  /* lightbox */
-  .lb { position:fixed; inset:0; background:rgba(0,0,0,.9); display:none; align-items:center; justify-content:center; z-index:50; }
+  .lb { position:fixed; inset:0; background:rgba(0,0,0,.92); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:50; gap:14px; padding:20px; }
   .lb.show { display:flex; }
-  .lb img, .lb video { max-width:92vw; max-height:92vh; border-radius:8px; }
-  .lb .close { position:absolute; top:18px; right:24px; color:#fff; font-size:30px; cursor:pointer; }
+  .lb img, .lb video { max-width:88vw; max-height:74vh; border-radius:8px; }
+  .lb .close { position:absolute; top:16px; right:22px; color:#fff; font-size:30px; cursor:pointer; }
+  .lb .info { color:var(--muted); font-size:13px; max-width:700px; text-align:center; }
+  .lb .tags { display:flex; gap:8px; align-items:center; }
+  .lb .tags input { padding:7px 10px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:7px; width:340px; }
+  .lb .tags button { padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; }
 </style>
 </head>
 <body>
@@ -38,69 +58,189 @@
   <h1>🥚 Biblioteca</h1>
   <a href="/">← Gerar</a>
   <div class="spacer"></div>
-  <span class="count" id="count"></span>
+  <input id="search" placeholder="Buscar por prompt ou tag…">
   <a href="/logout">Sair</a>
 </header>
 
-<div class="wrap">
-  <div class="grid" id="grid"></div>
-  <div class="empty" id="empty" style="display:none"></div>
+<div class="layout">
+  <div class="side" id="side"></div>
+  <div class="main">
+    <div class="toolbar">
+      <span class="count" id="count"></span>
+      <div class="spacer"></div>
+      <button class="tb" id="selBtn" onclick="toggleSelectMode()">Selecionar</button>
+      <button class="tb" id="allBtn" onclick="selectAll()" style="display:none">Selecionar todos</button>
+      <button class="tb" id="zipBtn" onclick="bulkZip()" style="display:none" disabled>⬇ Baixar zip</button>
+      <button class="tb" id="moveBtn" onclick="bulkMove()" style="display:none" disabled>📁 Mover</button>
+      <button class="tb danger" id="delBtn" onclick="bulkDelete()" style="display:none" disabled>🗑 Deletar</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" style="display:none"></div>
+  </div>
 </div>
 
-<div class="lb" id="lb"><span class="close" onclick="closeLb()">✕</span><div id="lbContent"></div></div>
+<div class="lb" id="lb">
+  <span class="close" onclick="closeLb()">✕</span>
+  <div id="lbContent"></div>
+  <div class="info" id="lbInfo"></div>
+  <div class="tags">
+    <input id="lbTags" placeholder="tags separadas por vírgula">
+    <button onclick="saveTags()">Salvar tags</button>
+  </div>
+</div>
 
 <script>
 const $ = id => document.getElementById(id);
+let items = [], selectMode = false, selected = new Set();
+let curFolder = '', curFav = false, curQ = '', lbId = null;
 
 async function load() {
-  const r = await fetch('/api/library');
+  const p = new URLSearchParams();
+  if (curFolder) p.set('folder', curFolder);
+  if (curFav) p.set('favorite', '1');
+  if (curQ) p.set('q', curQ);
+  const r = await fetch('/api/library?' + p.toString());
   const data = await r.json();
-  if (!data.configured) {
-    $('empty').style.display = 'block';
-    $('empty').textContent = 'Biblioteca não configurada (faltam R2 / banco de dados nas variáveis do Railway).';
-    return;
-  }
-  const items = data.items || [];
+  if (!data.configured) { $('empty').style.display='block'; $('empty').textContent='Biblioteca não configurada.'; return; }
+  items = data.items || [];
+  renderSide(data.folders || []);
+  renderGrid();
+}
+
+function renderSide(folders) {
+  const total = folders.reduce((s,f)=>s+f.n,0);
+  let html = '<div class="grp">Filtros</div>';
+  html += link('Todos', total, !curFolder && !curFav, () => { curFolder=''; curFav=false; load(); });
+  html += link('⭐ Favoritos', '', curFav, () => { curFav=true; curFolder=''; load(); });
+  html += '<div class="grp">Pastas</div>';
+  folders.forEach(f => {
+    html += link(f.folder, f.n, curFolder===f.folder, () => { curFolder=f.folder; curFav=false; load(); });
+  });
+  $('side').innerHTML = html;
+}
+function link(label, n, active, fn) {
+  const id = 'lk' + Math.random().toString(36).slice(2);
+  setTimeout(() => { const el=document.getElementById(id); if(el) el.onclick=fn; }, 0);
+  return `<a id="${id}" class="${active?'active':''}"><span>${label}</span><span class="n">${n}</span></a>`;
+}
+
+function renderGrid() {
   $('count').textContent = items.length + ' arquivos';
-  if (!items.length) {
-    $('empty').style.display = 'block';
-    $('empty').textContent = 'Nenhum arquivo ainda. Gere imagens e elas aparecem aqui.';
-    return;
-  }
-  const grid = $('grid');
-  grid.innerHTML = '';
+  $('empty').style.display = items.length ? 'none' : 'block';
+  if (!items.length) $('empty').textContent = 'Nada por aqui.';
+  const grid = $('grid'); grid.innerHTML = '';
   items.forEach(it => {
-    const cell = document.createElement('div'); cell.className = 'cell';
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (selected.has(it.id) ? ' sel' : '');
     const media = it.type === 'video'
-      ? `<video src="${it.url}" muted onclick="openLb('video','${it.url}')"></video>`
-      : `<img src="${it.url}" loading="lazy" onclick="openLb('image','${it.url}')">`;
+      ? `<video class="thumb" src="${it.url}" muted></video>`
+      : `<img class="thumb" src="${it.url}" loading="lazy">`;
     const date = it.created_at ? new Date(it.created_at).toLocaleString('pt-BR') : '';
-    cell.innerHTML = media +
-      `<div class="meta"><span class="wf">${it.workflow||it.type}</span><br>${date}</div>` +
-      `<div class="acts">
-         <a href="${it.url}" download>⬇ baixar</a>
-         <button class="del" onclick="del(${it.id}, this)">🗑 deletar</button>
-       </div>`;
+    cell.innerHTML =
+      (selectMode ? `<input type="checkbox" class="chk" ${selected.has(it.id)?'checked':''}>` : '') +
+      `<span class="star">${it.favorite ? '⭐' : '☆'}</span>` +
+      media +
+      `<div class="meta"><span class="wf">${it.workflow||it.type}</span> · ${it.folder||''}<br>${date}</div>` +
+      `<div class="acts"><a href="${it.url}" download>⬇</a><button class="del">🗑</button></div>`;
+    // wires
+    cell.querySelector('.thumb').onclick = () => selectMode ? toggleSel(it.id, cell) : openLb(it);
+    cell.querySelector('.star').onclick = (e) => { e.stopPropagation(); toggleFav(it); };
+    cell.querySelector('.del').onclick = (e) => { e.stopPropagation(); delOne(it.id); };
+    if (selectMode) cell.querySelector('.chk').onclick = () => toggleSel(it.id, cell);
     grid.appendChild(cell);
   });
+  updateBulkButtons();
 }
 
-async function del(id, btn) {
+// ── Seleção ───────────────────────────────────────────────
+function toggleSelectMode() {
+  selectMode = !selectMode; selected.clear();
+  $('selBtn').classList.toggle('on', selectMode);
+  $('selBtn').textContent = selectMode ? 'Cancelar' : 'Selecionar';
+  ['allBtn','zipBtn','moveBtn','delBtn'].forEach(id => $(id).style.display = selectMode ? '' : 'none');
+  renderGrid();
+}
+function toggleSel(id, cell) {
+  selected.has(id) ? selected.delete(id) : selected.add(id);
+  cell.classList.toggle('sel', selected.has(id));
+  const chk = cell.querySelector('.chk'); if (chk) chk.checked = selected.has(id);
+  updateBulkButtons();
+}
+function selectAll() {
+  if (selected.size === items.length) selected.clear();
+  else items.forEach(it => selected.add(it.id));
+  renderGrid();
+}
+function updateBulkButtons() {
+  const has = selected.size > 0;
+  ['zipBtn','moveBtn','delBtn'].forEach(id => { const b=$(id); if(b) b.disabled = !has; });
+  if (selectMode) $('count').textContent = selected.size + ' selecionados / ' + items.length;
+}
+
+// ── Ações ─────────────────────────────────────────────────
+async function toggleFav(it) {
+  it.favorite = !it.favorite;
+  await fetch('/api/library/favorite', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:it.id, value:it.favorite})});
+  renderGrid();
+}
+async function delOne(id) {
   if (!confirm('Deletar este arquivo?')) return;
-  btn.disabled = true;
-  const r = await fetch('/api/library/' + id, { method: 'DELETE' });
-  if (r.ok) btn.closest('.cell').remove();
-  else { btn.disabled = false; alert('Falha ao deletar'); }
+  await fetch('/api/library/' + id, {method:'DELETE'});
+  load();
+}
+async function bulkDelete() {
+  if (!selected.size || !confirm('Deletar ' + selected.size + ' arquivos?')) return;
+  await fetch('/api/library/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ids:[...selected]})});
+  selected.clear(); load();
+}
+async function bulkMove() {
+  if (!selected.size) return;
+  const folder = prompt('Mover para qual pasta? (digite o nome; cria se não existir)');
+  if (!folder) return;
+  await fetch('/api/library/move', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ids:[...selected], folder})});
+  selected.clear(); load();
+}
+async function bulkZip() {
+  if (!selected.size) return;
+  $('zipBtn').disabled = true; $('zipBtn').textContent = 'Baixando…';
+  const zip = new JSZip(); let i = 0;
+  for (const it of items.filter(x => selected.has(x.id))) {
+    try {
+      const blob = await (await fetch(it.url)).blob();
+      const ext = it.type === 'video' ? 'mp4' : 'png';
+      zip.file('egglee_' + String(++i).padStart(3,'0') + '.' + ext, blob);
+    } catch (e) {}
+  }
+  const out = await zip.generateAsync({type:'blob'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(out); a.download = 'egglee_selecao.zip'; a.click();
+  $('zipBtn').disabled = false; $('zipBtn').textContent = '⬇ Baixar zip';
 }
 
-function openLb(type, url) {
-  $('lbContent').innerHTML = type === 'video'
-    ? `<video src="${url}" controls autoplay loop></video>`
-    : `<img src="${url}">`;
+// ── Busca ─────────────────────────────────────────────────
+let searchTimer;
+$('search').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { curQ = e.target.value.trim(); load(); }, 350);
+});
+
+// ── Lightbox / tags ───────────────────────────────────────
+function openLb(it) {
+  lbId = it.id;
+  $('lbContent').innerHTML = it.type === 'video'
+    ? `<video src="${it.url}" controls autoplay loop></video>`
+    : `<img src="${it.url}">`;
+  $('lbInfo').textContent = (it.prompt || '(sem prompt)');
+  $('lbTags').value = it.tags || '';
   $('lb').classList.add('show');
 }
-function closeLb() { $('lb').classList.remove('show'); $('lbContent').innerHTML=''; }
+function closeLb() { $('lb').classList.remove('show'); $('lbContent').innerHTML=''; lbId=null; }
 $('lb').addEventListener('click', e => { if (e.target.id === 'lb') closeLb(); });
+async function saveTags() {
+  if (!lbId) return;
+  await fetch('/api/library/tags', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:lbId, tags:$('lbTags').value})});
+  const it = items.find(x=>x.id===lbId); if (it) it.tags = $('lbTags').value;
+  closeLb();
+}
 
 load();
 </script>
