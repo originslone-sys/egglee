@@ -197,12 +197,18 @@ def library_save():
 @login_required
 def library_list():
     if not (db.enabled() and storage.enabled()):
-        return jsonify({"items": [], "configured": False})
+        return jsonify({"items": [], "folders": [], "configured": False})
     try:
-        rows = db.list_media(limit=int(request.args.get("limit", 300)))
+        rows = db.list_media(
+            limit=int(request.args.get("limit", 400)),
+            folder=request.args.get("folder") or None,
+            favorite=request.args.get("favorite") == "1",
+            q=request.args.get("q") or None,
+        )
+        folders = db.folders()
     except Exception as e:
         print("LIBRARY LIST ERROR:", e, flush=True)
-        return jsonify({"items": [], "configured": True, "error": str(e)})
+        return jsonify({"items": [], "folders": [], "configured": True, "error": str(e)})
     items = []
     for r in rows:
         items.append({
@@ -210,10 +216,58 @@ def library_list():
             "type": r["type"],
             "prompt": r["prompt"],
             "workflow": r["workflow"],
+            "folder": r.get("folder"),
+            "favorite": r.get("favorite"),
+            "tags": r.get("tags") or "",
             "created_at": r["created_at"].isoformat() if r["created_at"] else None,
             "url": storage.presigned_url(r["r2_key"]),
         })
-    return jsonify({"items": items, "configured": True})
+    folders = [{"folder": f["folder"], "n": f["n"]} for f in folders]
+    return jsonify({"items": items, "folders": folders, "configured": True})
+
+
+@app.route("/api/library/favorite", methods=["POST"])
+@login_required
+def library_favorite():
+    b = request.get_json(force=True)
+    db.set_favorite(b["id"], b.get("value", True))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/library/move", methods=["POST"])
+@login_required
+def library_move():
+    b = request.get_json(force=True)
+    folder = (b.get("folder") or "Geral").strip() or "Geral"
+    db.set_folder(b.get("ids", []), folder)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/library/tags", methods=["POST"])
+@login_required
+def library_tags():
+    b = request.get_json(force=True)
+    db.set_tags(b["id"], (b.get("tags") or "").strip())
+    return jsonify({"ok": True})
+
+
+@app.route("/api/library/delete", methods=["POST"])
+@login_required
+def library_delete_many():
+    ids = request.get_json(force=True).get("ids", [])
+    if not ids:
+        return jsonify({"ok": False, "reason": "sem ids"}), 400
+    try:
+        for key in db.keys_for(ids):
+            try:
+                storage.delete_key(key)
+            except Exception as e:
+                print("DELETE R2 ERROR:", e, flush=True)
+        db.delete_many(ids)
+    except Exception as e:
+        print("BULK DELETE ERROR:", e, flush=True)
+        return jsonify({"ok": False, "reason": str(e)}), 500
+    return jsonify({"ok": True})
 
 
 @app.route("/api/library/<int:media_id>", methods=["DELETE"])
