@@ -18,8 +18,8 @@
   "2": {
     "inputs": {
       "lora_name": "detail_tweaker_xl.safetensors",
-      "strength_model": 0.35,
-      "strength_clip": 0.2,
+      "strength_model": 0.2,
+      "strength_clip": 0.1,
       "model": ["20", 0],
       "clip": ["20", 1]
     },
@@ -120,7 +120,7 @@
       "cfg": 4.5,
       "sampler_name": "dpmpp_2m_sde",
       "scheduler": "karras",
-      "denoise": 0.4,
+      "denoise": 0.28,
       "feather": 5,
       "noise_mask": true,
       "force_inpaint": true,
