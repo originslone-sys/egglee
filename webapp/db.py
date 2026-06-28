@@ -3,7 +3,8 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+DATABASE_URL = (os.environ.get("DATABASE_URL", "").strip()
+                or os.environ.get("DATABASE_PUBLIC_URL", "").strip())
 
 
 def enabled() -> bool:
