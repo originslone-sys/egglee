@@ -135,11 +135,8 @@
     <div class="status" id="status"></div>
 
     <div class="dataset">
-      <div class="dstitle">🎓 Dataset de treino (LoRA)</div>
-      <div class="dshelp">Sobe a foto âncora e gera um conjunto variado para treinar o LoRA da personagem.</div>
-      <div class="drop" id="anchorDrop">Clique para enviar a foto âncora
-        <input type="file" id="anchorFile" accept="image/*" class="hidden">
-      </div>
+      <div class="dstitle">🎓 Dataset de treino (LoRA v2)</div>
+      <div class="dshelp">Gera um conjunto variado usando o LoRA atual da personagem (sem âncora) para re-treinar uma v2 mais refinada.</div>
       <div class="row">
         <div>
           <label>Qtd. imagens</label>
@@ -186,55 +183,52 @@ function wireDrop(dropId, fileId, setter, previewLabel) {
 wireDrop('faceDrop', 'faceFile', v => faceB64 = v, 'Trocar foto');
 wireDrop('inputDrop', 'inputFile', v => inputB64 = v, 'Trocar imagem');
 
-let anchorB64 = null;
-wireDrop('anchorDrop', 'anchorFile', v => anchorB64 = v, 'Trocar âncora');
 
 // Prompts variados para o dataset (foco em variedade de ângulo/expressão/cena).
-// Apenas cena/enquadramento/roupa/luz/ângulo — SEM descrição de rosto
-// (olhos, sardas, expressões), para a identidade vir 100% da âncora.
+// Cena/enquadramento/roupa/luz/ângulo + variedade de expressão.
+// Identidade/rosto vêm do LoRA (character), não destas descrições.
 const DATASET_PROMPTS = [
-  "closeup portrait, soft daylight, plain background",
-  "closeup portrait, natural window light",
-  "face closeup, three quarter view",
+  "closeup portrait, neutral expression, soft daylight, plain background",
+  "closeup portrait, gentle smile, natural window light",
+  "face closeup, three quarter view, soft smile",
   "face closeup, side profile, soft lighting",
-  "closeup, soft indoor light",
-  "closeup, soft focus background",
-  "upper body, bedroom mirror selfie, black crop top",
-  "upper body, standing by the window, white t-shirt",
-  "upper body, outdoors, golden hour sunlight",
-  "upper body, cafe background, casual sweater",
-  "half body, sitting on bed, oversized hoodie",
-  "half body, kitchen background, tank top",
-  "portrait, hair tied back, gym outfit",
-  "portrait, hair down, evening indoor light",
+  "closeup, laughing, soft indoor light",
+  "closeup, calm expression, soft focus background",
+  "upper body, bedroom mirror selfie, black crop top, neutral expression",
+  "upper body, standing by the window, white t-shirt, smiling",
+  "upper body, outdoors, golden hour sunlight, soft smile",
+  "upper body, cafe background, casual sweater, gentle smile",
+  "half body, sitting on bed, oversized hoodie, relaxed expression",
+  "half body, kitchen background, tank top, smiling",
+  "portrait, hair tied back, gym outfit, neutral expression",
+  "portrait, hair down, evening indoor light, soft smile",
   "portrait, looking over shoulder, casual top",
-  "portrait, soft shadows, plain wall background",
-  "upper body, beach background, summer top",
-  "upper body, car selfie, daylight",
-  "portrait, daylight, plain background",
-  "portrait, looking up, natural light",
-  "half body, living room, jeans and t-shirt",
-  "upper body, balcony, city background",
-  "portrait, overcast soft light",
-  "closeup, gentle smile, soft light",
-  "upper body, park background, light jacket",
-  "portrait, warm indoor lamp light",
-  "half body, bedroom, casual loungewear",
-  "upper body, studio softbox lighting, plain background",
-  "portrait, windblown hair, outdoor daylight",
-  "upper body, mirror selfie, sporty outfit",
-  "portrait, morning light",
-  "closeup, soft focus background, natural light",
-  "upper body, bookshelf background, cardigan",
-  "portrait, sunlight, outdoor",
-  "half body, hallway background",
-  "upper body, plain studio"
+  "portrait, soft shadows, plain wall background, calm expression",
+  "upper body, beach background, summer top, smiling",
+  "upper body, car selfie, daylight, neutral expression",
+  "portrait, daylight, plain background, gentle smile",
+  "portrait, looking up, natural light, soft smile",
+  "half body, living room, jeans and t-shirt, laughing",
+  "upper body, balcony, city background, neutral expression",
+  "portrait, overcast soft light, calm expression",
+  "closeup, big smile, soft light",
+  "upper body, park background, light jacket, smiling",
+  "portrait, warm indoor lamp light, soft smile",
+  "half body, bedroom, casual loungewear, relaxed expression",
+  "upper body, studio softbox lighting, plain background, neutral",
+  "portrait, windblown hair, outdoor daylight, gentle smile",
+  "upper body, mirror selfie, sporty outfit, neutral expression",
+  "portrait, morning light, soft smile",
+  "closeup, soft focus background, natural light, calm",
+  "upper body, bookshelf background, cardigan, gentle smile",
+  "portrait, sunlight, outdoor, smiling",
+  "half body, hallway background, neutral expression",
+  "upper body, plain studio, soft smile"
 ];
 
 $('dsBtn').addEventListener('click', runDataset);
 
 async function runDataset() {
-  if (!anchorB64) return setDs('Envie a foto âncora primeiro.', true);
   if (typeof JSZip === 'undefined') return setDs('JSZip não carregou; recarregue a página.', true);
   const total = Math.max(8, Math.min(60, parseInt($('dsCount').value) || 36));
   const zip = new JSZip();
@@ -245,14 +239,14 @@ async function runDataset() {
   for (let i = 0; i < total; i++) {
     const prompt = DATASET_PROMPTS[i % DATASET_PROMPTS.length];
     const body = {
-      // Workflow dedicado: FaceID forte + SEM descrição facial do character,
-      // para a identidade vir 100% da âncora (dataset consistente).
-      workflow_name: 'dataset_faceid',
-      prompt: prompt + ', photorealistic, hyperrealistic, amateur photo, natural skin texture, highly detailed',
-      negative_prompt: 'thick eyebrows, bushy eyebrows, heavy eyebrows, big lips, plump lips, heavy makeup, dramatic makeup, plastic skin, airbrushed, cgi, 3d render, doll, caricature, oversaturated, deformed, bad anatomy, blurry, low quality, watermark, text',
+      // v2: usa o LoRA da personagem (txt2img + character), sem âncora.
+      // Identidade vem do LoRA v1; sem grão p/ treino limpo.
+      workflow_name: 'txt2img',
+      character: 'model',
+      prompt: prompt,
       seed: '-1',
       batch_size: 1,
-      face_image_b64: anchorB64,
+      no_grain: true,
     };
     let done = false;
     for (let attempt = 1; attempt <= 3 && !done; attempt++) {
