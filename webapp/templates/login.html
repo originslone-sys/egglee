@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egglee · Login</title>
+<style>
+  body { margin:0; background:#0d1117; color:#e6edf3; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+         display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:32px; width:320px; }
+  h1 { font-size:18px; margin:0 0 18px; }
+  label { font-size:13px; color:#8b949e; display:block; margin-bottom:6px; }
+  input { width:100%; padding:10px 12px; background:#0d1117; color:#e6edf3; border:1px solid #30363d;
+          border-radius:7px; font-size:14px; box-sizing:border-box; }
+  button { width:100%; margin-top:16px; padding:11px; background:#238636; color:#fff; border:none;
+           border-radius:7px; font-size:15px; font-weight:600; cursor:pointer; }
+  button:hover { background:#2ea043; }
+  .err { color:#f85149; font-size:13px; margin-top:12px; }
+</style>
+</head>
+<body>
+  <form class="card" method="post">
+    <h1>🥚 Egglee · Painel</h1>
+    <label>Senha</label>
+    <input type="password" name="password" autofocus>
+    <button type="submit">Entrar</button>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  </form>
+</body>
+</html>
