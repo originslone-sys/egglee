@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egglee · Biblioteca</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#2ea043; --danger:#f85149; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  header { padding:14px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:16px; }
+  header h1 { font-size:17px; margin:0; }
+  header a { color:var(--muted); text-decoration:none; font-size:14px; }
+  header a:hover { color:var(--text); }
+  .spacer { flex:1; }
+  .wrap { padding:24px; }
+  .count { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:14px; }
+  .cell { background:var(--panel); border:1px solid var(--border); border-radius:10px; overflow:hidden; position:relative; }
+  .cell img, .cell video { width:100%; display:block; aspect-ratio:3/4; object-fit:cover; cursor:pointer; }
+  .meta { padding:8px 10px; font-size:11px; color:var(--muted); }
+  .meta .wf { color:var(--text); font-weight:600; }
+  .acts { display:flex; gap:8px; padding:0 10px 10px; }
+  .acts a, .acts button { font-size:12px; padding:5px 8px; border-radius:6px; border:1px solid var(--border);
+                          background:#0d1117; color:var(--text); text-decoration:none; cursor:pointer; }
+  .acts .del { color:var(--danger); }
+  .acts .del:hover { border-color:var(--danger); }
+  .empty { color:var(--muted); text-align:center; padding:60px 20px; }
+  /* lightbox */
+  .lb { position:fixed; inset:0; background:rgba(0,0,0,.9); display:none; align-items:center; justify-content:center; z-index:50; }
+  .lb.show { display:flex; }
+  .lb img, .lb video { max-width:92vw; max-height:92vh; border-radius:8px; }
+  .lb .close { position:absolute; top:18px; right:24px; color:#fff; font-size:30px; cursor:pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🥚 Biblioteca</h1>
+  <a href="/">← Gerar</a>
+  <div class="spacer"></div>
+  <span class="count" id="count"></span>
+  <a href="/logout">Sair</a>
+</header>
+
+<div class="wrap">
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none"></div>
+</div>
+
+<div class="lb" id="lb"><span class="close" onclick="closeLb()">✕</span><div id="lbContent"></div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+async function load() {
+  const r = await fetch('/api/library');
+  const data = await r.json();
+  if (!data.configured) {
+    $('empty').style.display = 'block';
+    $('empty').textContent = 'Biblioteca não configurada (faltam R2 / banco de dados nas variáveis do Railway).';
+    return;
+  }
+  const items = data.items || [];
+  $('count').textContent = items.length + ' arquivos';
+  if (!items.length) {
+    $('empty').style.display = 'block';
+    $('empty').textContent = 'Nenhum arquivo ainda. Gere imagens e elas aparecem aqui.';
+    return;
+  }
+  const grid = $('grid');
+  grid.innerHTML = '';
+  items.forEach(it => {
+    const cell = document.createElement('div'); cell.className = 'cell';
+    const media = it.type === 'video'
+      ? `<video src="${it.url}" muted onclick="openLb('video','${it.url}')"></video>`
+      : `<img src="${it.url}" loading="lazy" onclick="openLb('image','${it.url}')">`;
+    const date = it.created_at ? new Date(it.created_at).toLocaleString('pt-BR') : '';
+    cell.innerHTML = media +
+      `<div class="meta"><span class="wf">${it.workflow||it.type}</span><br>${date}</div>` +
+      `<div class="acts">
+         <a href="${it.url}" download>⬇ baixar</a>
+         <button class="del" onclick="del(${it.id}, this)">🗑 deletar</button>
+       </div>`;
+    grid.appendChild(cell);
+  });
+}
+
+async function del(id, btn) {
+  if (!confirm('Deletar este arquivo?')) return;
+  btn.disabled = true;
+  const r = await fetch('/api/library/' + id, { method: 'DELETE' });
+  if (r.ok) btn.closest('.cell').remove();
+  else { btn.disabled = false; alert('Falha ao deletar'); }
+}
+
+function openLb(type, url) {
+  $('lbContent').innerHTML = type === 'video'
+    ? `<video src="${url}" controls autoplay loop></video>`
+    : `<img src="${url}">`;
+  $('lb').classList.add('show');
+}
+function closeLb() { $('lb').classList.remove('show'); $('lbContent').innerHTML=''; }
+$('lb').addEventListener('click', e => { if (e.target.id === 'lb') closeLb(); });
+
+load();
+</script>
+</body>
+</html>

@@ -75,6 +75,9 @@
 <header>
   <span class="dot" id="statusDot"></span>
   <h1>Egglee · Painel de Geração</h1>
+  <div style="flex:1"></div>
+  <a href="/library" style="color:var(--muted);text-decoration:none;font-size:14px;margin-right:14px">📚 Biblioteca</a>
+  <a href="/logout" style="color:var(--muted);text-decoration:none;font-size:14px">Sair</a>
 </header>
 
 <div class="wrap">
@@ -155,7 +158,19 @@
 
 <script>
 const $ = id => document.getElementById(id);
-let faceB64 = null, inputB64 = null, polling = null;
+let faceB64 = null, inputB64 = null, polling = null, lastBody = null;
+
+// Salva uma mídia gerada na biblioteca (fire-and-forget).
+function saveToLibrary(data, type, body) {
+  fetch('/api/library/save', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      data: data, type: type,
+      prompt: body ? body.prompt : '',
+      workflow: body ? body.workflow_name : ''
+    })
+  }).catch(() => {});
+}
 
 // Mostra/esconde uploads conforme o workflow
 function syncUI() {
@@ -348,6 +363,7 @@ function upscaleImage(b64) {
 
 async function runJob(body, loadingMsg) {
   if (polling) clearInterval(polling);
+  lastBody = body;
   $('goBtn').disabled = true;
   showLoading(loadingMsg);
   try {
@@ -403,6 +419,7 @@ function done(data) {
       cell.appendChild(btn);
       cell.appendChild(dl(src, o.filename));
     }
+    saveToLibrary(o.data, o.type, lastBody);
     r.appendChild(cell);
   });
 }
