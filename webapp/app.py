@@ -7,6 +7,8 @@ Variáveis de ambiente (Railway):
   SECRET_KEY                           — chave de sessão (qualquer string longa)
   R2_ENDPOINT, R2_ACCESS_KEY, R2_SECRET_KEY, R2_BUCKET — armazenamento R2
   DATABASE_URL                         — Postgres (Railway preenche sozinho)
+  DEEPSEEK_API_KEY                     — legendas (opcional)
+  OPENROUTER_API_KEY                   — geração de vídeo I2V (opcional)
 """
 import os
 import io
@@ -22,6 +24,7 @@ from flask import (Flask, request, jsonify, render_template,
 
 import storage
 import db
+import video
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "egglee-dev-secret-change-me")
@@ -177,6 +180,7 @@ def config():
         "has_r2": storage.enabled(),
         "r2_missing": [k for k in ("R2_ENDPOINT", "R2_ACCESS_KEY", "R2_SECRET_KEY", "R2_BUCKET")
                        if not os.environ.get(k, "").strip()],
+        "has_video": video.enabled(),
     })
 
 
@@ -218,6 +222,98 @@ def status(job_id):
         return jsonify(r.json()), (200 if r.ok else 502)
     except requests.RequestException as e:
         return jsonify({"error": str(e)}), 502
+
+
+# ── Vídeo (OpenRouter Image-to-Video) ──────────────────────────────────────────
+
+def _image_data_url(media_id=None, image_b64=None):
+    """Devolve uma data URL (base64) da imagem de origem pro frame_images."""
+    if image_b64:
+        b64 = image_b64.split(",", 1)[-1]  # aceita data URL ou b64 puro
+        return f"data:image/png;base64,{b64}"
+    row = db.get(media_id)
+    if not row:
+        raise ValueError("imagem não encontrada na biblioteca")
+    raw = storage.get_bytes(row["r2_key"])
+    ext = "jpeg" if row["r2_key"].lower().endswith((".jpg", ".jpeg")) else "png"
+    return "data:image/%s;base64,%s" % (ext, base64.b64encode(raw).decode())
+
+
+@app.route("/api/video/models")
+@login_required
+def video_models():
+    if not video.enabled():
+        return jsonify({"models": [], "configured": False})
+    try:
+        return jsonify({"models": video.list_models(), "configured": True})
+    except Exception as e:
+        print("VIDEO MODELS ERROR:", e, flush=True)
+        return jsonify({"models": [], "configured": True, "error": str(e)})
+
+
+@app.route("/api/video/generate", methods=["POST"])
+@login_required
+def video_generate():
+    if not video.enabled():
+        return jsonify({"error": "Configure OPENROUTER_API_KEY no Railway."}), 500
+    b = request.get_json(force=True)
+    model = (b.get("model") or "").strip()
+    if not model:
+        return jsonify({"error": "Escolha um modelo de vídeo."}), 400
+    try:
+        first_url = _image_data_url(media_id=b.get("media_id"), image_b64=b.get("image_b64"))
+    except Exception as e:
+        return jsonify({"error": f"Imagem de origem inválida: {e}"}), 400
+    try:
+        job = video.create(
+            model=model,
+            prompt=b.get("prompt", ""),
+            first_frame_url=first_url,
+            duration=b.get("duration"),
+            resolution=b.get("resolution"),
+            aspect_ratio=b.get("aspect_ratio"),
+        )
+    except Exception as e:
+        print("VIDEO GENERATE ERROR:", e, flush=True)
+        return jsonify({"error": str(e)}), 502
+    return jsonify({
+        "id": job.get("id"),
+        "polling_url": job.get("polling_url"),
+        "status": job.get("status", "pending"),
+    })
+
+
+@app.route("/api/video/status", methods=["POST"])
+@login_required
+def video_status():
+    b = request.get_json(force=True)
+    polling_url = (b.get("polling_url") or "").strip()
+    if not polling_url:
+        return jsonify({"error": "polling_url ausente"}), 400
+    try:
+        data = video.poll(polling_url)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+    st = (data.get("status") or "").lower()
+    if st != "completed":
+        return jsonify({"status": st or "pending", "error": data.get("error")})
+
+    # Completo: baixa o MP4, sobe no R2 e salva na biblioteca (uma vez).
+    urls = data.get("unsigned_urls") or []
+    if not urls:
+        return jsonify({"status": "failed", "error": "sem URL de vídeo na resposta"})
+    try:
+        mp4 = video.download(urls[0])
+        key = f"video/{uuid.uuid4().hex}.mp4"
+        storage.upload_bytes(key, mp4, "video/mp4")
+        folder = (b.get("folder") or "Geral").strip() or "Geral"
+        row = db.insert(key, type="video", prompt=b.get("prompt", ""),
+                        workflow="video", folder=folder, size=len(mp4))
+        return jsonify({"status": "completed", "media_id": row["id"]})
+    except Exception as e:
+        print("VIDEO SAVE ERROR:", e, flush=True)
+        return jsonify({"status": "failed", "error": f"erro ao salvar vídeo: {e}"})
 
 
 # ── Biblioteca ────────────────────────────────────────────────────────────────

@@ -128,6 +128,38 @@
   </div>
 </div>
 
+<div class="modal" id="vidModal">
+  <div class="box">
+    <div class="mt">🎬 Animar imagem (vídeo)</div>
+    <label style="font-size:12px;color:var(--muted)">Modelo</label>
+    <select id="vidModel" style="width:100%;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px">
+      <option value="">Carregando modelos…</option>
+    </select>
+    <label style="font-size:12px;color:var(--muted)">Movimento (prompt)</label>
+    <textarea id="vidPrompt" placeholder="leve giro de cabeça, cabelo balançando ao vento, sorriso suave, câmera estática" style="width:100%;height:64px;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:13px"></textarea>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1">
+        <label style="font-size:12px;color:var(--muted)">Duração</label>
+        <select id="vidDur" style="width:100%;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px">
+          <option value="5">5s</option><option value="10" selected>10s</option><option value="15">15s</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label style="font-size:12px;color:var(--muted)">Proporção</label>
+        <select id="vidAr" style="width:100%;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px">
+          <option value="9:16" selected>9:16 (Reels)</option><option value="1:1">1:1</option><option value="16:9">16:9</option>
+        </select>
+      </div>
+    </div>
+    <label style="font-size:12px;color:var(--muted)">Resolução</label>
+    <select id="vidRes" style="width:100%;padding:9px;margin:4px 0 14px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px">
+      <option value="480p" selected>480p (mais barato)</option><option value="720p">720p</option><option value="1080p">1080p</option>
+    </select>
+    <button id="vidGo" onclick="genVideo()" style="width:100%;padding:11px;background:var(--accent2);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Gerar vídeo</button>
+    <div id="vidStatus" style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center"></div>
+  </div>
+</div>
+
 <div class="lb" id="lb">
   <span class="close" onclick="closeLb()">✕</span>
   <div id="lbContent"></div>
@@ -137,6 +169,7 @@
     <button onclick="saveTags()">Salvar tags</button>
     <button onclick="makeVariations(4)">🔁 4 variações</button>
     <button onclick="upscaleOne()">✨ Alta definição</button>
+    <button onclick="openVideo()" id="vidBtn">🎬 Animar</button>
     <select id="capLang" title="Idioma da legenda" style="padding:7px 8px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:7px">
       <option value="">🌐 Auto</option>
       <option value="pt">🇧🇷 PT</option>
@@ -520,6 +553,7 @@ function openLb(it) {
   $('dlOrig').href = it.url;
   $('dlWm').href = '/api/media/' + it.id + '?watermark=1';
   $('dlWm').style.display = it.type === 'video' ? 'none' : '';
+  $('vidBtn').style.display = it.type === 'video' ? 'none' : '';
   $('lb').classList.add('show');
 }
 function closeLb() { $('lb').classList.remove('show'); $('lbContent').innerHTML=''; lbId=null; }
@@ -530,6 +564,88 @@ async function saveTags() {
   await fetch('/api/library/tags', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:lbId, tags:$('lbTags').value})});
   const it = items.find(x=>x.id===lbId); if (it) it.tags = $('lbTags').value;
   closeLb();
+}
+
+// ── Vídeo (Image-to-Video via OpenRouter) ─────────────────
+let vidModelsLoaded = false;
+async function loadVideoModels() {
+  if (vidModelsLoaded) return;
+  try {
+    const r = await fetch('/api/video/models');
+    const d = await r.json();
+    const sel = $('vidModel');
+    if (!d.configured) { sel.innerHTML = '<option value="">Configure OPENROUTER_API_KEY no Railway</option>'; return; }
+    if (!d.models || !d.models.length) { sel.innerHTML = '<option value="">Nenhum modelo disponível' + (d.error ? ' ('+d.error+')' : '') + '</option>'; return; }
+    sel.innerHTML = d.models.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    vidModelsLoaded = true;
+  } catch (e) {
+    $('vidModel').innerHTML = '<option value="">Erro ao listar modelos</option>';
+  }
+}
+function openVideo() {
+  if (!lbId || (lbItem && lbItem.type === 'video')) return;
+  $('vidStatus').textContent = '';
+  $('vidGo').disabled = false;
+  $('vidModal').classList.add('show');
+  loadVideoModels();
+}
+$('vidModal').addEventListener('click', e => { if (e.target.id === 'vidModal') $('vidModal').classList.remove('show'); });
+
+async function genVideo() {
+  const model = $('vidModel').value;
+  if (!model) { $('vidStatus').textContent = 'Escolha um modelo.'; return; }
+  const srcId = lbId;
+  const folder = (lbItem && lbItem.folder) || 'Geral';
+  const body = {
+    media_id: srcId, model,
+    prompt: $('vidPrompt').value.trim(),
+    duration: $('vidDur').value,
+    resolution: $('vidRes').value,
+    aspect_ratio: $('vidAr').value,
+    folder,
+  };
+  $('vidGo').disabled = true;
+  $('vidStatus').textContent = 'Enviando job…';
+  let job;
+  try {
+    const r = await fetch('/api/video/generate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    job = await r.json();
+    if (!r.ok || job.error) throw new Error(job.error || ('HTTP ' + r.status));
+  } catch (e) {
+    $('vidStatus').textContent = '❌ ' + e.message; $('vidGo').disabled = false; return;
+  }
+  if (!job.polling_url) { $('vidStatus').textContent = '❌ resposta sem polling_url'; $('vidGo').disabled = false; return; }
+  pollVideo(job.polling_url, body.prompt, folder, 0);
+}
+
+function pollVideo(polling_url, prompt, folder, n) {
+  $('vidStatus').textContent = 'Gerando vídeo… (' + (n*10) + 's) — pode levar alguns minutos';
+  let done = false;
+  const tick = async () => {
+    if (done) return;
+    n++;
+    try {
+      const r = await fetch('/api/video/status', {method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({polling_url, prompt, folder})});
+      const d = await r.json();
+      if (done) return;
+      if (d.status === 'completed') {
+        done = true;
+        $('vidStatus').textContent = '✅ Vídeo pronto! Salvo na biblioteca.';
+        setTimeout(() => { $('vidModal').classList.remove('show'); closeLb(); curType='video'; curFav=false; curFolder=''; load(); }, 1200);
+        return;
+      }
+      if (d.status === 'failed' || d.status === 'cancelled' || d.status === 'expired') {
+        done = true;
+        $('vidStatus').textContent = '❌ ' + (d.error ? JSON.stringify(d.error) : d.status) + ' (pode ser filtro de conteúdo)';
+        $('vidGo').disabled = false;
+        return;
+      }
+      $('vidStatus').textContent = 'Gerando vídeo… (' + (n*10) + 's) — ' + (d.status || 'pending');
+    } catch (e) {}
+    if (!done) setTimeout(tick, 10000);
+  };
+  setTimeout(tick, 10000);
 }
 
 load();
