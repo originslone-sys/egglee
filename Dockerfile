@@ -16,7 +16,7 @@ RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /tmp/Comfy
 
 # Custom node dependencies (WanVideo, VideoHelperSuite, IPAdapter+FaceID,
 # Impact Pack + Subpack for FaceDetailer/hand detailer).
-RUN pip install --no-cache-dir insightface onnxruntime ultralytics dill \
+RUN pip install --no-cache-dir insightface onnxruntime ultralytics dill gguf \
     && for repo in \
         https://github.com/kijai/ComfyUI-WanVideoWrapper.git \
         https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git \

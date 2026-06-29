@@ -131,10 +131,17 @@
 <div class="modal" id="vidModal">
   <div class="box">
     <div class="mt">🎬 Animar imagem (vídeo)</div>
+    <label style="font-size:12px;color:var(--muted)">Fonte</label>
+    <select id="vidSource" onchange="onVidSource()" style="width:100%;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px">
+      <option value="api" selected>API (OpenRouter) — 10/15s, sem GPU sua</option>
+      <option value="wan">Self-host (Wan) — 5s, sua GPU</option>
+    </select>
+    <div id="vidModelWrap">
     <label style="font-size:12px;color:var(--muted)">Modelo</label>
     <select id="vidModel" style="width:100%;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px">
       <option value="">Carregando modelos…</option>
     </select>
+    </div>
     <label style="font-size:12px;color:var(--muted)">Movimento (prompt)</label>
     <textarea id="vidPrompt" placeholder="leve giro de cabeça, cabelo balançando ao vento, sorriso suave, câmera estática" style="width:100%;height:64px;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px;font-size:13px"></textarea>
     <div style="display:flex;gap:8px">
@@ -587,11 +594,47 @@ function openVideo() {
   $('vidStatus').textContent = '';
   $('vidGo').disabled = false;
   $('vidModal').classList.add('show');
+  onVidSource();
   loadVideoModels();
 }
 $('vidModal').addEventListener('click', e => { if (e.target.id === 'vidModal') $('vidModal').classList.remove('show'); });
 
+function onVidSource() {
+  const wan = $('vidSource').value === 'wan';
+  $('vidModelWrap').style.display = wan ? 'none' : '';
+  // Self-host (passo A) só faz 5s; trava a duração.
+  $('vidDur').disabled = wan;
+  if (wan) $('vidDur').value = '5';
+}
+
+async function genVideoWan() {
+  const folder = (lbItem && lbItem.folder) || 'Geral';
+  const srcId = lbId;
+  $('vidGo').disabled = true;
+  $('vidStatus').textContent = 'Preparando imagem…';
+  let out;
+  try {
+    const b64 = await idToBase64(srcId);
+    $('vidStatus').textContent = 'Gerando na sua GPU… (cold start + render, pode levar minutos)';
+    out = await runGen({
+      workflow_name: 'video_i2v', character: '', input_image_b64: b64,
+      prompt: $('vidPrompt').value.trim(),
+      resolution: $('vidRes').value, aspect_ratio: $('vidAr').value, duration: 5,
+    });
+  } catch (e) {
+    $('vidStatus').textContent = '❌ ' + e.message; $('vidGo').disabled = false; return;
+  }
+  try {
+    for (const o of out) await saveMedia(o, $('vidPrompt').value.trim(), 'wan-i2v', folder);
+  } catch (e) {
+    $('vidStatus').textContent = '❌ erro ao salvar: ' + e.message; $('vidGo').disabled = false; return;
+  }
+  $('vidStatus').textContent = '✅ Vídeo pronto! Salvo na biblioteca.';
+  setTimeout(() => { $('vidModal').classList.remove('show'); closeLb(); curType='video'; curFav=false; curFolder=''; load(); }, 1200);
+}
+
 async function genVideo() {
+  if ($('vidSource').value === 'wan') return genVideoWan();
   const model = $('vidModel').value;
   if (!model) { $('vidStatus').textContent = 'Escolha um modelo.'; return; }
   const srcId = lbId;
