@@ -158,12 +158,13 @@ def _build_input(body: dict) -> dict:
         ar = body.get("aspect_ratio", "9:16")
         w, h = _DIMS.get(res, _DIMS["480p"]).get(ar, (480, 832))
         try:
-            secs = max(1, min(5, int(float(body.get("duration", 5)))))
+            dur = int(float(body.get("duration", 5)))
         except (TypeError, ValueError):
-            secs = 5
+            dur = 5
+        video_segments = max(1, min(3, dur // 5))   # 5s=1, 10s=2, 15s=3
         inputs["width"] = w
         inputs["height"] = h
-        inputs["length"] = secs * 16 + 1      # Wan usa frames no formato 4n+1
+        inputs["length"] = 81                 # 5s por trecho (frames 4n+1)
         inputs["frame_rate"] = 16
         inputs["steps"] = 20
         inputs["split_step"] = 10
@@ -175,6 +176,7 @@ def _build_input(body: dict) -> dict:
         payload["no_grain"] = True
     if "video" in body["workflow_name"]:
         payload["timeout"] = 1200
+        payload["segments"] = video_segments
     return payload
 
 

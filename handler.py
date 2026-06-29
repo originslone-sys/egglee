@@ -114,6 +114,82 @@ def collect_outputs(job_history: dict, grain: bool = True) -> list:
     return outputs
 
 
+def _find_video_path(history: dict):
+    for node_output in history.get("outputs", {}).values():
+        for vid in node_output.get("videos", []) + node_output.get("gifs", []):
+            fn = vid.get("filename", "")
+            if fn.lower().endswith((".mp4", ".webm", ".mov")):
+                sub = vid.get("subfolder", "")
+                return OUTPUT_DIR / sub / fn if sub else OUTPUT_DIR / fn
+    return None
+
+
+def _extract_last_frame(mp4_path: Path) -> str:
+    """Salva o último frame do clipe no input dir; devolve o filename."""
+    out = INPUT_DIR / f"chain_{uuid.uuid4().hex[:8]}.png"
+    subprocess.run(
+        ["ffmpeg", "-y", "-sseof", "-0.12", "-i", str(mp4_path),
+         "-frames:v", "1", str(out)],
+        check=True, capture_output=True,
+    )
+    return out.name
+
+
+def _concat_and_smooth(clip_paths: list, fps_out: int = 30, smooth: bool = True) -> Path:
+    """Concatena os trechos (se >1) e interpola pra fps_out (movimento fluido)."""
+    tag = uuid.uuid4().hex[:8]
+    if len(clip_paths) == 1:
+        src = clip_paths[0]
+    else:
+        listf = OUTPUT_DIR / f"list_{tag}.txt"
+        listf.write_text("".join(f"file '{p}'\n" for p in clip_paths))
+        src = OUTPUT_DIR / f"concat_{tag}.mp4"
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(listf),
+             "-c", "copy", str(src)],
+            check=True, capture_output=True,
+        )
+    if not smooth:
+        return src
+    out = OUTPUT_DIR / f"final_{tag}.mp4"
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(src),
+         "-vf", f"minterpolate=fps={fps_out}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1",
+         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", str(out)],
+        check=True, capture_output=True,
+    )
+    return out
+
+
+def run_video_chained(workflow_template: dict, inputs: dict, segments: int,
+                      smooth: bool, timeout: int) -> dict:
+    """Gera N trechos de 5s encadeados (último frame → próximo start) e costura."""
+    base_seed = inputs.get("seed", random.randint(0, 2**32 - 1))
+    start_image = inputs.get("input_image")
+    clips = []
+    for seg in range(segments):
+        seg_inputs = dict(inputs)
+        seg_inputs["input_image"] = start_image
+        seg_inputs["seed"] = (base_seed + seg * 1009) % (2**32)
+        wf = inject_inputs(workflow_template, seg_inputs)
+        prompt_id = queue_prompt(wf, str(uuid.uuid4()))
+        print(f"Segment {seg+1}/{segments} queued: {prompt_id}", flush=True)
+        history = wait_for_completion(prompt_id, timeout)
+        if history.get("status", {}).get("status_str") == "error":
+            return {"error": f"Falha no trecho {seg+1}",
+                    "messages": history.get("status", {}).get("messages", [])}
+        mp4 = _find_video_path(history)
+        if not mp4 or not mp4.exists():
+            return {"error": f"Trecho {seg+1} não produziu vídeo"}
+        clips.append(mp4)
+        if seg < segments - 1:
+            start_image = _extract_last_frame(mp4)
+    final = _concat_and_smooth(clips, fps_out=30, smooth=smooth)
+    data = base64.b64encode(final.read_bytes()).decode()
+    return {"status": "success", "outputs": [
+        {"type": "video", "filename": final.name, "data": data}]}
+
+
 def inject_inputs(workflow: dict, inputs: dict) -> dict:
     wf = copy.deepcopy(workflow)
     for node in wf.values():
@@ -211,6 +287,16 @@ def handler(job):
         # → save to ComfyUI input dir and expose the filename under the base key.
         for key in [k for k in list(inputs) if k.endswith("_b64")]:
             inputs[key[:-4]] = save_input_image(inputs.pop(key))
+
+        # Vídeo: caminho encadeado (1+ trechos de 5s) + suavização via ffmpeg.
+        wf_name = job_input.get("workflow_name", "")
+        if "video" in wf_name:
+            segments = max(1, min(3, int(job_input.get("segments", 1))))
+            timeout = job_input.get("timeout", 1200)
+            return run_video_chained(
+                workflow, inputs, segments,
+                smooth=job_input.get("smooth", True), timeout=timeout,
+            )
 
         if inputs:
             workflow = inject_inputs(workflow, inputs)
