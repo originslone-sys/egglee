@@ -356,16 +356,21 @@ async function idToBase64(id){
 }
 function pollJob(id){
   return new Promise((resolve, reject) => {
-    let n = 0;
-    const t = setInterval(async () => {
+    let n = 0, done = false;
+    const finish = (fn, arg) => { if (done) return; done = true; fn(arg); };
+    const tick = async () => {
+      if (done) return;
       n++;
-      if (n > 300) { clearInterval(t); reject(new Error('tempo esgotado')); return; }
+      if (n > 300) { finish(reject, new Error('tempo esgotado')); return; }
       try {
         const d = await (await fetch('/api/status/' + id)).json();
-        if (d.status === 'COMPLETED') { clearInterval(t); resolve(d); }
-        else if (d.status === 'FAILED') { clearInterval(t); reject(new Error('job falhou no RunPod')); }
+        if (done) return;
+        if (d.status === 'COMPLETED') { finish(resolve, d); return; }
+        if (d.status === 'FAILED') { finish(reject, new Error('job falhou no RunPod')); return; }
       } catch (e) {}
-    }, 2000);
+      if (!done) setTimeout(tick, 2000);
+    };
+    tick();
   });
 }
 async function runGen(body){

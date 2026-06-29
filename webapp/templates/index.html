@@ -174,7 +174,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-let faceB64 = null, inputB64 = null, polling = null, lastBody = null, autoUpscale = false;
+let faceB64 = null, inputB64 = null, pollToken = 0, lastBody = null, autoUpscale = false;
 
 // Salva uma mídia gerada na biblioteca (com retry pontual).
 async function saveToLibrary(data, type, body, attempt = 1) {
@@ -422,7 +422,7 @@ function upscaleImage(b64) {
 }
 
 async function runJob(body, loadingMsg) {
-  if (polling) clearInterval(polling);
+  pollToken++;            // invalida qualquer polling anterior
   lastBody = body;
   $('goBtn').disabled = true;
   showLoading(loadingMsg);
@@ -438,19 +438,27 @@ async function runJob(body, loadingMsg) {
 }
 
 function pollStatus(id) {
+  const myToken = ++pollToken;   // só este polling fica válido
   let n = 0;
   setStatus('Na fila… (o worker pode levar ~1 min para ligar)');
-  polling = setInterval(async () => {
+  const tick = async () => {
+    if (myToken !== pollToken) return;   // foi substituído por outro job
     n++;
     try {
       const r = await fetch('/api/status/' + id, {headers: headers()});
       const data = await r.json();
-      if (data.status === 'IN_PROGRESS') setStatus('Gerando… (' + n*2 + 's)');
-      else if (data.status === 'IN_QUEUE') setStatus('Na fila… (' + n*2 + 's)');
-      if (data.status === 'COMPLETED') { clearInterval(polling); done(data); }
-      else if (data.status === 'FAILED') { clearInterval(polling); $('goBtn').disabled = false; showError('Job falhou: ' + JSON.stringify(data.output || data.error || '')); }
+      if (myToken !== pollToken) return;
+      if (data.status === 'COMPLETED') { done(data); return; }
+      if (data.status === 'FAILED') {
+        $('goBtn').disabled = false;
+        showError('Job falhou: ' + JSON.stringify(data.output || data.error || ''));
+        return;
+      }
+      setStatus((data.status === 'IN_PROGRESS' ? 'Gerando… (' : 'Na fila… (') + n*2 + 's)');
     } catch (e) { /* mantém tentando */ }
-  }, 2000);
+    setTimeout(tick, 2000);
+  };
+  tick();
 }
 
 function done(data) {
