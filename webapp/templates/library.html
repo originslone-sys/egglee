@@ -59,6 +59,8 @@
   .mf { text-align:left; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer; font-size:14px; }
   .mf:hover { border-color:var(--blue); }
   .mf.new { color:var(--accent); border-style:dashed; }
+  .dlbtn { padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:var(--panel); color:var(--text); text-decoration:none; font-size:13px; }
+  .dlbtn:hover { border-color:var(--accent); color:var(--accent); }
 </style>
 </head>
 <body>
@@ -66,6 +68,7 @@
   <h1>🥚 Biblioteca</h1>
   <a href="/">← Gerar</a>
   <a onclick="openStats()" style="cursor:pointer">📊 Dashboard</a>
+  <a onclick="openWatermark()" style="cursor:pointer">🏷️ Marca d'água</a>
   <div class="spacer"></div>
   <input id="search" placeholder="Buscar por prompt ou tag…">
   <a href="/logout">Sair</a>
@@ -81,6 +84,7 @@
       <button class="tb" id="allBtn" onclick="selectAll()" style="display:none">Selecionar todos</button>
       <button class="tb" id="upBtn" onclick="bulkUpscale()" style="display:none" disabled>✨ Upscalar</button>
       <button class="tb" id="zipBtn" onclick="bulkZip()" style="display:none" disabled>⬇ Baixar zip</button>
+      <label class="tb" id="zipWmLbl" style="display:none"><input type="checkbox" id="zipWm"> 🏷️ c/ marca</label>
       <button class="tb" id="moveBtn" onclick="bulkMove()" style="display:none" disabled>📁 Mover</button>
       <button class="tb danger" id="delBtn" onclick="bulkDelete()" style="display:none" disabled>🗑 Deletar</button>
       <span id="libStatus" style="color:var(--accent);font-size:13px"></span>
@@ -104,6 +108,26 @@
   </div>
 </div>
 
+<div class="modal" id="wmModal">
+  <div class="box">
+    <div class="mt">🏷️ Marca d'água</div>
+    <label style="font-size:12px;color:var(--muted)">Texto (vazio = sem marca)</label>
+    <input id="wmText" placeholder="@suamodelo" style="width:100%;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px">
+    <label style="font-size:12px;color:var(--muted)">Posição</label>
+    <select id="wmPos" style="width:100%;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px">
+      <option value="br">Inferior direita</option>
+      <option value="bl">Inferior esquerda</option>
+      <option value="tr">Superior direita</option>
+      <option value="tl">Superior esquerda</option>
+    </select>
+    <label style="font-size:12px;color:var(--muted)">Transparência: <span id="wmOpVal">35</span>%</label>
+    <input id="wmOp" type="range" min="10" max="90" value="35" style="width:100%;margin:4px 0 12px">
+    <label style="font-size:12px;color:var(--muted)">Tamanho: <span id="wmSzVal">4</span>%</label>
+    <input id="wmSz" type="range" min="2" max="10" value="4" style="width:100%;margin:4px 0 16px">
+    <button onclick="saveWatermark()" style="width:100%;padding:11px;background:var(--accent2);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Salvar</button>
+  </div>
+</div>
+
 <div class="lb" id="lb">
   <span class="close" onclick="closeLb()">✕</span>
   <div id="lbContent"></div>
@@ -123,6 +147,10 @@
   <div id="lbCaption" style="display:none; max-width:700px; width:100%">
     <textarea id="lbCaptionText" style="width:100%; height:150px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:13px"></textarea>
     <button onclick="copyCaption()" style="margin-top:6px; padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer">📋 Copiar</button>
+  </div>
+  <div class="tags">
+    <a id="dlOrig" href="#" download class="dlbtn">⬇ Original</a>
+    <a id="dlWm" href="#" download class="dlbtn">⬇ Com marca d'água</a>
   </div>
 </div>
 
@@ -234,7 +262,7 @@ function toggleSelectMode() {
   selectMode = !selectMode; selected.clear();
   $('selBtn').classList.toggle('on', selectMode);
   $('selBtn').textContent = selectMode ? 'Cancelar' : 'Selecionar';
-  ['allBtn','upBtn','zipBtn','moveBtn','delBtn'].forEach(id => $(id).style.display = selectMode ? '' : 'none');
+  ['allBtn','upBtn','zipBtn','zipWmLbl','moveBtn','delBtn'].forEach(id => $(id).style.display = selectMode ? '' : 'none');
   renderGrid();
 }
 function toggleSel(id, cell) {
@@ -296,9 +324,10 @@ async function bulkZip() {
   if (!selected.size) return;
   $('zipBtn').disabled = true; $('zipBtn').textContent = 'Baixando…';
   const zip = new JSZip(); let i = 0;
+  const wm = $('zipWm') && $('zipWm').checked ? '?watermark=1' : '';
   for (const it of items.filter(x => selected.has(x.id))) {
     try {
-      const blob = await (await fetch('/api/media/' + it.id)).blob();
+      const blob = await (await fetch('/api/media/' + it.id + (it.type==='video'?'':wm))).blob();
       const ext = it.type === 'video' ? 'mp4' : 'png';
       zip.file('egglee_' + String(++i).padStart(3,'0') + '.' + ext, blob);
     } catch (e) {}
@@ -423,6 +452,27 @@ async function openStats(){
 }
 $('statsModal').addEventListener('click', e => { if(e.target.id==='statsModal') $('statsModal').classList.remove('show'); });
 
+// ── Marca d'água ──────────────────────────────────────────
+async function openWatermark(){
+  try{
+    const c = await (await fetch('/api/settings/watermark')).json();
+    $('wmText').value = c.text || '';
+    $('wmPos').value = c.position || 'br';
+    $('wmOp').value = c.opacity || 35; $('wmOpVal').textContent = c.opacity || 35;
+    $('wmSz').value = c.size || 4; $('wmSzVal').textContent = c.size || 4;
+  }catch(e){}
+  $('wmModal').classList.add('show');
+}
+$('wmOp').addEventListener('input', e => $('wmOpVal').textContent = e.target.value);
+$('wmSz').addEventListener('input', e => $('wmSzVal').textContent = e.target.value);
+async function saveWatermark(){
+  await fetch('/api/settings/watermark', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({text:$('wmText').value, position:$('wmPos').value,
+      opacity:Number($('wmOp').value), size:Number($('wmSz').value)})});
+  $('wmModal').classList.remove('show');
+}
+$('wmModal').addEventListener('click', e => { if(e.target.id==='wmModal') $('wmModal').classList.remove('show'); });
+
 // ── Legenda IA (DeepSeek) ─────────────────────────────────
 async function genCaption(){
   if(!lbItem) return;
@@ -462,6 +512,9 @@ function openLb(it) {
   $('lbTags').value = it.tags || '';
   $('lbCaption').style.display = 'none';
   $('capBtn').disabled = false; $('capBtn').textContent = '✍️ Legenda IA';
+  $('dlOrig').href = it.url;
+  $('dlWm').href = '/api/media/' + it.id + '?watermark=1';
+  $('dlWm').style.display = it.type === 'video' ? 'none' : '';
   $('lb').classList.add('show');
 }
 function closeLb() { $('lb').classList.remove('show'); $('lbContent').innerHTML=''; lbId=null; }

@@ -57,6 +57,10 @@ def init():
                 "id SERIAL PRIMARY KEY, name TEXT NOT NULL, prompt TEXT NOT NULL, "
                 "created_at TIMESTAMP DEFAULT NOW())"
             )
+            # Configurações chave/valor (ex: marca d'água)
+            cur.execute(
+                "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)"
+            )
         c.commit()
 
 
@@ -210,6 +214,25 @@ def delete_preset(preset_id):
     with _conn() as c:
         with c.cursor() as cur:
             cur.execute("DELETE FROM prompt_presets WHERE id = %s", (preset_id,))
+        c.commit()
+
+
+def get_setting(key, default=None):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("SELECT value FROM settings WHERE key = %s", (key,))
+            row = cur.fetchone()
+            return row[0] if row else default
+
+
+def set_setting(key, value):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute(
+                "INSERT INTO settings(key, value) VALUES (%s, %s) "
+                "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                (key, value),
+            )
         c.commit()
 
 
