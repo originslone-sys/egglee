@@ -64,6 +64,9 @@
     background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
   }
   button.hd:hover { border-color: var(--accent); color: var(--accent); }
+  button.mini { padding: 8px 11px; font-size: 13px; background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 7px; cursor: pointer; white-space: nowrap; }
+  button.mini:hover { border-color: var(--accent); }
   .dataset { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); }
   .dstitle { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
   .dshelp { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
@@ -99,6 +102,11 @@
 
     <label>Prompt (cena, roupa, pose, lugar…)</label>
     <textarea id="prompt" placeholder="sitting on a beach, white bikini, golden hour"></textarea>
+    <div class="row" style="margin-top:8px">
+      <select id="presetSel"><option value="">— presets de prompt —</option></select>
+      <button type="button" class="mini" id="savePresetBtn" title="Salvar o prompt atual como preset">💾 Salvar</button>
+      <button type="button" class="mini" id="delPresetBtn" title="Excluir o preset selecionado">🗑</button>
+    </div>
 
     <label>Prompt negativo (opcional)</label>
     <textarea id="negative" placeholder="(deixe vazio para usar o padrão)"></textarea>
@@ -118,6 +126,14 @@
     </div>
 
     <div class="row">
+      <div>
+        <label>Qualidade</label>
+        <select id="quality">
+          <option value="draft">Rascunho (rápido)</option>
+          <option value="standard" selected>Padrão</option>
+          <option value="hd">HD direto (lento)</option>
+        </select>
+      </div>
       <div>
         <label>Quantidade de imagens</label>
         <select id="batch">
@@ -158,7 +174,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-let faceB64 = null, inputB64 = null, polling = null, lastBody = null;
+let faceB64 = null, inputB64 = null, polling = null, lastBody = null, autoUpscale = false;
 
 // Salva uma mídia gerada na biblioteca (com retry pontual).
 async function saveToLibrary(data, type, body, attempt = 1) {
@@ -330,6 +346,36 @@ fetch('/api/config').then(r => r.json()).then(c => {
   else setStatus('Endpoint não configurado no Railway (RUNPOD_ENDPOINT_ID / RUNPOD_API_KEY).', true);
 });
 
+// ── Presets de prompt ─────────────────────────────────────
+let presets = [];
+async function loadPresets() {
+  try {
+    const d = await (await fetch('/api/presets')).json();
+    presets = d.presets || [];
+    const sel = $('presetSel');
+    sel.innerHTML = '<option value="">— presets de prompt —</option>';
+    presets.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; sel.appendChild(o); });
+  } catch (e) {}
+}
+$('presetSel').addEventListener('change', e => {
+  const p = presets.find(x => String(x.id) === e.target.value);
+  if (p) $('prompt').value = p.prompt;
+});
+$('savePresetBtn').addEventListener('click', async () => {
+  const prompt = $('prompt').value.trim();
+  if (!prompt) return alert('Escreva um prompt primeiro.');
+  const name = window.prompt('Nome do preset:'); if (!name) return;
+  await fetch('/api/presets', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name.trim(), prompt})});
+  loadPresets();
+});
+$('delPresetBtn').addEventListener('click', async () => {
+  const id = $('presetSel').value; if (!id) return alert('Selecione um preset na lista.');
+  if (!confirm('Excluir este preset?')) return;
+  await fetch('/api/presets/' + id, {method:'DELETE'});
+  loadPresets();
+});
+loadPresets();
+
 function setStatus(msg, err) {
   const s = $('status'); s.textContent = msg; s.classList.toggle('err', !!err);
 }
@@ -342,18 +388,23 @@ $('goBtn').addEventListener('click', () => {
   if (wf === 'txt2img_faceid' && !faceB64) return setStatus('Envie a foto de referência do rosto.', true);
   if ((wf === 'img2img' || wf === 'img2video') && !inputB64) return setStatus('Envie a imagem de entrada.', true);
 
+  const q = $('quality').value;
+  const steps = q === 'draft' ? 20 : 30;
+  autoUpscale = (q === 'hd' && wf === 'txt2img');
+
   const body = {
     workflow_name: wf,
     prompt: $('prompt').value.trim(),
     negative_prompt: $('negative').value.trim(),
     seed: $('seed').value.trim() || '-1',
-    batch_size: $('batch').value,
+    batch_size: autoUpscale ? '1' : $('batch').value,
+    steps: steps,
   };
   if ($('useCharacter').checked) body.character = 'model';
   if (faceB64 && wf === 'txt2img_faceid') body.face_image_b64 = faceB64;
   if (inputB64 && (wf === 'img2img' || wf === 'img2video')) body.input_image_b64 = inputB64;
 
-  runJob(body, 'Enviando para a fila…');
+  runJob(body, autoUpscale ? 'Gerando + alta definição…' : 'Enviando para a fila…');
 });
 
 // Envia a imagem escolhida para o workflow de upscale (alta definição)
@@ -431,6 +482,13 @@ function done(data) {
     saveToLibrary(o.data, o.type, lastBody);
     r.appendChild(cell);
   });
+  // HD direto: encadeia o upscale automaticamente no resultado
+  if (autoUpscale && lastBody && lastBody.workflow_name !== 'upscale'
+      && out[0] && out[0].type !== 'video') {
+    autoUpscale = false;
+    setStatus('Aplicando alta definição…');
+    upscaleImage(out[0].data);
+  }
 }
 
 function dl(href, name) {

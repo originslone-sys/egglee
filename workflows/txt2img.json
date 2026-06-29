@@ -87,7 +87,7 @@
   "9": {
     "inputs": {
       "seed": "{{seed}}",
-      "steps": 30,
+      "steps": "{{steps}}",
       "cfg": 4.5,
       "sampler_name": "dpmpp_2m_sde",
       "scheduler": "karras",
