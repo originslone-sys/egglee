@@ -18,8 +18,8 @@
   "2": {
     "inputs": {
       "lora_name": "detail_tweaker_xl.safetensors",
-      "strength_model": 0.2,
-      "strength_clip": 0.1,
+      "strength_model": 0.45,
+      "strength_clip": 0.25,
       "model": ["20", 0],
       "clip": ["20", 1]
     },
@@ -91,7 +91,7 @@
       "cfg": 4.5,
       "sampler_name": "dpmpp_2m_sde",
       "scheduler": "karras",
-      "denoise": 0.3,
+      "denoise": 0.32,
       "model": ["5", 0],
       "positive": ["9", 0],
       "negative": ["10", 0],
@@ -120,7 +120,7 @@
       "cfg": 4.5,
       "sampler_name": "dpmpp_2m_sde",
       "scheduler": "karras",
-      "denoise": 0.28,
+      "denoise": 0.40,
       "feather": 5,
       "noise_mask": true,
       "force_inpaint": true,
