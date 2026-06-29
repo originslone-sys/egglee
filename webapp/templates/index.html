@@ -5,83 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Egglee · Painel de Geração</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
 <style>
-  :root {
-    --bg: #0d1117; --panel: #161b22; --border: #30363d;
-    --text: #e6edf3; --muted: #8b949e; --accent: #2ea043; --accent2: #238636;
-    --danger: #f85149;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg); color: var(--text); min-height: 100vh;
-  }
-  header {
-    padding: 16px 24px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 12px;
-  }
-  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
-  header .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
-  header .dot.ok { background: var(--accent); }
-  .wrap { display: grid; grid-template-columns: 380px 1fr; gap: 0; min-height: calc(100vh - 53px); }
-  @media (max-width: 820px) { .wrap { grid-template-columns: 1fr; } }
-  .controls { padding: 24px; border-right: 1px solid var(--border); }
-  .result { padding: 24px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; align-content: center; justify-content: center; }
-  .result .cell { display: flex; flex-direction: column; align-items: center; }
+  .wrap { display: grid; grid-template-columns: 400px 1fr; gap: 22px; padding: 22px; max-width: 1500px; margin: 0 auto; align-items: start; }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+  .controls { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm); }
+  .result { min-height: 62vh; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; align-content: center; justify-content: center;
+            background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow-sm); }
+  .result .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .result.multi img { max-height: 46vh; }
-  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
-  select, input[type=text], input[type=number], textarea {
-    width: 100%; padding: 9px 11px; background: var(--bg); color: var(--text);
-    border: 1px solid var(--border); border-radius: 7px; font-size: 14px; font-family: inherit;
-  }
-  textarea { resize: vertical; min-height: 80px; }
-  .row { display: flex; gap: 10px; }
-  .row > * { flex: 1; }
-  .check { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
-  .check input { width: auto; }
-  .check label { margin: 0; color: var(--text); font-size: 14px; }
-  button.go {
-    width: 100%; margin-top: 20px; padding: 12px; font-size: 15px; font-weight: 600;
-    background: var(--accent2); color: white; border: none; border-radius: 7px; cursor: pointer;
-  }
-  button.go:hover { background: var(--accent); }
-  button.go:disabled { opacity: .5; cursor: not-allowed; }
-  .drop {
-    border: 1px dashed var(--border); border-radius: 7px; padding: 14px; text-align: center;
-    cursor: pointer; font-size: 13px; color: var(--muted);
-  }
-  .drop img { max-width: 100%; max-height: 130px; border-radius: 5px; margin-top: 8px; }
+  .result img, .result video { max-width: 100%; max-height: 74vh; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .placeholder { color: var(--muted); text-align: center; }
+  .drop { border: 1.5px dashed var(--border-2); border-radius: var(--radius-sm); padding: 16px; text-align: center; cursor: pointer; font-size: 13px; color: var(--muted); transition: .15s; }
+  .drop:hover { border-color: var(--accent2); color: var(--text); }
+  .drop img { max-width: 100%; max-height: 130px; border-radius: 8px; margin-top: 8px; }
   .status { font-size: 13px; color: var(--muted); margin-top: 14px; min-height: 18px; }
   .status.err { color: var(--danger); }
-  .result img, .result video { max-width: 100%; max-height: 78vh; border-radius: 10px; border: 1px solid var(--border); }
-  .placeholder { color: var(--muted); text-align: center; }
-  .spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .hidden { display: none; }
-  .dl { margin-top: 8px; font-size: 13px; color: var(--accent); text-decoration: none; }
-  button.hd {
-    margin-top: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer;
-    background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
-  }
-  button.hd:hover { border-color: var(--accent); color: var(--accent); }
-  button.mini { padding: 8px 11px; font-size: 13px; background: var(--panel); color: var(--text);
-    border: 1px solid var(--border); border-radius: 7px; cursor: pointer; white-space: nowrap; }
-  button.mini:hover { border-color: var(--accent); }
-  .dataset { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .dl { margin-top: 6px; font-size: 13px; color: var(--accent); text-decoration: none; display: block; }
+  .dataset { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); }
   .dstitle { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
   .dshelp { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
-  button.go.ds { background: #1f6feb; }
-  button.go.ds:hover { background: #388bfd; }
 </style>
 </head>
 <body>
-<header>
-  <span class="dot" id="statusDot"></span>
-  <h1>Egglee · Painel de Geração</h1>
-  <div style="flex:1"></div>
-  <a href="/library" style="color:var(--muted);text-decoration:none;font-size:14px;margin-right:14px">📚 Biblioteca</a>
-  <a href="/logout" style="color:var(--muted);text-decoration:none;font-size:14px">Sair</a>
-</header>
+<div class="topbar">
+  <a href="/" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
+  <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+  <nav class="nav" id="nav">
+    <a href="/">📊 Dashboard</a>
+    <a href="/generate" class="active">✨ Gerar</a>
+    <a href="/library">🖼️ Biblioteca</a>
+  </nav>
+  <div class="sp"></div>
+  <div class="right">
+    <span class="dot" id="statusDot" title="status do endpoint"></span>
+    <a href="/logout" class="ghost">Sair</a>
+  </div>
+</div>
 
 <div class="wrap">
   <div class="controls">

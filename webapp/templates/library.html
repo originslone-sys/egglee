@@ -5,74 +5,80 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Egglee · Biblioteca</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
 <style>
-  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#2ea043; --accent2:#238636; --danger:#f85149; --blue:#1f6feb; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
-  header { padding:12px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:16px; }
-  header h1 { font-size:16px; margin:0; }
-  header a { color:var(--muted); text-decoration:none; font-size:14px; }
-  header a:hover { color:var(--text); }
-  .spacer { flex:1; }
-  #search { padding:7px 11px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:7px; width:240px; font-size:13px; }
-  .layout { display:flex; min-height:calc(100vh - 49px); }
-  .side { width:210px; border-right:1px solid var(--border); padding:16px 10px; flex-shrink:0; }
-  .side .grp { font-size:11px; color:var(--muted); text-transform:uppercase; margin:14px 8px 6px; }
-  .side a { display:flex; justify-content:space-between; padding:7px 10px; border-radius:6px; color:var(--text); text-decoration:none; font-size:13px; cursor:pointer; }
+  .layout { display:flex; max-width:1600px; margin:0 auto; min-height:calc(100vh - var(--tbar)); }
+  .side { width:var(--side-w); flex-shrink:0; padding:18px 12px; border-right:1px solid var(--border); }
+  .side .grp { font-size:11px; color:var(--faint); text-transform:uppercase; letter-spacing:.6px; margin:16px 8px 6px; font-weight:600; }
+  .side a { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:9px 11px; border-radius:10px; color:var(--text); text-decoration:none; font-size:13.5px; cursor:pointer; transition:.13s; }
   .side a:hover { background:var(--panel); }
-  .side a.active { background:var(--panel); color:var(--accent); }
-  .side a .n { color:var(--muted); font-size:11px; }
-  .main { flex:1; padding:16px 20px; }
-  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .side a.active { background:var(--grad-soft); color:var(--accent); box-shadow:inset 0 0 0 1px var(--border-2); }
+  .side a .n { color:var(--faint); font-size:11px; }
+  .main { flex:1; min-width:0; padding:20px 22px; }
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
   .toolbar .count { color:var(--muted); font-size:13px; }
-  button.tb { font-size:13px; padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; }
-  button.tb:hover { border-color:var(--muted); }
-  button.tb.on { border-color:var(--blue); color:var(--blue); }
-  button.tb.danger { color:var(--danger); }
-  button.tb.danger:hover { border-color:var(--danger); }
-  button.tb:disabled { opacity:.4; cursor:default; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
-  .cell { background:var(--panel); border:1px solid var(--border); border-radius:10px; overflow:hidden; position:relative; }
-  .cell.sel { outline:2px solid var(--blue); }
+  .spacer { flex:1; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(185px,1fr)); gap:16px; }
+  .cell { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; position:relative; transition:.16s; box-shadow:var(--shadow-sm); }
+  .cell:hover { border-color:var(--border-2); transform:translateY(-3px); box-shadow:var(--shadow); }
+  .cell.sel { outline:2px solid var(--accent2); }
   .cell .thumb { width:100%; aspect-ratio:3/4; object-fit:cover; display:block; cursor:pointer; }
-  .star { position:absolute; top:7px; right:7px; font-size:18px; cursor:pointer; filter:drop-shadow(0 1px 2px #000); user-select:none; }
-  .chk { position:absolute; top:7px; left:7px; width:20px; height:20px; cursor:pointer; }
-  .meta { padding:7px 10px; font-size:11px; color:var(--muted); }
+  .star { position:absolute; top:8px; right:8px; font-size:18px; cursor:pointer; filter:drop-shadow(0 1px 3px #000); user-select:none; }
+  .chk { position:absolute; top:8px; left:8px; width:20px; height:20px; cursor:pointer; accent-color:var(--accent2); }
+  .meta { padding:8px 11px; font-size:11px; color:var(--muted); }
   .meta .wf { color:var(--text); font-weight:600; }
-  .acts { display:flex; gap:6px; padding:0 10px 10px; }
-  .acts a, .acts button { font-size:12px; padding:4px 8px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); text-decoration:none; cursor:pointer; }
+  .acts { display:flex; gap:6px; padding:0 11px 11px; }
+  .acts a, .acts button { font-size:12px; padding:5px 9px; border-radius:8px; border:1px solid var(--border); background:var(--bg-soft); color:var(--text); text-decoration:none; cursor:pointer; transition:.13s; }
+  .acts a:hover, .acts button:hover { border-color:var(--border-2); }
   .acts .del { color:var(--danger); }
   .empty { color:var(--muted); text-align:center; padding:60px 20px; }
-  .lb { position:fixed; inset:0; background:rgba(0,0,0,.92); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:50; gap:14px; padding:20px; }
+  .lb { position:fixed; inset:0; background:rgba(4,5,8,.94); backdrop-filter:blur(6px); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:50; gap:14px; padding:20px; }
   .lb.show { display:flex; }
-  .lb img, .lb video { max-width:88vw; max-height:74vh; border-radius:8px; }
+  .lb img, .lb video { max-width:88vw; max-height:70vh; border-radius:12px; box-shadow:var(--shadow); }
   .lb .close { position:absolute; top:16px; right:22px; color:#fff; font-size:30px; cursor:pointer; }
   .lb .info { color:var(--muted); font-size:13px; max-width:700px; text-align:center; }
-  .lb .tags { display:flex; gap:8px; align-items:center; }
-  .lb .tags input { padding:7px 10px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:7px; width:340px; }
-  .lb .tags button { padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; }
-  .modal { position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; z-index:60; }
+  .lb .tags { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center; }
+  .lb .tags input { width:340px; max-width:72vw; }
+  .lb .tags button, .lb .tags select { padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--panel-2); color:var(--text); cursor:pointer; }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.72); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:60; padding:16px; }
   .modal.show { display:flex; }
-  .modal .box { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:22px; width:340px; max-height:70vh; overflow:auto; }
-  .modal .mt { font-size:15px; font-weight:600; margin-bottom:14px; }
+  .modal .box { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:22px; width:360px; max-width:92vw; max-height:82vh; overflow:auto; box-shadow:var(--shadow); }
+  .modal .mt { font-size:16px; font-weight:700; margin-bottom:14px; }
   .mfolders { display:flex; flex-direction:column; gap:8px; }
-  .mf { text-align:left; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer; font-size:14px; }
-  .mf:hover { border-color:var(--blue); }
+  .mf { text-align:left; padding:11px 13px; border-radius:10px; border:1px solid var(--border); background:var(--bg-soft); color:var(--text); cursor:pointer; font-size:14px; }
+  .mf:hover { border-color:var(--accent2); }
   .mf.new { color:var(--accent); border-style:dashed; }
-  .dlbtn { padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:var(--panel); color:var(--text); text-decoration:none; font-size:13px; }
-  .dlbtn:hover { border-color:var(--accent); color:var(--accent); }
+  #search { width:230px; padding:9px 12px; background:var(--bg-soft); color:var(--text);
+    border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13.5px; outline:none; }
+  #search:focus { border-color:var(--accent2); box-shadow:var(--ring); }
+  @media (max-width:760px) {
+    .layout { flex-direction:column; }
+    .side { width:100%; border-right:none; border-bottom:1px solid var(--border); display:flex; flex-wrap:wrap; gap:4px; padding:10px; }
+    .side .grp { width:100%; margin:6px 6px 2px; }
+    .side a { flex:0 0 auto; }
+    .grid { grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; }
+    #search { width:150px; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>🥚 Biblioteca</h1>
-  <a href="/">← Gerar</a>
-  <a onclick="openStats()" style="cursor:pointer">📊 Dashboard</a>
-  <a onclick="openWatermark()" style="cursor:pointer">🏷️ Marca d'água</a>
-  <div class="spacer"></div>
-  <input id="search" placeholder="Buscar por prompt ou tag…">
-  <a href="/logout">Sair</a>
-</header>
+<div class="topbar">
+  <a href="/" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
+  <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+  <nav class="nav" id="nav">
+    <a href="/">📊 Dashboard</a>
+    <a href="/generate">✨ Gerar</a>
+    <a href="/library" class="active">🖼️ Biblioteca</a>
+  </nav>
+  <div class="sp"></div>
+  <div class="right">
+    <input id="search" placeholder="Buscar por prompt ou tag…">
+    <button class="ghost hide-sm" onclick="openWatermark()" title="Marca d'água">🏷️</button>
+    <a href="/logout" class="ghost">Sair</a>
+  </div>
+</div>
 
 <div class="layout">
   <div class="side" id="side"></div>
