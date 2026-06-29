@@ -238,8 +238,8 @@ function renderGrid() {
     const cell = document.createElement('div');
     cell.className = 'cell' + (selected.has(it.id) ? ' sel' : '');
     const media = it.type === 'video'
-      ? `<video class="thumb" src="${it.url}" muted></video>`
-      : `<img class="thumb" src="${it.url}" loading="lazy">`;
+      ? `<video class="thumb" src="${it.url}" muted preload="none"></video>`
+      : `<img class="thumb" src="/api/thumb/${it.id}" loading="lazy" decoding="async">`;
     const date = it.created_at ? new Date(it.created_at).toLocaleString('pt-BR') : '';
     cell.innerHTML =
       (selectMode ? `<input type="checkbox" class="chk" ${selected.has(it.id)?'checked':''}>` : '') +
