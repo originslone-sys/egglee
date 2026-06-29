@@ -100,12 +100,16 @@ def collect_outputs(job_history: dict, grain: bool = True) -> list:
                 data = base64.b64encode(raw).decode()
                 outputs.append({"type": "image", "filename": img["filename"], "data": data})
 
-        for vid in node_output.get("videos", []):
+        # VHS_VideoCombine publica os vídeos sob a chave "gifs"; alguns nós usam "videos".
+        for vid in node_output.get("videos", []) + node_output.get("gifs", []):
+            fname = vid.get("filename", "")
+            if not fname.lower().endswith((".mp4", ".webm", ".mov")):
+                continue  # ignora o preview .png que o VHS também lista
             subdir = vid.get("subfolder", "")
-            path = OUTPUT_DIR / subdir / vid["filename"] if subdir else OUTPUT_DIR / vid["filename"]
+            path = OUTPUT_DIR / subdir / fname if subdir else OUTPUT_DIR / fname
             if path.exists():
                 data = base64.b64encode(path.read_bytes()).decode()
-                outputs.append({"type": "video", "filename": vid["filename"], "data": data})
+                outputs.append({"type": "video", "filename": fname, "data": data})
 
     return outputs
 

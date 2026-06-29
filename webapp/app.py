@@ -148,6 +148,26 @@ def _build_input(body: dict) -> dict:
     if body.get("input_image_b64"):
         inputs["input_image_b64"] = body["input_image_b64"]
 
+    # Vídeo self-host (Wan): traduz resolução/proporção/duração em dimensões.
+    if "video" in body["workflow_name"]:
+        _DIMS = {
+            "480p": {"9:16": (480, 832), "16:9": (832, 480), "1:1": (640, 640)},
+            "720p": {"9:16": (720, 1280), "16:9": (1280, 720), "1:1": (960, 960)},
+        }
+        res = body.get("resolution", "480p")
+        ar = body.get("aspect_ratio", "9:16")
+        w, h = _DIMS.get(res, _DIMS["480p"]).get(ar, (480, 832))
+        try:
+            secs = max(1, min(5, int(float(body.get("duration", 5)))))
+        except (TypeError, ValueError):
+            secs = 5
+        inputs["width"] = w
+        inputs["height"] = h
+        inputs["length"] = secs * 16 + 1      # Wan usa frames no formato 4n+1
+        inputs["frame_rate"] = 16
+        inputs["steps"] = 20
+        inputs["split_step"] = 10
+
     payload = {"workflow_name": body["workflow_name"], "inputs": inputs}
     if body.get("character"):
         payload["character"] = body["character"]
