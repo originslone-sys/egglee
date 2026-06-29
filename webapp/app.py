@@ -27,6 +27,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "egglee-dev-secret-change-me")
 ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID", "").strip()
 API_KEY = os.environ.get("RUNPOD_API_KEY", "").strip()
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "").strip()
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "").strip()
 
 BASE_URL = f"https://api.runpod.ai/v2/{ENDPOINT_ID}"
 HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
@@ -188,12 +189,13 @@ def library_save():
     key = f"{mtype}/{uuid.uuid4().hex}.{ext}"
     ctype = "video/mp4" if mtype == "video" else "image/png"
     try:
-        storage.upload_bytes(key, base64.b64decode(data_b64), ctype)
+        raw = base64.b64decode(data_b64)
+        storage.upload_bytes(key, raw, ctype)
         seed = body.get("seed")
         seed = int(seed) if isinstance(seed, (int, str)) and str(seed).lstrip("-").isdigit() else None
         folder = (body.get("folder") or "Geral").strip() or "Geral"
         row = db.insert(key, type=mtype, prompt=body.get("prompt", ""),
-                        seed=seed, workflow=body.get("workflow", ""), folder=folder)
+                        seed=seed, workflow=body.get("workflow", ""), folder=folder, size=len(raw))
         return jsonify({"ok": True, "id": row["id"]})
     except Exception as e:
         print("LIBRARY SAVE ERROR:", e, flush=True)
@@ -211,6 +213,7 @@ def library_list():
             folder=request.args.get("folder") or None,
             favorite=request.args.get("favorite") == "1",
             q=request.args.get("q") or None,
+            type=request.args.get("type") or None,
         )
         folders = db.list_folders()
     except Exception as e:
@@ -296,6 +299,53 @@ def folder_delete():
         return jsonify({"ok": False, "reason": "inválido"}), 400
     db.delete_folder(name)
     return jsonify({"ok": True})
+
+
+@app.route("/api/stats")
+@login_required
+def stats():
+    if not db.enabled():
+        return jsonify({})
+    try:
+        return jsonify(db.stats())
+    except Exception as e:
+        print("STATS ERROR:", e, flush=True)
+        return jsonify({})
+
+
+@app.route("/api/caption", methods=["POST"])
+@login_required
+def caption():
+    if not DEEPSEEK_API_KEY:
+        return jsonify({"error": "DEEPSEEK_API_KEY não configurada no Railway."}), 500
+    b = request.get_json(force=True)
+    context = (b.get("context") or b.get("prompt") or "").strip()
+    tone = (b.get("tone") or "descontraído e autêntico").strip()
+    if not context:
+        context = "uma selfie casual de uma jovem influencer"
+    sys_msg = ("Você é um especialista em social media que escreve legendas de "
+               "Instagram em português do Brasil, no estilo de influencer real — "
+               "natural, com emojis bem colocados.")
+    user_msg = (f"Escreva UMA legenda de Instagram ({tone}) para uma foto descrita como: "
+                f"\"{context}\". Use emojis. No final, em uma linha separada, liste de 12 a 18 "
+                f"hashtags relevantes e populares. Responda apenas com a legenda e as hashtags.")
+    try:
+        r = requests.post(
+            "https://api.deepseek.com/chat/completions",
+            headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                     "Content-Type": "application/json"},
+            json={"model": "deepseek-chat",
+                  "messages": [{"role": "system", "content": sys_msg},
+                               {"role": "user", "content": user_msg}],
+                  "temperature": 1.2, "max_tokens": 600},
+            timeout=60,
+        )
+        if not r.ok:
+            return jsonify({"error": f"DeepSeek {r.status_code}: {r.text[:200]}"}), 502
+        text = r.json()["choices"][0]["message"]["content"].strip()
+        return jsonify({"caption": text})
+    except requests.RequestException as e:
+        return jsonify({"error": f"Falha ao chamar o DeepSeek: {e}"}), 502
 
 
 @app.route("/api/media/<int:media_id>")

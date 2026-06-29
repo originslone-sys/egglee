@@ -39,6 +39,7 @@ def init():
             )
             # Migração: garante a coluna tags se a tabela já existia
             cur.execute("ALTER TABLE media ADD COLUMN IF NOT EXISTS tags TEXT DEFAULT ''")
+            cur.execute("ALTER TABLE media ADD COLUMN IF NOT EXISTS size BIGINT DEFAULT 0")
             # Pastas como entidade própria (podem existir vazias)
             cur.execute(
                 "CREATE TABLE IF NOT EXISTS folders ("
@@ -59,25 +60,27 @@ def init():
         c.commit()
 
 
-def insert(r2_key, type="image", prompt="", seed=None, workflow="", folder="Geral"):
+def insert(r2_key, type="image", prompt="", seed=None, workflow="", folder="Geral", size=0):
     with _conn() as c:
         with c.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
-                "INSERT INTO media (r2_key, type, prompt, seed, workflow, folder) "
-                "VALUES (%s, %s, %s, %s, %s, %s) RETURNING *",
-                (r2_key, type, prompt, seed, workflow, folder),
+                "INSERT INTO media (r2_key, type, prompt, seed, workflow, folder, size) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING *",
+                (r2_key, type, prompt, seed, workflow, folder, size),
             )
             row = cur.fetchone()
         c.commit()
         return row
 
 
-def list_media(limit=400, offset=0, folder=None, favorite=False, q=None):
+def list_media(limit=400, offset=0, folder=None, favorite=False, q=None, type=None):
     clauses, params = [], []
     if folder:
         clauses.append("folder = %s"); params.append(folder)
     if favorite:
         clauses.append("favorite = TRUE")
+    if type:
+        clauses.append("type = %s"); params.append(type)
     if q:
         clauses.append("(prompt ILIKE %s OR tags ILIKE %s)")
         params.extend([f"%{q}%", f"%{q}%"])
@@ -208,3 +211,21 @@ def delete_preset(preset_id):
         with c.cursor() as cur:
             cur.execute("DELETE FROM prompt_presets WHERE id = %s", (preset_id,))
         c.commit()
+
+
+def stats():
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "SELECT COUNT(*) AS total, "
+                "COUNT(*) FILTER (WHERE type='image') AS images, "
+                "COUNT(*) FILTER (WHERE type='video') AS videos, "
+                "COUNT(*) FILTER (WHERE favorite) AS favorites, "
+                "COALESCE(SUM(size),0) AS bytes FROM media"
+            )
+            m = cur.fetchone()
+            cur.execute("SELECT COUNT(*) AS n FROM folders")
+            f = cur.fetchone()
+            cur.execute("SELECT COUNT(*) AS n FROM prompt_presets")
+            p = cur.fetchone()
+            return {**m, "folders": f["n"], "presets": p["n"]}

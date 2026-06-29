@@ -65,6 +65,7 @@
 <header>
   <h1>🥚 Biblioteca</h1>
   <a href="/">← Gerar</a>
+  <a onclick="openStats()" style="cursor:pointer">📊 Dashboard</a>
   <div class="spacer"></div>
   <input id="search" placeholder="Buscar por prompt ou tag…">
   <a href="/logout">Sair</a>
@@ -96,6 +97,13 @@
   </div>
 </div>
 
+<div class="modal" id="statsModal">
+  <div class="box">
+    <div class="mt">📊 Dashboard</div>
+    <div id="statsBody" style="font-size:14px;line-height:2"></div>
+  </div>
+</div>
+
 <div class="lb" id="lb">
   <span class="close" onclick="closeLb()">✕</span>
   <div id="lbContent"></div>
@@ -105,18 +113,24 @@
     <button onclick="saveTags()">Salvar tags</button>
     <button onclick="makeVariations(4)">🔁 4 variações</button>
     <button onclick="upscaleOne()">✨ Alta definição</button>
+    <button onclick="genCaption()" id="capBtn">✍️ Legenda IA</button>
+  </div>
+  <div id="lbCaption" style="display:none; max-width:700px; width:100%">
+    <textarea id="lbCaptionText" style="width:100%; height:150px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:13px"></textarea>
+    <button onclick="copyCaption()" style="margin-top:6px; padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer">📋 Copiar</button>
   </div>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
 let items = [], selectMode = false, selected = new Set();
-let curFolder = '', curFav = false, curQ = '', lbId = null, lbItem = null, working = false;
+let curFolder = '', curFav = false, curQ = '', curType = '', lbId = null, lbItem = null, working = false;
 
 async function load() {
   const p = new URLSearchParams();
   if (curFolder) p.set('folder', curFolder);
   if (curFav) p.set('favorite', '1');
+  if (curType) p.set('type', curType);
   if (curQ) p.set('q', curQ);
   const r = await fetch('/api/library?' + p.toString());
   const data = await r.json();
@@ -132,8 +146,10 @@ function renderSide(folders) {
   const total = folders.reduce((s,f)=>s+f.n,0);
   const side = $('side'); side.innerHTML = '';
   side.appendChild(grp('Filtros'));
-  side.appendChild(navItem('Todos', total, !curFolder && !curFav, () => { curFolder=''; curFav=false; load(); }));
-  side.appendChild(navItem('⭐ Favoritos', '', curFav, () => { curFav=true; curFolder=''; load(); }));
+  side.appendChild(navItem('Todos', total, !curFolder && !curFav && !curType, () => { curFolder=''; curFav=false; curType=''; load(); }));
+  side.appendChild(navItem('⭐ Favoritos', '', curFav, () => { curFav=true; curFolder=''; curType=''; load(); }));
+  side.appendChild(navItem('🖼️ Imagens', '', curType==='image', () => { curType='image'; curFav=false; curFolder=''; load(); }));
+  side.appendChild(navItem('🎬 Vídeos', '', curType==='video', () => { curType='video'; curFav=false; curFolder=''; load(); }));
 
   const ph = grp('Pastas');
   const add = document.createElement('span');
@@ -378,6 +394,52 @@ async function makeVariations(n){
 }
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
+// ── Dashboard ─────────────────────────────────────────────
+function fmtBytes(b){
+  if(!b) return '0 B';
+  const u=['B','KB','MB','GB','TB']; let i=0; b=Number(b);
+  while(b>=1024 && i<u.length-1){ b/=1024; i++; }
+  return b.toFixed(i?1:0)+' '+u[i];
+}
+async function openStats(){
+  $('statsBody').innerHTML = 'Carregando…';
+  $('statsModal').classList.add('show');
+  try{
+    const s = await (await fetch('/api/stats')).json();
+    $('statsBody').innerHTML =
+      `📦 Total de arquivos: <b>${s.total||0}</b><br>`+
+      `🖼️ Imagens: <b>${s.images||0}</b><br>`+
+      `🎬 Vídeos: <b>${s.videos||0}</b><br>`+
+      `⭐ Favoritos: <b>${s.favorites||0}</b><br>`+
+      `📁 Pastas: <b>${s.folders||0}</b><br>`+
+      `📝 Presets de prompt: <b>${s.presets||0}</b><br>`+
+      `💾 Armazenamento: <b>${fmtBytes(s.bytes)}</b> <span style="color:var(--muted)">(de 10 GB grátis no R2)</span>`;
+  }catch(e){ $('statsBody').textContent = 'Erro ao carregar estatísticas.'; }
+}
+$('statsModal').addEventListener('click', e => { if(e.target.id==='statsModal') $('statsModal').classList.remove('show'); });
+
+// ── Legenda IA (DeepSeek) ─────────────────────────────────
+async function genCaption(){
+  if(!lbItem) return;
+  $('capBtn').disabled = true; $('capBtn').textContent = 'Gerando…';
+  try{
+    const r = await fetch('/api/caption', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({prompt: lbItem.prompt || ''})});
+    const d = await r.json();
+    if(!r.ok || d.error) throw new Error(d.error || ('HTTP '+r.status));
+    $('lbCaptionText').value = d.caption;
+    $('lbCaption').style.display = 'block';
+  }catch(e){
+    $('lbCaptionText').value = 'Erro: ' + e.message;
+    $('lbCaption').style.display = 'block';
+  }
+  $('capBtn').disabled = false; $('capBtn').textContent = '✍️ Legenda IA';
+}
+function copyCaption(){
+  const t = $('lbCaptionText'); t.select();
+  navigator.clipboard.writeText(t.value).then(()=>{}, ()=>{ document.execCommand('copy'); });
+}
+
 // ── Busca ─────────────────────────────────────────────────
 let searchTimer;
 $('search').addEventListener('input', e => {
@@ -393,6 +455,8 @@ function openLb(it) {
     : `<img src="${it.url}">`;
   $('lbInfo').textContent = (it.prompt || '(sem prompt)');
   $('lbTags').value = it.tags || '';
+  $('lbCaption').style.display = 'none';
+  $('capBtn').disabled = false; $('capBtn').textContent = '✍️ Legenda IA';
   $('lb').classList.add('show');
 }
 function closeLb() { $('lb').classList.remove('show'); $('lbContent').innerHTML=''; lbId=null; }
