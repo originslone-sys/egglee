@@ -839,6 +839,19 @@ def admin_page_save():
     return jsonify({"ok": True})
 
 
+@app.route("/api/admin/reality_phrases", methods=["POST"])
+@login_required
+def admin_reality_phrases():
+    if not DEEPSEEK_API_KEY:
+        return jsonify({"error": "DEEPSEEK_API_KEY não configurada."}), 500
+    current = request.get_json(force=True).get("current") or []
+    try:
+        return jsonify({"phrases": persona.generate_reality_phrases(current, n=4)})
+    except Exception as e:
+        print("REALITY PHRASES ERROR:", e, flush=True)
+        return jsonify({"error": str(e)}), 502
+
+
 @app.route("/api/admin/gallery", methods=["POST"])
 @login_required
 def admin_gallery_save():

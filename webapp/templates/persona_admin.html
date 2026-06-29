@@ -98,11 +98,11 @@
 
       <div class="card pad">
         <div class="sec-title">🌙 Quando perguntarem "você é real?"</div>
-        <div class="hint">Ela brinca com a ambiguidade nesse estilo, usando as frases como inspiração (não copia sempre).</div>
-        <label>Estilo</label>
-        <select id="reality_style"><option value="provocante">Provocante</option><option value="filosofica">Filosófica</option><option value="sonhadora">Sonhadora</option></select>
-        <label>Frases de exemplo (uma por linha)</label>
-        <textarea id="reality_examples" style="min-height:90px"></textarea>
+        <div class="hint">Ela varia sozinha entre <b style="color:var(--accent)">provocante</b>, <b style="color:var(--accent)">filosófica</b> e <b style="color:var(--accent)">sonhadora</b> — nunca repete o mesmo tom seguidamente. As frases abaixo são só inspiração (ela improvisa, não copia).</div>
+        <label>Frases de inspiração (uma por linha)</label>
+        <textarea id="reality_examples" style="min-height:130px"></textarea>
+        <button class="btn-2" type="button" id="genPhrasesBtn" onclick="genPhrases()" style="margin-top:8px">✨ Gerar mais (IA)</button>
+        <span class="hint" id="genPhrasesMsg" style="margin-left:8px"></span>
       </div>
     </div>
 
@@ -162,7 +162,7 @@ function load(){
     $('sales').value=p.sales??30; salesv.textContent=$('sales').value;
     $('language').value=p.language||'auto'; $('length').value=p.length||'short';
     $('emoji').value=p.emoji||'some'; $('slang').checked=!!p.slang;
-    $('greeting').value=p.greeting||''; $('reality_style').value=p.reality_style||'provocante';
+    $('greeting').value=p.greeting||'';
     $('reality_examples').value=(p.reality_examples||[]).join('\n');
     avatarId = p.avatar_id||null;
     const b=pg.banner||{}, a=pg.ads||{};
@@ -199,6 +199,21 @@ function setAvatar(e,id){ e.stopPropagation(); avatarId=id; document.querySelect
 function renderAvPrev(){ const el=$('avPrev'); if(avatarId){ el.innerHTML=`<img src="/api/thumb/${avatarId}" alt="">`; } else el.textContent='💕'; }
 function updateInfo(){ $('pickInfo').textContent = `${gallery.size} foto(s) na galeria · avatar: ${avatarId?'definido':'nenhum'}`; }
 
+async function genPhrases(){
+  const cur = $('reality_examples').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  $('genPhrasesBtn').disabled=true; $('genPhrasesMsg').textContent='Gerando…';
+  try{
+    const r = await fetch('/api/admin/reality_phrases',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current:cur})});
+    const d = await r.json();
+    if(d.error) throw new Error(d.error);
+    const add = (d.phrases||[]).filter(p=>!cur.includes(p));
+    $('reality_examples').value = cur.concat(add).join('\n');
+    $('genPhrasesMsg').textContent = '+'+add.length+' frase(s) ✓';
+  }catch(e){ $('genPhrasesMsg').textContent='erro: '+e.message; }
+  $('genPhrasesBtn').disabled=false;
+  setTimeout(()=>$('genPhrasesMsg').textContent='',3500);
+}
+
 async function saveAll(){
   $('saveBtn').disabled=true; $('okMsg').textContent='Salvando…';
   const persona = {
@@ -206,7 +221,7 @@ async function saveAll(){
     personality:$('personality').value.trim(), tone:$('tone').value,
     flirt:Number($('flirt').value), sales:Number($('sales').value),
     language:$('language').value, length:$('length').value, emoji:$('emoji').value, slang:$('slang').checked,
-    greeting:$('greeting').value.trim(), reality_style:$('reality_style').value,
+    greeting:$('greeting').value.trim(),
     reality_examples:$('reality_examples').value.split('\n').map(s=>s.trim()).filter(Boolean),
   };
   const page = {
