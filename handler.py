@@ -193,6 +193,12 @@ def handler(job):
         except (TypeError, ValueError):
             inputs["batch_size"] = 1
 
+        # Passos do sampler (presets de qualidade; workflows usam {{steps}})
+        try:
+            inputs["steps"] = max(10, min(60, int(inputs.get("steps", 30))))
+        except (TypeError, ValueError):
+            inputs["steps"] = 30
+
         # Handle seed: -1 or missing → random
         if inputs.get("seed", -1) == -1:
             inputs["seed"] = random.randint(0, 2**32 - 1)

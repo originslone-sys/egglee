@@ -50,6 +50,12 @@ def init():
                 "INSERT INTO folders(name) SELECT DISTINCT folder FROM media "
                 "WHERE folder IS NOT NULL ON CONFLICT DO NOTHING"
             )
+            # Presets de prompt (cenas/roupas salvas)
+            cur.execute(
+                "CREATE TABLE IF NOT EXISTS prompt_presets ("
+                "id SERIAL PRIMARY KEY, name TEXT NOT NULL, prompt TEXT NOT NULL, "
+                "created_at TIMESTAMP DEFAULT NOW())"
+            )
         c.commit()
 
 
@@ -173,4 +179,32 @@ def delete_many(ids):
     with _conn() as c:
         with c.cursor() as cur:
             cur.execute("DELETE FROM media WHERE id = ANY(%s)", (list(ids),))
+        c.commit()
+
+
+# ── Presets de prompt ─────────────────────────────────────────────────────────
+
+def list_presets():
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id, name, prompt FROM prompt_presets ORDER BY name")
+            return cur.fetchall()
+
+
+def create_preset(name, prompt):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "INSERT INTO prompt_presets(name, prompt) VALUES (%s, %s) RETURNING id",
+                (name, prompt),
+            )
+            row = cur.fetchone()
+        c.commit()
+        return row
+
+
+def delete_preset(preset_id):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("DELETE FROM prompt_presets WHERE id = %s", (preset_id,))
         c.commit()

@@ -85,6 +85,12 @@ def _build_input(body: dict) -> dict:
     except (TypeError, ValueError):
         inputs["batch_size"] = 1
 
+    if body.get("steps"):
+        try:
+            inputs["steps"] = max(10, min(60, int(body["steps"])))
+        except (TypeError, ValueError):
+            pass
+
     if body.get("face_image_b64"):
         inputs["face_image_b64"] = body["face_image_b64"]
     if body.get("input_image_b64"):
@@ -224,6 +230,40 @@ def library_list():
         })
     folders = [{"folder": f["folder"], "n": f["n"]} for f in folders]
     return jsonify({"items": items, "folders": folders, "configured": True})
+
+
+@app.route("/api/presets", methods=["GET"])
+@login_required
+def presets_list():
+    if not db.enabled():
+        return jsonify({"presets": []})
+    try:
+        return jsonify({"presets": db.list_presets()})
+    except Exception as e:
+        print("PRESETS LIST ERROR:", e, flush=True)
+        return jsonify({"presets": []})
+
+
+@app.route("/api/presets", methods=["POST"])
+@login_required
+def presets_create():
+    if not db.enabled():
+        return jsonify({"ok": False, "reason": "banco não configurado"}), 500
+    b = request.get_json(force=True)
+    name = (b.get("name") or "").strip()
+    prompt = (b.get("prompt") or "").strip()
+    if not name or not prompt:
+        return jsonify({"ok": False, "reason": "nome e prompt obrigatórios"}), 400
+    row = db.create_preset(name, prompt)
+    return jsonify({"ok": True, "id": row["id"]})
+
+
+@app.route("/api/presets/<int:preset_id>", methods=["DELETE"])
+@login_required
+def presets_delete(preset_id):
+    if db.enabled():
+        db.delete_preset(preset_id)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/folders", methods=["POST"])
