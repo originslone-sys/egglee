@@ -198,6 +198,12 @@ def generate_page():
     return render_template("index.html")
 
 
+@app.route("/persona")
+@login_required
+def persona_admin_page():
+    return render_template("persona_admin.html")
+
+
 @app.route("/library")
 @login_required
 def library_page():
