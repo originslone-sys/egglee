@@ -45,7 +45,7 @@ def list_models() -> list:
 
 
 def create(model, prompt, first_frame_url, duration=None, resolution=None,
-           aspect_ratio=None, last_frame_url=None) -> dict:
+           aspect_ratio=None, last_frame_url=None, generate_audio=False) -> dict:
     """Cria um job de Image-to-Video. Devolve { id, polling_url, status }."""
     frames = [{
         "type": "image_url",
@@ -58,7 +58,13 @@ def create(model, prompt, first_frame_url, duration=None, resolution=None,
             "image_url": {"url": last_frame_url},
             "frame_type": "last_frame",
         })
-    payload = {"model": model, "prompt": prompt or "", "frame_images": frames}
+    payload = {
+        "model": model,
+        "prompt": prompt or "",
+        "frame_images": frames,
+        # false = sem áudio gerado (mais barato; modelos cobram ~2x com áudio).
+        "generate_audio": bool(generate_audio),
+    }
     if duration:
         try:
             payload["duration"] = int(duration)

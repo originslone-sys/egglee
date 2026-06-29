@@ -37,6 +37,10 @@ DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "").strip()
 BASE_URL = f"https://api.runpod.ai/v2/{ENDPOINT_ID}"
 HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
+# Bias de movimento para a geração de vídeo via API (trava de "movimento natural").
+NATURAL_MOTION = ("subtle natural movement, gentle realistic motion, "
+                  "stable camera, smooth, lifelike")
+
 try:
     db.init()
 except Exception as e:
@@ -286,14 +290,18 @@ def video_generate():
         first_url = _image_data_url(media_id=b.get("media_id"), image_b64=b.get("image_b64"))
     except Exception as e:
         return jsonify({"error": f"Imagem de origem inválida: {e}"}), 400
+    # Trava de movimento natural: bias sutil/realista somado ao prompt do usuário.
+    motion = b.get("prompt", "").strip()
+    full_prompt = NATURAL_MOTION if not motion else f"{NATURAL_MOTION}, {motion}"
     try:
         job = video.create(
             model=model,
-            prompt=b.get("prompt", ""),
+            prompt=full_prompt,
             first_frame_url=first_url,
             duration=b.get("duration"),
             resolution=b.get("resolution"),
             aspect_ratio=b.get("aspect_ratio"),
+            generate_audio=bool(b.get("audio", False)),  # trava: sem áudio (mais barato)
         )
     except Exception as e:
         print("VIDEO GENERATE ERROR:", e, flush=True)
