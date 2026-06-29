@@ -30,16 +30,16 @@ VAE="$MODELS/vae"
 NODES="$COMFY/custom_nodes"
 mkdir -p "$DIFF" "$TENC" "$VAE" "$NODES"
 
-echo "=== Instalando huggingface-cli (download rápido) ==="
-pip install -q "huggingface_hub[cli]" hf_transfer
-export HF_HUB_ENABLE_HF_TRANSFER=1
+echo "=== Instalando huggingface_hub (CLI 'hf') ==="
+pip install -q -U huggingface_hub
+export HF_XET_HIGH_PERFORMANCE=1
 
 # ── 1) Experts do Wan 2.2 I2V (GGUF) ──────────────────────────────────────────
 # Repo: QuantStack/Wan2.2-I2V-A14B-GGUF  (high-noise + low-noise)
 echo ""
 echo "=== Baixando Wan 2.2 I2V experts ($QUANT) — isso é o maior download ==="
 TMP_GGUF="$(mktemp -d)"
-huggingface-cli download QuantStack/Wan2.2-I2V-A14B-GGUF \
+hf download QuantStack/Wan2.2-I2V-A14B-GGUF \
     --include "*HighNoise*${QUANT}*.gguf" "*LowNoise*${QUANT}*.gguf" \
     --local-dir "$TMP_GGUF"
 # Achata: move qualquer .gguf encontrado para diffusion_models/
@@ -50,7 +50,7 @@ rm -rf "$TMP_GGUF"
 echo ""
 echo "=== Baixando text encoder (umt5_xxl_fp8) e VAE (wan_2.1) ==="
 TMP_AUX="$(mktemp -d)"
-huggingface-cli download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
+hf download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
     --include "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
               "split_files/vae/wan_2.1_vae.safetensors" \
     --local-dir "$TMP_AUX"
