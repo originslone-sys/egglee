@@ -113,6 +113,11 @@
     <button onclick="saveTags()">Salvar tags</button>
     <button onclick="makeVariations(4)">🔁 4 variações</button>
     <button onclick="upscaleOne()">✨ Alta definição</button>
+    <select id="capLang" title="Idioma da legenda" style="padding:7px 8px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:7px">
+      <option value="">🌐 Auto</option>
+      <option value="pt">🇧🇷 PT</option>
+      <option value="en">🇺🇸 EN</option>
+    </select>
     <button onclick="genCaption()" id="capBtn">✍️ Legenda IA</button>
   </div>
   <div id="lbCaption" style="display:none; max-width:700px; width:100%">
@@ -424,7 +429,7 @@ async function genCaption(){
   $('capBtn').disabled = true; $('capBtn').textContent = 'Gerando…';
   try{
     const r = await fetch('/api/caption', {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({prompt: lbItem.prompt || ''})});
+      body: JSON.stringify({prompt: lbItem.prompt || '', lang: $('capLang').value})});
     const d = await r.json();
     if(!r.ok || d.error) throw new Error(d.error || ('HTTP '+r.status));
     $('lbCaptionText').value = d.caption;

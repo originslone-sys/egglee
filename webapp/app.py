@@ -12,6 +12,7 @@ import os
 import json
 import base64
 import uuid
+import random
 from functools import wraps
 
 import requests
@@ -320,15 +321,29 @@ def caption():
         return jsonify({"error": "DEEPSEEK_API_KEY não configurada no Railway."}), 500
     b = request.get_json(force=True)
     context = (b.get("context") or b.get("prompt") or "").strip()
-    tone = (b.get("tone") or "descontraído e autêntico").strip()
     if not context:
-        context = "uma selfie casual de uma jovem influencer"
-    sys_msg = ("Você é um especialista em social media que escreve legendas de "
-               "Instagram em português do Brasil, no estilo de influencer real — "
-               "natural, com emojis bem colocados.")
-    user_msg = (f"Escreva UMA legenda de Instagram ({tone}) para uma foto descrita como: "
-                f"\"{context}\". Use emojis. No final, em uma linha separada, liste de 12 a 18 "
-                f"hashtags relevantes e populares. Responda apenas com a legenda e as hashtags.")
+        context = "a casual selfie of a young woman"
+
+    lang = (b.get("lang") or "").lower()
+    if lang not in ("pt", "en"):
+        lang = random.choice(["pt", "en"])
+    language = "Brazilian Portuguese" if lang == "pt" else "English"
+
+    sys_msg = (
+        "You are a Gen Z girl writing your own Instagram captions. "
+        "Voice: short and punchy (1 to 2 short lines max), bold, flirty, confident, "
+        "playful, with a tasteful hint of sensuality — Instagram-appropriate, never "
+        "explicit. Use natural Gen Z slang and 1-3 well-placed emojis. Then, on a new "
+        "line, add 12 to 16 hashtags optimized for reach and Instagram SEO: mix a few "
+        "high-volume popular tags with specific niche/keyword tags relevant to the photo "
+        "(model, selfie, ootd, the setting, the vibe). Avoid banned, spammy or "
+        "shadowban-prone tags."
+    )
+    user_msg = (
+        f"Write ONE Instagram caption in {language} for a photo described as: "
+        f"\"{context}\". Keep it short, bold and flirty. Reply with only the caption "
+        f"and then the hashtags on a new line."
+    )
     try:
         r = requests.post(
             "https://api.deepseek.com/chat/completions",
@@ -337,7 +352,7 @@ def caption():
             json={"model": "deepseek-chat",
                   "messages": [{"role": "system", "content": sys_msg},
                                {"role": "user", "content": user_msg}],
-                  "temperature": 1.2, "max_tokens": 600},
+                  "temperature": 1.3, "max_tokens": 400},
             timeout=60,
         )
         if not r.ok:
