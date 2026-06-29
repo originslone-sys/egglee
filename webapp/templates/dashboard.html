@@ -77,9 +77,8 @@ fetch('/api/library?limit=18').then(r=>r.json()).then(d=>{
   const items = (d.items||[]);
   if(!items.length){ $('recent').outerHTML = '<div class="empty-recent">Nada gerado ainda. Comece em <a href="/generate" style="color:var(--accent)">Gerar</a>.</div>'; return; }
   $('recent').innerHTML = items.map(it=>{
-    const media = it.type==='video'
-      ? `<video src="${it.url}" muted preload="none"></video><span class="vtag">🎬</span>`
-      : `<img src="/api/thumb/${it.id}" loading="lazy">`;
+    const media = `<img src="/api/thumb/${it.id}" loading="lazy">`
+      + (it.type==='video' ? '<span class="vtag">▶</span>' : '');
     return `<a href="/library" title="${(it.prompt||'').replace(/"/g,'')}">${media}</a>`;
   }).join('');
 }).catch(()=>{});

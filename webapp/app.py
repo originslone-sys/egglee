@@ -343,6 +343,7 @@ def video_status():
         mp4 = video.download(urls[0])
         key = f"video/{uuid.uuid4().hex}.mp4"
         storage.upload_bytes(key, mp4, "video/mp4")
+        make_and_store_thumb(key, mp4, is_video=True)
         folder = (b.get("folder") or "Geral").strip() or "Geral"
         row = db.insert(key, type="video", prompt=b.get("prompt", ""),
                         workflow="video", folder=folder, size=len(mp4))
@@ -371,11 +372,7 @@ def library_save():
     try:
         raw = base64.b64decode(data_b64)
         storage.upload_bytes(key, raw, ctype)
-        if mtype != "video" and _PIL_OK:
-            try:
-                storage.upload_bytes(_thumb_key(key), _make_thumb(raw), "image/jpeg")
-            except Exception as e:
-                print("THUMB GEN ERROR:", e, flush=True)
+        make_and_store_thumb(key, raw, is_video=(mtype == "video"))
         seed = body.get("seed")
         seed = int(seed) if isinstance(seed, (int, str)) and str(seed).lstrip("-").isdigit() else None
         folder = (body.get("folder") or "Geral").strip() or "Geral"
@@ -554,8 +551,8 @@ def _thumb_key(r2_key: str) -> str:
     return "thumbs/" + r2_key.rsplit("/", 1)[-1].rsplit(".", 1)[0] + ".jpg"
 
 
-def _make_thumb(raw: bytes) -> bytes:
-    img = Image.open(io.BytesIO(raw)).convert("RGB")
+def _jpeg_from_pil(img) -> bytes:
+    img = img.convert("RGB")
     w, h = img.size
     if w > THUMB_W:
         img = img.resize((THUMB_W, int(h * THUMB_W / w)), Image.LANCZOS)
@@ -564,7 +561,37 @@ def _make_thumb(raw: bytes) -> bytes:
     return out.getvalue()
 
 
-def _ensure_thumb(r2_key: str) -> bytes:
+def _make_thumb(raw: bytes) -> bytes:
+    return _jpeg_from_pil(Image.open(io.BytesIO(raw)))
+
+
+def _video_poster(mp4_bytes: bytes) -> bytes:
+    """Extrai o 1º frame de um MP4 como miniatura JPEG (poster)."""
+    import tempfile
+    import imageio.v2 as iio
+    with tempfile.NamedTemporaryFile(suffix=".mp4") as tf:
+        tf.write(mp4_bytes)
+        tf.flush()
+        rd = iio.get_reader(tf.name, "ffmpeg")
+        try:
+            frame = rd.get_data(0)
+        finally:
+            rd.close()
+    return _jpeg_from_pil(Image.fromarray(frame))
+
+
+def make_and_store_thumb(r2_key: str, raw: bytes, is_video: bool):
+    """Gera o poster/miniatura e sobe no R2 (chamado ao salvar)."""
+    if not _PIL_OK:
+        return
+    try:
+        thumb = _video_poster(raw) if is_video else _make_thumb(raw)
+        storage.upload_bytes(_thumb_key(r2_key), thumb, "image/jpeg")
+    except Exception as e:
+        print("THUMB GEN ERROR:", e, flush=True)
+
+
+def _ensure_thumb(r2_key: str, is_video: bool = False) -> bytes:
     """Gera (se preciso) e cacheia a miniatura JPEG no R2; devolve os bytes."""
     tkey = _thumb_key(r2_key)
     try:
@@ -572,7 +599,7 @@ def _ensure_thumb(r2_key: str) -> bytes:
     except Exception:
         pass
     raw = storage.get_bytes(r2_key)
-    thumb = _make_thumb(raw)
+    thumb = _video_poster(raw) if is_video else _make_thumb(raw)
     try:
         storage.upload_bytes(tkey, thumb, "image/jpeg")
     except Exception as e:
@@ -587,11 +614,10 @@ def thumb_proxy(media_id):
     row = db.get(media_id)
     if not row:
         return ("not found", 404)
-    if row["type"] == "video" or not _PIL_OK:
-        # vídeo ou sem PIL: cai pra mídia original
+    if not _PIL_OK:
         return redirect(url_for("media_proxy", media_id=media_id))
     try:
-        data = _ensure_thumb(row["r2_key"])
+        data = _ensure_thumb(row["r2_key"], is_video=(row["type"] == "video"))
     except Exception as e:
         print("THUMB PROXY ERROR:", e, flush=True)
         return redirect(url_for("media_proxy", media_id=media_id))
