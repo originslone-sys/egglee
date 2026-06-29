@@ -33,25 +33,34 @@ mkdir -p "$DIFF" "$TENC" "$VAE" "$NODES"
 echo "=== Instalando huggingface_hub (CLI 'hf') ==="
 pip install -q -U huggingface_hub
 export HF_XET_HIGH_PERFORMANCE=1
+# IMPORTANTE: tudo (cache + staging) no VOLUME, não no disco do container (~pequeno).
+export HF_HOME="$MODELS/.hf_cache"
+DL_TMP="$MODELS/.wan_dl"
+mkdir -p "$HF_HOME" "$DL_TMP"
+# Limpa restos de download parcial no disco do container (tentativas anteriores)
+rm -rf /tmp/tmp.* 2>/dev/null || true
+rm -rf "$HOME/.cache/huggingface" 2>/dev/null || true
+
+echo ""
+echo "=== Espaço no volume (precisa de ~40GB livres) ==="
+df -h "$MODELS" | tail -1
 
 # ── 1) Experts do Wan 2.2 I2V (GGUF) ──────────────────────────────────────────
 # Repo: QuantStack/Wan2.2-I2V-A14B-GGUF  (high-noise + low-noise)
 echo ""
 echo "=== Baixando Wan 2.2 I2V experts ($QUANT) — isso é o maior download ==="
-TMP_GGUF="$(mktemp -d)"
 # O CLI 'hf' aceita só um padrão por --include → uma chamada por expert.
 hf download QuantStack/Wan2.2-I2V-A14B-GGUF \
-    --include "*HighNoise*${QUANT}*.gguf" --local-dir "$TMP_GGUF"
+    --include "*HighNoise*${QUANT}*.gguf" --local-dir "$DL_TMP"
 hf download QuantStack/Wan2.2-I2V-A14B-GGUF \
-    --include "*LowNoise*${QUANT}*.gguf" --local-dir "$TMP_GGUF"
-# Achata: move qualquer .gguf encontrado para diffusion_models/
-find "$TMP_GGUF" -name "*.gguf" -exec mv -v -t "$DIFF" {} +
-rm -rf "$TMP_GGUF"
+    --include "*LowNoise*${QUANT}*.gguf" --local-dir "$DL_TMP"
+# Achata: move qualquer .gguf encontrado para diffusion_models/ (mesmo FS = instantâneo)
+find "$DL_TMP" -name "*.gguf" -exec mv -v -t "$DIFF" {} +
 
 # ── 2) Text encoder + VAE (Comfy-Org repackaged) ──────────────────────────────
 echo ""
 echo "=== Baixando text encoder (umt5_xxl_fp8) e VAE (wan_2.1) ==="
-TMP_AUX="$(mktemp -d)"
+TMP_AUX="$DL_TMP"
 # Caminhos exatos → passa como filenames posicionais (modo explícito).
 hf download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
     split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors \
@@ -59,7 +68,8 @@ hf download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
     --local-dir "$TMP_AUX"
 find "$TMP_AUX" -name "umt5_xxl_fp8_e4m3fn_scaled.safetensors" -exec mv -v -t "$TENC" {} +
 find "$TMP_AUX" -name "wan_2.1_vae.safetensors" -exec mv -v -t "$VAE" {} +
-rm -rf "$TMP_AUX"
+# Limpa staging e cache do HF (libera espaço do volume)
+rm -rf "$DL_TMP" "$HF_HOME"
 
 # ── 3) Custom nodes ───────────────────────────────────────────────────────────
 echo ""
