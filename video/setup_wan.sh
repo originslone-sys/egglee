@@ -39,9 +39,11 @@ export HF_XET_HIGH_PERFORMANCE=1
 echo ""
 echo "=== Baixando Wan 2.2 I2V experts ($QUANT) — isso é o maior download ==="
 TMP_GGUF="$(mktemp -d)"
+# O CLI 'hf' aceita só um padrão por --include → uma chamada por expert.
 hf download QuantStack/Wan2.2-I2V-A14B-GGUF \
-    --include "*HighNoise*${QUANT}*.gguf" "*LowNoise*${QUANT}*.gguf" \
-    --local-dir "$TMP_GGUF"
+    --include "*HighNoise*${QUANT}*.gguf" --local-dir "$TMP_GGUF"
+hf download QuantStack/Wan2.2-I2V-A14B-GGUF \
+    --include "*LowNoise*${QUANT}*.gguf" --local-dir "$TMP_GGUF"
 # Achata: move qualquer .gguf encontrado para diffusion_models/
 find "$TMP_GGUF" -name "*.gguf" -exec mv -v -t "$DIFF" {} +
 rm -rf "$TMP_GGUF"
@@ -50,9 +52,10 @@ rm -rf "$TMP_GGUF"
 echo ""
 echo "=== Baixando text encoder (umt5_xxl_fp8) e VAE (wan_2.1) ==="
 TMP_AUX="$(mktemp -d)"
+# Caminhos exatos → passa como filenames posicionais (modo explícito).
 hf download Comfy-Org/Wan_2.1_ComfyUI_repackaged \
-    --include "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
-              "split_files/vae/wan_2.1_vae.safetensors" \
+    split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors \
+    split_files/vae/wan_2.1_vae.safetensors \
     --local-dir "$TMP_AUX"
 find "$TMP_AUX" -name "umt5_xxl_fp8_e4m3fn_scaled.safetensors" -exec mv -v -t "$TENC" {} +
 find "$TMP_AUX" -name "wan_2.1_vae.safetensors" -exec mv -v -t "$VAE" {} +
