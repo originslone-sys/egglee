@@ -187,6 +187,12 @@ def _build_input(body: dict) -> dict:
 @app.route("/")
 @login_required
 def index():
+    return render_template("dashboard.html")
+
+
+@app.route("/generate")
+@login_required
+def generate_page():
     return render_template("index.html")
 
 
