@@ -37,6 +37,14 @@ def delete_key(key: str):
     client().delete_object(Bucket=R2_BUCKET, Key=key)
 
 
+def exists(key: str) -> bool:
+    try:
+        client().head_object(Bucket=R2_BUCKET, Key=key)
+        return True
+    except Exception:
+        return False
+
+
 def get_bytes(key: str) -> bytes:
     obj = client().get_object(Bucket=R2_BUCKET, Key=key)
     return obj["Body"].read()

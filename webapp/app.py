@@ -239,6 +239,11 @@ def library_save():
     try:
         raw = base64.b64decode(data_b64)
         storage.upload_bytes(key, raw, ctype)
+        if mtype != "video" and _PIL_OK:
+            try:
+                storage.upload_bytes(_thumb_key(key), _make_thumb(raw), "image/jpeg")
+            except Exception as e:
+                print("THUMB GEN ERROR:", e, flush=True)
         seed = body.get("seed")
         seed = int(seed) if isinstance(seed, (int, str)) and str(seed).lstrip("-").isdigit() else None
         folder = (body.get("folder") or "Geral").strip() or "Geral"
@@ -410,6 +415,59 @@ def caption():
         return jsonify({"error": f"Falha ao chamar o DeepSeek: {e}"}), 502
 
 
+THUMB_W = 480  # largura das miniaturas
+
+
+def _thumb_key(r2_key: str) -> str:
+    return "thumbs/" + r2_key.rsplit("/", 1)[-1].rsplit(".", 1)[0] + ".jpg"
+
+
+def _make_thumb(raw: bytes) -> bytes:
+    img = Image.open(io.BytesIO(raw)).convert("RGB")
+    w, h = img.size
+    if w > THUMB_W:
+        img = img.resize((THUMB_W, int(h * THUMB_W / w)), Image.LANCZOS)
+    out = io.BytesIO()
+    img.save(out, format="JPEG", quality=78, optimize=True)
+    return out.getvalue()
+
+
+def _ensure_thumb(r2_key: str) -> bytes:
+    """Gera (se preciso) e cacheia a miniatura JPEG no R2; devolve os bytes."""
+    tkey = _thumb_key(r2_key)
+    try:
+        return storage.get_bytes(tkey)
+    except Exception:
+        pass
+    raw = storage.get_bytes(r2_key)
+    thumb = _make_thumb(raw)
+    try:
+        storage.upload_bytes(tkey, thumb, "image/jpeg")
+    except Exception as e:
+        print("THUMB UPLOAD ERROR:", e, flush=True)
+    return thumb
+
+
+@app.route("/api/thumb/<int:media_id>")
+@login_required
+def thumb_proxy(media_id):
+    """Miniatura JPEG leve para a grade (gerada e cacheada no R2)."""
+    row = db.get(media_id)
+    if not row:
+        return ("not found", 404)
+    if row["type"] == "video" or not _PIL_OK:
+        # vídeo ou sem PIL: cai pra mídia original
+        return redirect(url_for("media_proxy", media_id=media_id))
+    try:
+        data = _ensure_thumb(row["r2_key"])
+    except Exception as e:
+        print("THUMB PROXY ERROR:", e, flush=True)
+        return redirect(url_for("media_proxy", media_id=media_id))
+    resp = Response(data, mimetype="image/jpeg")
+    resp.headers["Cache-Control"] = "public, max-age=604800, immutable"
+    return resp
+
+
 @app.route("/api/media/<int:media_id>")
 @login_required
 def media_proxy(media_id):
@@ -480,6 +538,7 @@ def library_delete_many():
         for key in db.keys_for(ids):
             try:
                 storage.delete_key(key)
+                storage.delete_key(_thumb_key(key))
             except Exception as e:
                 print("DELETE R2 ERROR:", e, flush=True)
         db.delete_many(ids)
@@ -497,6 +556,7 @@ def library_delete(media_id):
         return jsonify({"ok": False}), 404
     try:
         storage.delete_key(row["r2_key"])
+        storage.delete_key(_thumb_key(row["r2_key"]))
     except Exception as e:
         print("LIBRARY DELETE R2 ERROR:", e, flush=True)
     db.delete(media_id)
