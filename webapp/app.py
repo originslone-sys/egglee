@@ -725,6 +725,16 @@ def library_delete(media_id):
 
 # ── Persona / Front público ─────────────────────────────────────────────────
 
+@app.route("/chat")
+def chat_page():
+    return render_template("chat.html")
+
+
+@app.route("/chat/galeria")
+def chat_gallery_page():
+    return render_template("gallery.html")
+
+
 @app.route("/api/chat/persona")
 def chat_persona():
     """Dados públicos da persona pra montar a página /chat (sem login)."""
