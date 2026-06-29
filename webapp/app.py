@@ -9,6 +9,7 @@ Variáveis de ambiente (Railway):
   DATABASE_URL                         — Postgres (Railway preenche sozinho)
 """
 import os
+import io
 import json
 import base64
 import uuid
@@ -37,6 +38,52 @@ try:
     db.init()
 except Exception as e:
     print("DB init falhou:", e, flush=True)
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    _PIL_OK = True
+except Exception:
+    _PIL_OK = False
+
+
+def _watermark_config():
+    try:
+        raw = db.get_setting("watermark")
+        return json.loads(raw) if raw else {}
+    except Exception:
+        return {}
+
+
+def apply_watermark(img_bytes: bytes, cfg: dict) -> bytes:
+    text = (cfg.get("text") or "").strip()
+    if not (_PIL_OK and text):
+        return img_bytes
+    try:
+        img = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
+        W, H = img.size
+        size = max(12, int(W * float(cfg.get("size", 4)) / 100))
+        try:
+            font = ImageFont.load_default(size=size)
+        except TypeError:
+            font = ImageFont.load_default()
+        overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        d = ImageDraw.Draw(overlay)
+        bb = d.textbbox((0, 0), text, font=font)
+        tw, th = bb[2] - bb[0], bb[3] - bb[1]
+        m = int(W * 0.025)
+        pos = cfg.get("position", "br")
+        x = m if "l" in pos else W - tw - m
+        y = m if "t" in pos else H - th - m
+        alpha = int(255 * float(cfg.get("opacity", 35)) / 100)
+        d.text((x + 1, y + 1), text, font=font, fill=(0, 0, 0, int(alpha * 0.6)))
+        d.text((x, y), text, font=font, fill=(255, 255, 255, alpha))
+        out = Image.alpha_composite(img, overlay).convert("RGB")
+        buf = io.BytesIO()
+        out.save(buf, format="PNG")
+        return buf.getvalue()
+    except Exception as e:
+        print("WATERMARK ERROR:", e, flush=True)
+        return img_bytes
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -375,8 +422,27 @@ def media_proxy(media_id):
     except Exception as e:
         print("MEDIA PROXY ERROR:", e, flush=True)
         return ("erro ao buscar mídia", 502)
+    if request.args.get("watermark") == "1" and row["type"] != "video":
+        data = apply_watermark(data, _watermark_config())
     ctype = "video/mp4" if row["type"] == "video" else "image/png"
     return Response(data, mimetype=ctype)
+
+
+@app.route("/api/settings/watermark", methods=["GET", "POST"])
+@login_required
+def settings_watermark():
+    if request.method == "POST":
+        if not db.enabled():
+            return jsonify({"ok": False, "reason": "banco não configurado"}), 500
+        cfg = request.get_json(force=True)
+        db.set_setting("watermark", json.dumps({
+            "text": (cfg.get("text") or "").strip(),
+            "position": cfg.get("position", "br"),
+            "opacity": cfg.get("opacity", 35),
+            "size": cfg.get("size", 4),
+        }))
+        return jsonify({"ok": True})
+    return jsonify(_watermark_config())
 
 
 @app.route("/api/library/favorite", methods=["POST"])
