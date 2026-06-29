@@ -134,7 +134,7 @@
     <label style="font-size:12px;color:var(--muted)">Fonte</label>
     <select id="vidSource" onchange="onVidSource()" style="width:100%;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px">
       <option value="api" selected>API (OpenRouter) — 10/15s, sem GPU sua</option>
-      <option value="wan">Self-host (Wan) — 5s, sua GPU</option>
+      <option value="wan">Self-host (Wan) — 5/10/15s, sua GPU</option>
     </select>
     <div id="vidModelWrap">
     <label style="font-size:12px;color:var(--muted)">Modelo</label>
@@ -608,9 +608,7 @@ $('vidModal').addEventListener('click', e => { if (e.target.id === 'vidModal') $
 function onVidSource() {
   const wan = $('vidSource').value === 'wan';
   $('vidModelWrap').style.display = wan ? 'none' : '';
-  // Self-host (passo A) só faz 5s; trava a duração.
-  $('vidDur').disabled = wan;
-  if (wan) $('vidDur').value = '5';
+  $('vidDur').disabled = false;   // self-host agora faz 5/10/15s (encadeado)
 }
 
 async function genVideoWan() {
@@ -625,7 +623,8 @@ async function genVideoWan() {
     out = await runGen({
       workflow_name: 'video_i2v', character: '', input_image_b64: b64,
       prompt: $('vidPrompt').value.trim(),
-      resolution: $('vidRes').value, aspect_ratio: $('vidAr').value, duration: 5,
+      resolution: $('vidRes').value, aspect_ratio: $('vidAr').value,
+      duration: parseInt($('vidDur').value) || 5,
     });
   } catch (e) {
     $('vidStatus').textContent = '❌ ' + e.message; $('vidGo').disabled = false; return;
