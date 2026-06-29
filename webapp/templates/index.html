@@ -416,6 +416,7 @@ function upscaleImage(b64) {
     seed: '-1',
     batch_size: 1,
     input_image_b64: b64,
+    no_grain: true,
   };
   if ($('useCharacter').checked) body.character = 'model';
   runJob(body, 'Gerando alta definição…');

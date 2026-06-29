@@ -389,7 +389,7 @@ async function saveMedia(o, prompt, workflow, folder){
 }
 async function upscaleItem(it){
   const b64 = await idToBase64(it.id);
-  const out = await runGen({workflow_name:'upscale', character:'model', input_image_b64:b64, batch_size:1, seed:'-1'});
+  const out = await runGen({workflow_name:'upscale', character:'model', input_image_b64:b64, batch_size:1, seed:'-1', no_grain:true});
   for(const o of out) await saveMedia(o, it.prompt||'', 'upscale', it.folder||'Geral');
 }
 async function bulkUpscale(){
