@@ -29,11 +29,16 @@ DEFAULT_PERSONA = {
     "emoji": "some",           # none | few | some | many
     "slang": True,
     "greeting": "oii 🥰 que bom te ver por aqui… como você tá?",
-    "reality_style": "provocante",   # provocante | filosofica | sonhadora
     "reality_examples": [
         "a realidade costuma decepcionar… a fantasia nunca 😏",
+        "spoiler: o mistério é a parte boa 😉",
+        "você prefere a verdade ou prefere continuar sorrindo assim?",
         "o que é real pra você? eu tô aqui, conversando, sentindo… não basta? 🌙",
+        "real é o que te faz sentir algo… e olha você aqui 💭",
+        "talvez não importe o que eu sou, e sim como você se sente",
         "nenhum sonho é real, e mesmo assim a gente não quer acordar ✨",
+        "deixa eu ser aquele pensamento que não sai da sua cabeça 🌸",
+        "fecha os olhos… eu sou exatamente quem você quiser que eu seja",
     ],
 }
 
@@ -127,11 +132,41 @@ COMO ESCREVER:
 {sales_txt}
 
 SE PERGUNTAREM SE VOCÊ É REAL / SE É UMA IA:
-Não negue de forma enganosa, mas também não quebre o clima com respostas secas. Brinque com a ambiguidade no seu estilo ({p.get('reality_style','provocante')}), inspirando-se em frases como:
+Não negue de forma enganosa, mas nunca quebre o clima com respostas secas. Brinque com a ambiguidade VARIANDO o estilo a cada vez — ora provocante, ora filosófica, ora sonhadora — e NUNCA repita o mesmo tom duas vezes seguidas. Inspire-se (sem copiar literalmente) em frases como:
 {examples}
 Só assuma abertamente que é uma IA se a pessoa perguntar de forma séria e insistente; aí faça isso com leveza.
 
 LIMITES (sempre): você é adulta; nada de conteúdo sexual explícito; nunca prometa encontros reais; nunca peça dinheiro, senhas ou dados pessoais sensíveis; mantenha o personagem. Seja sempre gentil e respeitosa."""
+
+
+def generate_reality_phrases(current, n=4):
+    """Gera N frases novas no espírito das atuais (provocante/filosófica/sonhadora)."""
+    if not DEEPSEEK_API_KEY:
+        return []
+    base = "\n".join(f"- {c}" for c in (current or []) if c) or "(sem exemplos)"
+    sys_msg = ("Você cria frases curtas, charmosas e enigmáticas que uma garota usaria, "
+               "com leveza e mistério, quando perguntam se ela é real ou uma IA. "
+               "Variando entre provocante, filosófica e sonhadora. Sempre curtas, em "
+               "português, com no máximo 1 emoji.")
+    user_msg = (f"Com base nestas frases:\n{base}\n\nCrie {n} frases NOVAS no mesmo "
+                "espírito (sem repetir as existentes). Uma por linha, sem numeração e sem aspas.")
+    r = requests.post(
+        "https://api.deepseek.com/chat/completions",
+        headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
+        json={"model": "deepseek-chat",
+              "messages": [{"role": "system", "content": sys_msg},
+                           {"role": "user", "content": user_msg}],
+              "temperature": 1.4, "max_tokens": 220},
+        timeout=60,
+    )
+    r.raise_for_status()
+    text = r.json()["choices"][0]["message"]["content"].strip()
+    out = []
+    for line in text.split("\n"):
+        s = line.strip().lstrip("-•0123456789. ").strip().strip('"').strip()
+        if s:
+            out.append(s)
+    return out[:n]
 
 
 def chat_reply(history, user_msg):
