@@ -14,6 +14,11 @@
   .sec-title { margin-top:0; }
   .hint { font-size:12px; color:var(--muted); margin:-2px 0 10px; }
   .rangeval { float:right; color:var(--accent); font-weight:700; }
+  .tones { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { display:flex; align-items:center; gap:7px; padding:8px 13px; border:1px solid var(--border);
+    border-radius:999px; cursor:pointer; font-size:13px; user-select:none; transition:.13s; }
+  .chip:has(input:checked) { border-color:var(--accent2); background:var(--grad-soft); color:var(--accent); }
+  .chip input { accent-color:var(--accent2); }
   .pickwrap { max-height:420px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px; }
   .pick { display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; }
   .pc { position:relative; border-radius:10px; overflow:hidden; cursor:pointer; border:2px solid transparent; }
@@ -69,11 +74,13 @@
       <div class="card pad">
         <div class="sec-title">🧠 Personalidade</div>
         <label>Quem ela é (descrição livre)</label>
-        <textarea id="personality" style="min-height:90px"></textarea>
-        <div class="row">
-          <div><label>Tom</label>
-            <select id="tone"><option value="meiga">Meiga</option><option value="flerte">Flerte</option><option value="brincalhona">Brincalhona</option><option value="ousada">Ousada-leve</option></select>
-          </div>
+        <textarea id="personality" style="min-height:140px"></textarea>
+        <label>Tom (marque vários — ela alterna entre eles)</label>
+        <div class="tones">
+          <label class="chip"><input type="checkbox" class="tone" value="meiga"> Meiga</label>
+          <label class="chip"><input type="checkbox" class="tone" value="flerte"> Flerte</label>
+          <label class="chip"><input type="checkbox" class="tone" value="brincalhona"> Brincalhona</label>
+          <label class="chip"><input type="checkbox" class="tone" value="ousada"> Ousada-leve</label>
         </div>
         <label>Nível de flerte <span class="rangeval" id="flirtv">60</span></label>
         <input type="range" id="flirt" min="0" max="100" oninput="flirtv.textContent=this.value">
@@ -157,7 +164,9 @@ function load(){
   fetch('/api/admin/persona').then(r=>r.json()).then(d=>{
     const p = d.persona||{}, pg = d.page||{};
     $('name').value=p.name||''; $('status').value=p.status||''; $('bio').value=p.bio||'';
-    $('personality').value=p.personality||''; $('tone').value=p.tone||'flerte';
+    $('personality').value=p.personality||'';
+    const tones = Array.isArray(p.tone) ? p.tone : (p.tone ? [p.tone] : ['meiga','flerte','brincalhona','ousada']);
+    document.querySelectorAll('.tone').forEach(c=>c.checked=tones.includes(c.value));
     $('flirt').value=p.flirt??60; flirtv.textContent=$('flirt').value;
     $('sales').value=p.sales??30; salesv.textContent=$('sales').value;
     $('language').value=p.language||'auto'; $('length').value=p.length||'short';
@@ -218,7 +227,8 @@ async function saveAll(){
   $('saveBtn').disabled=true; $('okMsg').textContent='Salvando…';
   const persona = {
     name:$('name').value.trim(), avatar_id:avatarId, status:$('status').value.trim(), bio:$('bio').value.trim(),
-    personality:$('personality').value.trim(), tone:$('tone').value,
+    personality:$('personality').value.trim(),
+    tone:[...document.querySelectorAll('.tone:checked')].map(c=>c.value),
     flirt:Number($('flirt').value), sales:Number($('sales').value),
     language:$('language').value, length:$('length').value, emoji:$('emoji').value, slang:$('slang').checked,
     greeting:$('greeting').value.trim(),
