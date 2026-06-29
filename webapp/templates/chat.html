@@ -26,8 +26,9 @@
   /* header */
   .head{ display:flex; align-items:center; gap:12px; padding:12px 16px;
     background:var(--grad); color:#fff; box-shadow:0 6px 22px rgba(176,108,255,.35); z-index:5; }
-  .head .av{ width:46px; height:46px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,.7);
+  .head .av{ width:46px; height:46px; border-radius:50%; overflow:hidden; border:2px solid rgba(255,255,255,.7);
     background:rgba(255,255,255,.25); display:grid; place-items:center; font-size:22px; font-weight:700; flex-shrink:0; }
+  .head .av img{ width:100%; height:100%; object-fit:cover; object-position:center 22%; display:block; }
   .head .nm{ font-weight:700; font-size:16px; line-height:1.1; }
   .head .st{ font-size:12px; opacity:.92; display:flex; align-items:center; gap:5px; }
   .head .st .live{ width:7px; height:7px; border-radius:50%; background:#7CFFB2; box-shadow:0 0 8px #7CFFB2; }
@@ -132,7 +133,7 @@ fetch('/api/chat/persona').then(r=>r.json()).then(async p=>{
   $('nm').textContent = p.name || 'Ela';
   $('st').textContent = p.status || 'online';
   document.title = (p.name||'Chat') + ' 💬';
-  if(p.avatar){ $('av').innerHTML = `<img src="${p.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`; }
+  if(p.avatar){ $('av').innerHTML = `<img src="${p.avatar}" alt="">`; }
   else { $('av').textContent = (p.name||'?').trim().charAt(0).toUpperCase(); }
   if(p.banner && p.banner.enabled && p.banner.title){
     const b=$('banner'); b.textContent=p.banner.title; b.href=p.banner.link||'#'; b.style.display='block';

@@ -30,8 +30,9 @@
   .savebar { position:sticky; bottom:0; background:rgba(10,11,16,.85); backdrop-filter:blur(10px);
     border-top:1px solid var(--border); padding:14px 22px; display:flex; align-items:center; gap:14px; z-index:20; margin-top:8px; }
   .ok { color:var(--ok); font-size:13px; font-weight:600; }
-  .av-preview { width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid var(--border-2);
+  .av-preview { width:64px; height:64px; border-radius:50%; overflow:hidden; border:2px solid var(--border-2);
     background:var(--grad-soft); display:grid; place-items:center; font-size:26px; }
+  .av-preview img { width:100%; height:100%; object-fit:cover; object-position:center 22%; display:block; }
 </style>
 </head>
 <body>
@@ -195,7 +196,7 @@ function loadPicker(){
 function refresh(pc,id){ pc.classList.toggle('gal', gallery.has(id)); pc.classList.toggle('av', avatarId===id); }
 function toggleGal(id,pc){ gallery.has(id)?gallery.delete(id):gallery.add(id); refresh(pc,id); updateInfo(); }
 function setAvatar(e,id){ e.stopPropagation(); avatarId=id; document.querySelectorAll('.pc').forEach(pc=>refresh(pc,Number(pc.dataset.id))); renderAvPrev(); updateInfo(); }
-function renderAvPrev(){ const el=$('avPrev'); if(avatarId){ el.innerHTML=`<img src="/api/thumb/${avatarId}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`; } else el.textContent='💕'; }
+function renderAvPrev(){ const el=$('avPrev'); if(avatarId){ el.innerHTML=`<img src="/api/thumb/${avatarId}" alt="">`; } else el.textContent='💕'; }
 function updateInfo(){ $('pickInfo').textContent = `${gallery.size} foto(s) na galeria · avatar: ${avatarId?'definido':'nenhum'}`; }
 
 async function saveAll(){
