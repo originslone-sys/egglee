@@ -394,21 +394,24 @@ async function idToBase64(id){
     r.readAsDataURL(blob);
   });
 }
-function pollJob(id){
+function pollJob(id, maxTries, intervalMs){
+  maxTries = maxTries || 300; intervalMs = intervalMs || 2000;
   return new Promise((resolve, reject) => {
     let n = 0, done = false;
     const finish = (fn, arg) => { if (done) return; done = true; fn(arg); };
     const tick = async () => {
       if (done) return;
       n++;
-      if (n > 300) { finish(reject, new Error('tempo esgotado')); return; }
+      if (n > maxTries) { finish(reject, new Error('tempo esgotado')); return; }
       try {
         const d = await (await fetch('/api/status/' + id)).json();
         if (done) return;
         if (d.status === 'COMPLETED') { finish(resolve, d); return; }
-        if (d.status === 'FAILED') { finish(reject, new Error('job falhou no RunPod')); return; }
+        if (d.status === 'FAILED') { finish(reject, new Error('job falhou no RunPod: ' + JSON.stringify(d.output || d.error || ''))); return; }
+        if ($('vidStatus') && $('vidModal').classList.contains('show'))
+          $('vidStatus').textContent = 'Gerando na sua GPU… (' + Math.round(n*intervalMs/1000) + 's, status: ' + (d.status || '...') + ')';
       } catch (e) {}
-      if (!done) setTimeout(tick, 2000);
+      if (!done) setTimeout(tick, intervalMs);
     };
     tick();
   });
@@ -417,7 +420,10 @@ async function runGen(body){
   const r = await fetch('/api/generate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   const data = await r.json();
   if(!r.ok || data.error) throw new Error(data.error || ('HTTP ' + r.status));
-  const result = data.status === 'COMPLETED' ? data : await pollJob(data.id);
+  // Vídeo (Wan) pode levar bem mais: cold start (carrega 30GB) + render. ~35 min.
+  const isVid = (body.workflow_name || '').includes('video');
+  const result = data.status === 'COMPLETED' ? data
+                 : await pollJob(data.id, isVid ? 700 : 300, isVid ? 3000 : 2000);
   if(result.output && result.output.error) throw new Error(result.output.error);
   const out = (result.output && result.output.outputs) || [];
   if(!out.length) throw new Error('sem saída do worker');
