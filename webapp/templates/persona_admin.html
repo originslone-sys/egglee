@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egglee · Persona</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+  @media (max-width:900px){ .grid2 { grid-template-columns:1fr; } }
+  .card.pad { margin-bottom:18px; }
+  .sec-title { margin-top:0; }
+  .hint { font-size:12px; color:var(--muted); margin:-2px 0 10px; }
+  .rangeval { float:right; color:var(--accent); font-weight:700; }
+  .pickwrap { max-height:420px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px; }
+  .pick { display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; }
+  .pc { position:relative; border-radius:10px; overflow:hidden; cursor:pointer; border:2px solid transparent; }
+  .pc img { width:100%; aspect-ratio:3/4; object-fit:cover; display:block; }
+  .pc.gal { border-color:var(--accent2); }
+  .pc.av { border-color:#ffd24a; }
+  .pc .tag { position:absolute; bottom:0; left:0; right:0; font-size:10px; text-align:center; padding:2px;
+    background:rgba(0,0,0,.6); display:none; }
+  .pc.gal .tag.g, .pc.av .tag.a { display:block; }
+  .pc .avbtn { position:absolute; top:4px; right:4px; background:rgba(0,0,0,.6); border:none; color:#fff;
+    border-radius:6px; font-size:11px; padding:2px 6px; cursor:pointer; }
+  .colorrow { display:flex; gap:10px; align-items:center; }
+  .colorrow input[type=color]{ width:46px; height:38px; padding:2px; border-radius:8px; border:1px solid var(--border); background:var(--bg-soft); }
+  .savebar { position:sticky; bottom:0; background:rgba(10,11,16,.85); backdrop-filter:blur(10px);
+    border-top:1px solid var(--border); padding:14px 22px; display:flex; align-items:center; gap:14px; z-index:20; margin-top:8px; }
+  .ok { color:var(--ok); font-size:13px; font-weight:600; }
+  .av-preview { width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid var(--border-2);
+    background:var(--grad-soft); display:grid; place-items:center; font-size:26px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
+  <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+  <nav class="nav" id="nav">
+    <a href="/">📊 Dashboard</a>
+    <a href="/generate">✨ Gerar</a>
+    <a href="/library">🖼️ Biblioteca</a>
+    <a href="/persona" class="active">💬 Persona</a>
+  </nav>
+  <div class="sp"></div>
+  <div class="right">
+    <a href="/chat" target="_blank" class="ghost">↗ Ver página</a>
+    <a href="/logout" class="ghost">Sair</a>
+  </div>
+</div>
+
+<div class="page">
+  <h1 class="h-title">💬 Persona & Página</h1>
+  <p class="h-sub">Personalidade da IA, fotos do perfil e a página pública do chat.</p>
+
+  <div class="grid2">
+    <!-- ESQUERDA: Persona -->
+    <div>
+      <div class="card pad">
+        <div class="sec-title">🪪 Identidade</div>
+        <label>Nome</label><input type="text" id="name">
+        <label>Status (aparece no topo)</label><input type="text" id="status" placeholder="online agora 💕">
+        <label>Bio curta (opcional)</label><input type="text" id="bio">
+      </div>
+
+      <div class="card pad">
+        <div class="sec-title">🧠 Personalidade</div>
+        <label>Quem ela é (descrição livre)</label>
+        <textarea id="personality" style="min-height:90px"></textarea>
+        <div class="row">
+          <div><label>Tom</label>
+            <select id="tone"><option value="meiga">Meiga</option><option value="flerte">Flerte</option><option value="brincalhona">Brincalhona</option><option value="ousada">Ousada-leve</option></select>
+          </div>
+        </div>
+        <label>Nível de flerte <span class="rangeval" id="flirtv">60</span></label>
+        <input type="range" id="flirt" min="0" max="100" oninput="flirtv.textContent=this.value">
+        <label>Quão "vendedora" (puxa pra galeria/assinar) <span class="rangeval" id="salesv">30</span></label>
+        <input type="range" id="sales" min="0" max="100" oninput="salesv.textContent=this.value">
+        <div class="hint">0 = só conversa · 100 = convida com frequência (sempre de forma natural)</div>
+      </div>
+
+      <div class="card pad">
+        <div class="sec-title">💬 Estilo das mensagens</div>
+        <div class="row">
+          <div><label>Idioma</label><select id="language"><option value="auto">Auto (espelha o visitante)</option><option value="pt">Português</option><option value="en">Inglês</option></select></div>
+          <div><label>Tamanho</label><select id="length"><option value="short">Curtas</option><option value="medium">Médias</option></select></div>
+        </div>
+        <div class="row">
+          <div><label>Emoji</label><select id="emoji"><option value="none">Nenhum</option><option value="few">Pouco</option><option value="some">Médio</option><option value="many">Muito</option></select></div>
+          <div><label>&nbsp;</label><div class="check" style="margin-top:8px"><input type="checkbox" id="slang"><label for="slang">Usar gírias (Gen Z)</label></div></div>
+        </div>
+        <label>Mensagem de saudação (1ª que aparece)</label>
+        <textarea id="greeting"></textarea>
+      </div>
+
+      <div class="card pad">
+        <div class="sec-title">🌙 Quando perguntarem "você é real?"</div>
+        <div class="hint">Ela brinca com a ambiguidade nesse estilo, usando as frases como inspiração (não copia sempre).</div>
+        <label>Estilo</label>
+        <select id="reality_style"><option value="provocante">Provocante</option><option value="filosofica">Filosófica</option><option value="sonhadora">Sonhadora</option></select>
+        <label>Frases de exemplo (uma por linha)</label>
+        <textarea id="reality_examples" style="min-height:90px"></textarea>
+      </div>
+    </div>
+
+    <!-- DIREITA: Galeria + Página -->
+    <div>
+      <div class="card pad">
+        <div class="sec-title">📸 Avatar & Galeria</div>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+          <div class="av-preview" id="avPrev">💕</div>
+          <div class="hint" style="margin:0">Clique numa foto pra adicionar/tirar da <b style="color:var(--accent)">galeria</b>.<br>Use <b style="color:#ffd24a">★ avatar</b> pra definir a foto de perfil.</div>
+        </div>
+        <div class="pickwrap"><div class="pick" id="pick"></div></div>
+        <div class="hint" id="pickInfo" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card pad">
+        <div class="sec-title">💌 Banner (CTA)</div>
+        <div class="check"><input type="checkbox" id="b_enabled"><label for="b_enabled">Mostrar banner</label></div>
+        <label>Título</label><input type="text" id="b_title" placeholder="Quer mais de mim? 💌">
+        <label>Link</label><input type="text" id="b_link" placeholder="https://...">
+        <label>Cores</label>
+        <div class="colorrow"><input type="color" id="b_color1"><input type="color" id="b_color2"><span class="hint" style="margin:0">degradê do banner</span></div>
+      </div>
+
+      <div class="card pad">
+        <div class="sec-title">📢 Anúncios</div>
+        <div class="check"><input type="checkbox" id="a_enabled"><label for="a_enabled">Mostrar slot de ads</label></div>
+        <label>Código (HTML/JS do anúncio)</label>
+        <textarea id="a_code" style="min-height:90px;font-family:monospace;font-size:12px"></textarea>
+        <div class="hint">⚠️ Cole só código de fontes confiáveis — ele roda na página pública.</div>
+      </div>
+
+      <div class="card pad">
+        <div class="sec-title">⚖️ Disclaimer</div>
+        <label>Aviso de IA (rodapé do chat)</label>
+        <input type="text" id="disclaimer">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="savebar">
+  <button class="btn" onclick="saveAll()" id="saveBtn">💾 Salvar tudo</button>
+  <span class="ok" id="okMsg"></span>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let gallery = new Set(), avatarId = null;
+
+function load(){
+  fetch('/api/admin/persona').then(r=>r.json()).then(d=>{
+    const p = d.persona||{}, pg = d.page||{};
+    $('name').value=p.name||''; $('status').value=p.status||''; $('bio').value=p.bio||'';
+    $('personality').value=p.personality||''; $('tone').value=p.tone||'flerte';
+    $('flirt').value=p.flirt??60; flirtv.textContent=$('flirt').value;
+    $('sales').value=p.sales??30; salesv.textContent=$('sales').value;
+    $('language').value=p.language||'auto'; $('length').value=p.length||'short';
+    $('emoji').value=p.emoji||'some'; $('slang').checked=!!p.slang;
+    $('greeting').value=p.greeting||''; $('reality_style').value=p.reality_style||'provocante';
+    $('reality_examples').value=(p.reality_examples||[]).join('\n');
+    avatarId = p.avatar_id||null;
+    const b=pg.banner||{}, a=pg.ads||{};
+    $('b_enabled').checked=!!b.enabled; $('b_title').value=b.title||''; $('b_link').value=b.link||'';
+    $('b_color1').value=b.color1||'#ff9ec7'; $('b_color2').value=b.color2||'#b06cff';
+    $('a_enabled').checked=!!a.enabled; $('a_code').value=a.code||'';
+    $('disclaimer').value=pg.disclaimer||'';
+    gallery = new Set((d.gallery||[]).map(Number));
+    loadPicker();
+  });
+}
+
+function loadPicker(){
+  fetch('/api/library?type=image&limit=300').then(r=>r.json()).then(d=>{
+    const items=d.items||[];
+    $('pick').innerHTML = items.map(it=>`
+      <div class="pc" data-id="${it.id}">
+        <img src="/api/thumb/${it.id}" loading="lazy">
+        <button class="avbtn" onclick="setAvatar(event,${it.id})">★</button>
+        <span class="tag g">galeria</span><span class="tag a">avatar</span>
+      </div>`).join('');
+    document.querySelectorAll('.pc').forEach(pc=>{
+      const id=Number(pc.dataset.id);
+      pc.querySelector('img').onclick=()=>toggleGal(id,pc);
+      refresh(pc,id);
+    });
+    renderAvPrev(items);
+    updateInfo();
+  });
+}
+function refresh(pc,id){ pc.classList.toggle('gal', gallery.has(id)); pc.classList.toggle('av', avatarId===id); }
+function toggleGal(id,pc){ gallery.has(id)?gallery.delete(id):gallery.add(id); refresh(pc,id); updateInfo(); }
+function setAvatar(e,id){ e.stopPropagation(); avatarId=id; document.querySelectorAll('.pc').forEach(pc=>refresh(pc,Number(pc.dataset.id))); renderAvPrev(); updateInfo(); }
+function renderAvPrev(){ const el=$('avPrev'); if(avatarId){ el.innerHTML=`<img src="/api/thumb/${avatarId}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`; } else el.textContent='💕'; }
+function updateInfo(){ $('pickInfo').textContent = `${gallery.size} foto(s) na galeria · avatar: ${avatarId?'definido':'nenhum'}`; }
+
+async function saveAll(){
+  $('saveBtn').disabled=true; $('okMsg').textContent='Salvando…';
+  const persona = {
+    name:$('name').value.trim(), avatar_id:avatarId, status:$('status').value.trim(), bio:$('bio').value.trim(),
+    personality:$('personality').value.trim(), tone:$('tone').value,
+    flirt:Number($('flirt').value), sales:Number($('sales').value),
+    language:$('language').value, length:$('length').value, emoji:$('emoji').value, slang:$('slang').checked,
+    greeting:$('greeting').value.trim(), reality_style:$('reality_style').value,
+    reality_examples:$('reality_examples').value.split('\n').map(s=>s.trim()).filter(Boolean),
+  };
+  const page = {
+    banner:{enabled:$('b_enabled').checked, title:$('b_title').value.trim(), link:$('b_link').value.trim(), color1:$('b_color1').value, color2:$('b_color2').value},
+    ads:{enabled:$('a_enabled').checked, code:$('a_code').value},
+    disclaimer:$('disclaimer').value.trim(),
+  };
+  try{
+    await fetch('/api/admin/persona',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(persona)});
+    await fetch('/api/admin/page',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(page)});
+    await fetch('/api/admin/gallery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:[...gallery]})});
+    $('okMsg').textContent='✓ Salvo!';
+  }catch(e){ $('okMsg').textContent='Erro ao salvar'; }
+  $('saveBtn').disabled=false;
+  setTimeout(()=>$('okMsg').textContent='',2500);
+}
+load();
+</script>
+</body>
+</html>
