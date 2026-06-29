@@ -16,7 +16,7 @@ from functools import wraps
 
 import requests
 from flask import (Flask, request, jsonify, render_template,
-                   session, redirect, url_for)
+                   session, redirect, url_for, Response)
 
 import storage
 import db
@@ -296,6 +296,22 @@ def folder_delete():
         return jsonify({"ok": False, "reason": "inválido"}), 400
     db.delete_folder(name)
     return jsonify({"ok": True})
+
+
+@app.route("/api/media/<int:media_id>")
+@login_required
+def media_proxy(media_id):
+    """Serve a mídia via backend (evita CORS no fetch direto ao R2)."""
+    row = db.get(media_id)
+    if not row:
+        return ("not found", 404)
+    try:
+        data = storage.get_bytes(row["r2_key"])
+    except Exception as e:
+        print("MEDIA PROXY ERROR:", e, flush=True)
+        return ("erro ao buscar mídia", 502)
+    ctype = "video/mp4" if row["type"] == "video" else "image/png"
+    return Response(data, mimetype=ctype)
 
 
 @app.route("/api/library/favorite", methods=["POST"])

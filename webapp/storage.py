@@ -37,6 +37,11 @@ def delete_key(key: str):
     client().delete_object(Bucket=R2_BUCKET, Key=key)
 
 
+def get_bytes(key: str) -> bytes:
+    obj = client().get_object(Bucket=R2_BUCKET, Key=key)
+    return obj["Body"].read()
+
+
 def presigned_url(key: str, expires: int = 3600) -> str:
     return client().generate_presigned_url(
         "get_object", Params={"Bucket": R2_BUCKET, "Key": key}, ExpiresIn=expires

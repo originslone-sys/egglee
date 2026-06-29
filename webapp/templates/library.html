@@ -277,7 +277,7 @@ async function bulkZip() {
   const zip = new JSZip(); let i = 0;
   for (const it of items.filter(x => selected.has(x.id))) {
     try {
-      const blob = await (await fetch(it.url)).blob();
+      const blob = await (await fetch('/api/media/' + it.id)).blob();
       const ext = it.type === 'video' ? 'mp4' : 'png';
       zip.file('egglee_' + String(++i).padStart(3,'0') + '.' + ext, blob);
     } catch (e) {}
@@ -288,35 +288,52 @@ async function bulkZip() {
 }
 
 // ── Geração a partir da biblioteca (upscale / variações) ──
-function setLibStatus(m){ $('libStatus').textContent = m || ''; }
-async function urlToBase64(url){
-  const blob = await (await fetch(url)).blob();
-  return new Promise(res => { const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.readAsDataURL(blob); });
+function setLibStatus(m, err){
+  const el = $('libStatus'); el.textContent = m || '';
+  el.style.color = err ? 'var(--danger)' : 'var(--accent)';
+}
+// Busca a imagem via backend (proxy) → base64. Evita CORS do R2.
+async function idToBase64(id){
+  const resp = await fetch('/api/media/' + id);
+  if(!resp.ok) throw new Error('não foi possível ler a imagem (HTTP ' + resp.status + ')');
+  const blob = await resp.blob();
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('falha ao ler a imagem'));
+    r.readAsDataURL(blob);
+  });
 }
 function pollJob(id){
-  return new Promise((resolve,reject)=>{
-    const t=setInterval(async()=>{
-      try { const d=await (await fetch('/api/status/'+id)).json();
-        if(d.status==='COMPLETED'){clearInterval(t);resolve(d);}
-        else if(d.status==='FAILED'){clearInterval(t);reject(new Error('job falhou'));}
-      } catch(e){}
-    },2000);
+  return new Promise((resolve, reject) => {
+    let n = 0;
+    const t = setInterval(async () => {
+      n++;
+      if (n > 300) { clearInterval(t); reject(new Error('tempo esgotado')); return; }
+      try {
+        const d = await (await fetch('/api/status/' + id)).json();
+        if (d.status === 'COMPLETED') { clearInterval(t); resolve(d); }
+        else if (d.status === 'FAILED') { clearInterval(t); reject(new Error('job falhou no RunPod')); }
+      } catch (e) {}
+    }, 2000);
   });
 }
 async function runGen(body){
-  const r = await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const r = await fetch('/api/generate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   const data = await r.json();
-  if(!r.ok || data.error) throw new Error(data.error || ('HTTP '+r.status));
-  const result = data.status==='COMPLETED' ? data : await pollJob(data.id);
+  if(!r.ok || data.error) throw new Error(data.error || ('HTTP ' + r.status));
+  const result = data.status === 'COMPLETED' ? data : await pollJob(data.id);
   if(result.output && result.output.error) throw new Error(result.output.error);
-  return (result.output && result.output.outputs) || [];
+  const out = (result.output && result.output.outputs) || [];
+  if(!out.length) throw new Error('sem saída do worker');
+  return out;
 }
 async function saveMedia(o, prompt, workflow, folder){
-  await fetch('/api/library/save',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({data:o.data,type:o.type,prompt,workflow,folder})});
+  await fetch('/api/library/save', {method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({data:o.data, type:o.type, prompt, workflow, folder})});
 }
 async function upscaleItem(it){
-  const b64 = await urlToBase64(it.url);
+  const b64 = await idToBase64(it.id);
   const out = await runGen({workflow_name:'upscale', character:'model', input_image_b64:b64, batch_size:1, seed:'-1'});
   for(const o of out) await saveMedia(o, it.prompt||'', 'upscale', it.folder||'Geral');
 }
@@ -324,29 +341,42 @@ async function bulkUpscale(){
   if(working) return;
   const sel = items.filter(x => selected.has(x.id) && x.type!=='video');
   if(!sel.length) return;
-  working=true; let i=0;
-  for(const it of sel){ setLibStatus('Upscalando '+(++i)+'/'+sel.length+'…'); try{ await upscaleItem(it); }catch(e){} }
-  working=false; setLibStatus(''); selected.clear(); load();
+  working=true; let ok=0, fail=0;
+  for(let i=0;i<sel.length;i++){
+    setLibStatus('Upscalando ' + (i+1) + '/' + sel.length + '… (✓' + ok + (fail?' ✗'+fail:'') + ')');
+    try{ await upscaleItem(sel[i]); ok++; }
+    catch(e){ fail++; setLibStatus('Erro: ' + e.message, true); await sleep(2500); }
+  }
+  working=false; selected.clear();
+  setLibStatus(fail ? ('Concluído com ' + fail + ' falha(s)') : ('✓ ' + ok + ' upscaladas'), fail>0);
+  load();
 }
 async function upscaleOne(){
   if(!lbItem || working) return;
   working=true; const it=lbItem; closeLb(); setLibStatus('Upscalando…');
-  try{ await upscaleItem(it); }catch(e){}
-  working=false; setLibStatus(''); load();
+  try{ await upscaleItem(it); setLibStatus('✓ alta definição criada'); }
+  catch(e){ setLibStatus('Erro no upscale: ' + e.message, true); }
+  working=false; load();
 }
 async function makeVariations(n){
   if(!lbItem || working) return;
   working=true; const it=lbItem; closeLb();
-  const b64 = await urlToBase64(it.url);
+  let b64, ok=0, fail=0;
+  try { setLibStatus('Lendo imagem…'); b64 = await idToBase64(it.id); }
+  catch(e){ setLibStatus('Erro: ' + e.message, true); working=false; return; }
   for(let k=0;k<n;k++){
-    setLibStatus('Gerando variação '+(k+1)+'/'+n+'…');
+    setLibStatus('Gerando variação ' + (k+1) + '/' + n + '… (✓' + ok + (fail?' ✗'+fail:'') + ')');
     try{
       const out = await runGen({workflow_name:'img2img', character:'model', prompt:it.prompt||'', input_image_b64:b64, batch_size:1, seed:'-1'});
       for(const o of out) await saveMedia(o, it.prompt||'', 'img2img', it.folder||'Geral');
-    }catch(e){}
+      ok++;
+    }catch(e){ fail++; setLibStatus('Erro: ' + e.message, true); await sleep(2500); }
   }
-  working=false; setLibStatus(''); load();
+  working=false;
+  setLibStatus(fail ? (ok + ' criadas, ' + fail + ' falha(s)') : ('✓ ' + ok + ' variações criadas'), fail>0);
+  load();
 }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 // ── Busca ─────────────────────────────────────────────────
 let searchTimer;
