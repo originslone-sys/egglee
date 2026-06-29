@@ -13,6 +13,7 @@ Variáveis de ambiente (Railway):
 import os
 import io
 import json
+import time
 import base64
 import uuid
 import random
@@ -25,6 +26,7 @@ from flask import (Flask, request, jsonify, render_template,
 import storage
 import db
 import video
+import persona
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "egglee-dev-secret-change-me")
@@ -718,6 +720,116 @@ def library_delete(media_id):
     except Exception as e:
         print("LIBRARY DELETE R2 ERROR:", e, flush=True)
     db.delete(media_id)
+    return jsonify({"ok": True})
+
+
+# ── Persona / Front público ─────────────────────────────────────────────────
+
+@app.route("/api/chat/persona")
+def chat_persona():
+    """Dados públicos da persona pra montar a página /chat (sem login)."""
+    p = persona.get_persona()
+    pg = persona.get_page()
+    gal = persona.get_gallery()
+    avatar = f"/api/pub/media/{p['avatar_id']}?t=1" if p.get("avatar_id") else None
+    gallery = [{"id": i, "thumb": f"/api/pub/media/{i}?t=1", "full": f"/api/pub/media/{i}"} for i in gal]
+    return jsonify({
+        "name": p.get("name"), "status": p.get("status"), "bio": p.get("bio"),
+        "greeting": p.get("greeting"), "avatar": avatar,
+        "banner": pg.get("banner"), "ads": pg.get("ads"), "disclaimer": pg.get("disclaimer"),
+        "gallery": gallery,
+    })
+
+
+@app.route("/api/chat", methods=["POST"])
+def public_chat():
+    """Chat público com a persona (efêmero; limite + cooldown por sessão)."""
+    now = time.time()
+    rl = session.get("rl") or {"n": 0, "win": now, "last": 0}
+    if now - rl.get("win", now) > 3600:
+        rl = {"n": 0, "win": now, "last": 0}
+    if now - rl.get("last", 0) < 1.0:
+        return jsonify({"bubbles": ["calma 😅 deixa eu respirar"], "throttled": True})
+    if rl.get("n", 0) >= 60:
+        return jsonify({"bubbles": ["acho melhor a gente continuar isso mais tarde 💕"], "limited": True})
+
+    b = request.get_json(force=True)
+    msg = (b.get("message") or "").strip()
+    if not msg:
+        return jsonify({"bubbles": []})
+    rl["n"] = rl.get("n", 0) + 1
+    rl["last"] = now
+    session["rl"] = rl
+    try:
+        bubbles = persona.chat_reply(b.get("history") or [], msg)
+    except Exception as e:
+        print("CHAT ERROR:", e, flush=True)
+        bubbles = ["opa, me perdi aqui 🙈 tenta de novo?"]
+    return jsonify({"bubbles": bubbles})
+
+
+@app.route("/api/pub/media/<int:media_id>")
+def pub_media(media_id):
+    """Serve só as imagens liberadas (avatar + galeria da persona) — sem login."""
+    allowed = set(persona.get_gallery())
+    av = persona.get_persona().get("avatar_id")
+    if av:
+        allowed.add(av)
+    if media_id not in allowed:
+        return ("forbidden", 403)
+    row = db.get(media_id)
+    if not row:
+        return ("not found", 404)
+    try:
+        if request.args.get("t") == "1" and _PIL_OK:
+            data = _ensure_thumb(row["r2_key"], is_video=(row["type"] == "video"))
+            ctype = "image/jpeg"
+        else:
+            data = storage.get_bytes(row["r2_key"])
+            ctype = "video/mp4" if row["type"] == "video" else "image/png"
+    except Exception as e:
+        print("PUB MEDIA ERROR:", e, flush=True)
+        return ("erro", 502)
+    resp = Response(data, mimetype=ctype)
+    resp.headers["Cache-Control"] = "public, max-age=3600"
+    return resp
+
+
+# ── Admin: configuração da persona / página ─────────────────────────────────
+
+@app.route("/api/admin/persona", methods=["GET"])
+@login_required
+def admin_persona_get():
+    return jsonify({"persona": persona.get_persona(),
+                    "page": persona.get_page(),
+                    "gallery": persona.get_gallery()})
+
+
+@app.route("/api/admin/persona", methods=["POST"])
+@login_required
+def admin_persona_save():
+    if not db.enabled():
+        return jsonify({"ok": False, "reason": "banco não configurado"}), 500
+    persona.save_persona(request.get_json(force=True))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/page", methods=["POST"])
+@login_required
+def admin_page_save():
+    if not db.enabled():
+        return jsonify({"ok": False, "reason": "banco não configurado"}), 500
+    persona.save_page(request.get_json(force=True))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/gallery", methods=["POST"])
+@login_required
+def admin_gallery_save():
+    if not db.enabled():
+        return jsonify({"ok": False, "reason": "banco não configurado"}), 500
+    ids = request.get_json(force=True).get("ids", [])
+    persona.save_gallery([int(i) for i in ids])
     return jsonify({"ok": True})
 
 
