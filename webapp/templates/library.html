@@ -78,9 +78,11 @@
       <div class="spacer"></div>
       <button class="tb" id="selBtn" onclick="toggleSelectMode()">Selecionar</button>
       <button class="tb" id="allBtn" onclick="selectAll()" style="display:none">Selecionar todos</button>
+      <button class="tb" id="upBtn" onclick="bulkUpscale()" style="display:none" disabled>✨ Upscalar</button>
       <button class="tb" id="zipBtn" onclick="bulkZip()" style="display:none" disabled>⬇ Baixar zip</button>
       <button class="tb" id="moveBtn" onclick="bulkMove()" style="display:none" disabled>📁 Mover</button>
       <button class="tb danger" id="delBtn" onclick="bulkDelete()" style="display:none" disabled>🗑 Deletar</button>
+      <span id="libStatus" style="color:var(--accent);font-size:13px"></span>
     </div>
     <div class="grid" id="grid"></div>
     <div class="empty" id="empty" style="display:none"></div>
@@ -101,13 +103,15 @@
   <div class="tags">
     <input id="lbTags" placeholder="tags separadas por vírgula">
     <button onclick="saveTags()">Salvar tags</button>
+    <button onclick="makeVariations(4)">🔁 4 variações</button>
+    <button onclick="upscaleOne()">✨ Alta definição</button>
   </div>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
 let items = [], selectMode = false, selected = new Set();
-let curFolder = '', curFav = false, curQ = '', lbId = null;
+let curFolder = '', curFav = false, curQ = '', lbId = null, lbItem = null, working = false;
 
 async function load() {
   const p = new URLSearchParams();
@@ -209,7 +213,7 @@ function toggleSelectMode() {
   selectMode = !selectMode; selected.clear();
   $('selBtn').classList.toggle('on', selectMode);
   $('selBtn').textContent = selectMode ? 'Cancelar' : 'Selecionar';
-  ['allBtn','zipBtn','moveBtn','delBtn'].forEach(id => $(id).style.display = selectMode ? '' : 'none');
+  ['allBtn','upBtn','zipBtn','moveBtn','delBtn'].forEach(id => $(id).style.display = selectMode ? '' : 'none');
   renderGrid();
 }
 function toggleSel(id, cell) {
@@ -225,7 +229,7 @@ function selectAll() {
 }
 function updateBulkButtons() {
   const has = selected.size > 0;
-  ['zipBtn','moveBtn','delBtn'].forEach(id => { const b=$(id); if(b) b.disabled = !has; });
+  ['upBtn','zipBtn','moveBtn','delBtn'].forEach(id => { const b=$(id); if(b) b.disabled = !has; });
   if (selectMode) $('count').textContent = selected.size + ' selecionados / ' + items.length;
 }
 
@@ -283,6 +287,67 @@ async function bulkZip() {
   $('zipBtn').disabled = false; $('zipBtn').textContent = '⬇ Baixar zip';
 }
 
+// ── Geração a partir da biblioteca (upscale / variações) ──
+function setLibStatus(m){ $('libStatus').textContent = m || ''; }
+async function urlToBase64(url){
+  const blob = await (await fetch(url)).blob();
+  return new Promise(res => { const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.readAsDataURL(blob); });
+}
+function pollJob(id){
+  return new Promise((resolve,reject)=>{
+    const t=setInterval(async()=>{
+      try { const d=await (await fetch('/api/status/'+id)).json();
+        if(d.status==='COMPLETED'){clearInterval(t);resolve(d);}
+        else if(d.status==='FAILED'){clearInterval(t);reject(new Error('job falhou'));}
+      } catch(e){}
+    },2000);
+  });
+}
+async function runGen(body){
+  const r = await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data = await r.json();
+  if(!r.ok || data.error) throw new Error(data.error || ('HTTP '+r.status));
+  const result = data.status==='COMPLETED' ? data : await pollJob(data.id);
+  if(result.output && result.output.error) throw new Error(result.output.error);
+  return (result.output && result.output.outputs) || [];
+}
+async function saveMedia(o, prompt, workflow, folder){
+  await fetch('/api/library/save',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({data:o.data,type:o.type,prompt,workflow,folder})});
+}
+async function upscaleItem(it){
+  const b64 = await urlToBase64(it.url);
+  const out = await runGen({workflow_name:'upscale', character:'model', input_image_b64:b64, batch_size:1, seed:'-1'});
+  for(const o of out) await saveMedia(o, it.prompt||'', 'upscale', it.folder||'Geral');
+}
+async function bulkUpscale(){
+  if(working) return;
+  const sel = items.filter(x => selected.has(x.id) && x.type!=='video');
+  if(!sel.length) return;
+  working=true; let i=0;
+  for(const it of sel){ setLibStatus('Upscalando '+(++i)+'/'+sel.length+'…'); try{ await upscaleItem(it); }catch(e){} }
+  working=false; setLibStatus(''); selected.clear(); load();
+}
+async function upscaleOne(){
+  if(!lbItem || working) return;
+  working=true; const it=lbItem; closeLb(); setLibStatus('Upscalando…');
+  try{ await upscaleItem(it); }catch(e){}
+  working=false; setLibStatus(''); load();
+}
+async function makeVariations(n){
+  if(!lbItem || working) return;
+  working=true; const it=lbItem; closeLb();
+  const b64 = await urlToBase64(it.url);
+  for(let k=0;k<n;k++){
+    setLibStatus('Gerando variação '+(k+1)+'/'+n+'…');
+    try{
+      const out = await runGen({workflow_name:'img2img', character:'model', prompt:it.prompt||'', input_image_b64:b64, batch_size:1, seed:'-1'});
+      for(const o of out) await saveMedia(o, it.prompt||'', 'img2img', it.folder||'Geral');
+    }catch(e){}
+  }
+  working=false; setLibStatus(''); load();
+}
+
 // ── Busca ─────────────────────────────────────────────────
 let searchTimer;
 $('search').addEventListener('input', e => {
@@ -292,7 +357,7 @@ $('search').addEventListener('input', e => {
 
 // ── Lightbox / tags ───────────────────────────────────────
 function openLb(it) {
-  lbId = it.id;
+  lbId = it.id; lbItem = it;
   $('lbContent').innerHTML = it.type === 'video'
     ? `<video src="${it.url}" controls autoplay loop></video>`
     : `<img src="${it.url}">`;
