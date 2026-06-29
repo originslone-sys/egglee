@@ -191,8 +191,9 @@ def library_save():
         storage.upload_bytes(key, base64.b64decode(data_b64), ctype)
         seed = body.get("seed")
         seed = int(seed) if isinstance(seed, (int, str)) and str(seed).lstrip("-").isdigit() else None
+        folder = (body.get("folder") or "Geral").strip() or "Geral"
         row = db.insert(key, type=mtype, prompt=body.get("prompt", ""),
-                        seed=seed, workflow=body.get("workflow", ""))
+                        seed=seed, workflow=body.get("workflow", ""), folder=folder)
         return jsonify({"ok": True, "id": row["id"]})
     except Exception as e:
         print("LIBRARY SAVE ERROR:", e, flush=True)
