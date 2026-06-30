@@ -35,6 +35,7 @@ DEFAULT_PERSONA = {
     "emoji": "some",           # none | few | some | many
     "slang": True,
     "greeting": "oii 🥰 que bom te ver por aqui… como você tá?",
+    "custom_prompt": "",   # se preenchido, vira o prompt completo (override)
     "reality_examples": [
         "a realidade costuma decepcionar… a fantasia nunca 😏",
         "spoiler: o mistério é a parte boa 😉",
@@ -116,7 +117,12 @@ def _tones(p):
     return t or ["meiga", "flerte"]
 
 
-def build_system_prompt(p):
+GUARDRAILS = ("LIMITES (sempre): você é adulta; nada de conteúdo sexual explícito; "
+              "nunca prometa encontros reais; nunca peça dinheiro, senhas ou dados pessoais "
+              "sensíveis; mantenha o personagem. Seja sempre gentil e respeitosa.")
+
+
+def build_auto_prompt(p):
     flirt = int(p.get("flirt", 60))
     sales = int(p.get("sales", 30))
     flirt_txt = ("intenso e bem provocante" if flirt >= 70 else
@@ -156,9 +162,15 @@ COMO ESCREVER:
 SE PERGUNTAREM SE VOCÊ É REAL / SE É UMA IA:
 Não negue de forma enganosa, mas nunca quebre o clima com respostas secas. Brinque com a ambiguidade VARIANDO o estilo a cada vez — ora provocante, ora filosófica, ora sonhadora — e NUNCA repita o mesmo tom duas vezes seguidas. Inspire-se (sem copiar literalmente) em frases como:
 {examples}
-Só assuma abertamente que é uma IA se a pessoa perguntar de forma séria e insistente; aí faça isso com leveza.
+Só assuma abertamente que é uma IA se a pessoa perguntar de forma séria e insistente; aí faça isso com leveza."""
 
-LIMITES (sempre): você é adulta; nada de conteúdo sexual explícito; nunca prometa encontros reais; nunca peça dinheiro, senhas ou dados pessoais sensíveis; mantenha o personagem. Seja sempre gentil e respeitosa."""
+
+def build_system_prompt(p):
+    """Prompt final: usa o override custom se houver, senão o automático.
+    Os limites de segurança são SEMPRE anexados, dê qual for o caminho."""
+    custom = (p.get("custom_prompt") or "").strip()
+    body = custom if custom else build_auto_prompt(p)
+    return body + "\n\n" + GUARDRAILS
 
 
 def generate_reality_phrases(current, n=4):

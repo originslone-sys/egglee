@@ -111,6 +111,17 @@
         <button class="btn-2" type="button" id="genPhrasesBtn" onclick="genPhrases()" style="margin-top:8px">✨ Gerar mais (IA)</button>
         <span class="hint" id="genPhrasesMsg" style="margin-left:8px"></span>
       </div>
+
+      <div class="card pad">
+        <div class="sec-title">🧩 Prompt completo (avançado)</div>
+        <div class="hint">Opcional. Se você <b style="color:var(--accent)">preencher</b>, este texto vira o prompt completo da IA e os campos acima passam a ser ignorados. Vazio = modo automático (montado pelos campos). Os <b>limites de segurança</b> são sempre aplicados por baixo.</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <button class="btn-2" type="button" onclick="loadAutoPrompt()">⬇ Carregar prompt atual</button>
+          <button class="btn-2" type="button" onclick="clearCustom()">🧹 Limpar (voltar ao automático)</button>
+          <span class="hint" id="cpMsg" style="align-self:center"></span>
+        </div>
+        <textarea id="custom_prompt" style="min-height:200px;font-family:monospace;font-size:12.5px" placeholder="(vazio = automático) — clique em 'Carregar prompt atual' pra começar a editar"></textarea>
+      </div>
     </div>
 
     <!-- DIREITA: Galeria + Página -->
@@ -173,6 +184,7 @@ function load(){
     $('emoji').value=p.emoji||'some'; $('slang').checked=!!p.slang;
     $('greeting').value=p.greeting||'';
     $('reality_examples').value=(p.reality_examples||[]).join('\n');
+    $('custom_prompt').value=p.custom_prompt||'';
     avatarId = p.avatar_id||null;
     const b=pg.banner||{}, a=pg.ads||{};
     $('b_enabled').checked=!!b.enabled; $('b_title').value=b.title||''; $('b_link').value=b.link||'';
@@ -208,6 +220,17 @@ function setAvatar(e,id){ e.stopPropagation(); avatarId=id; document.querySelect
 function renderAvPrev(){ const el=$('avPrev'); if(avatarId){ el.innerHTML=`<img src="/api/thumb/${avatarId}" alt="">`; } else el.textContent='💕'; }
 function updateInfo(){ $('pickInfo').textContent = `${gallery.size} foto(s) na galeria · avatar: ${avatarId?'definido':'nenhum'}`; }
 
+async function loadAutoPrompt(){
+  $('cpMsg').textContent='Carregando…';
+  try{
+    const d = await (await fetch('/api/admin/prompt_preview')).json();
+    $('custom_prompt').value = d.prompt || '';
+    $('cpMsg').textContent='✓ prompt atual carregado (edite e salve)';
+  }catch(e){ $('cpMsg').textContent='erro ao carregar'; }
+  setTimeout(()=>$('cpMsg').textContent='',3500);
+}
+function clearCustom(){ $('custom_prompt').value=''; $('cpMsg').textContent='voltou ao modo automático'; setTimeout(()=>$('cpMsg').textContent='',3000); }
+
 async function genPhrases(){
   const cur = $('reality_examples').value.split('\n').map(s=>s.trim()).filter(Boolean);
   $('genPhrasesBtn').disabled=true; $('genPhrasesMsg').textContent='Gerando…';
@@ -233,6 +256,7 @@ async function saveAll(){
     language:$('language').value, length:$('length').value, emoji:$('emoji').value, slang:$('slang').checked,
     greeting:$('greeting').value.trim(),
     reality_examples:$('reality_examples').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    custom_prompt:$('custom_prompt').value.trim(),
   };
   const page = {
     banner:{enabled:$('b_enabled').checked, title:$('b_title').value.trim(), link:$('b_link').value.trim(), color1:$('b_color1').value, color2:$('b_color2').value},
