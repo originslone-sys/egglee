@@ -6,6 +6,7 @@ Config guardada como blobs JSON no `settings` do Postgres (sem tabelas novas):
   settings["gallery"]  -> lista de IDs de mídia da biblioteca
 """
 import os
+import re
 import json
 import requests
 
@@ -170,7 +171,8 @@ FORMAT_NOTE = (
     "digitando no WhatsApp — linguagem do dia a dia, frases curtas e concretas. NUNCA seja "
     "poética, abstrata, filosófica ou 'viajante': nada de metáforas rebuscadas, frases "
     "enigmáticas ou divagações. Responda à pessoa de forma clara e objetiva. "
-    "Use 1 a 3 mensagens curtas, cada uma em uma linha separada. Nada de textão, listas ou marcadores."
+    "Use 1 a 3 mensagens curtas, cada uma em uma linha separada. Nada de textão, listas ou marcadores. "
+    "Responda DIRETO como a personagem, em português; NUNCA explique seu raciocínio nem comente as instruções."
 )
 
 
@@ -228,25 +230,43 @@ def _chat_messages(history, user_msg):
     return msgs
 
 
-def _call_chat(url, key, model, msgs):
+_REASONING_MARKERS = ("the user asks", "according to the instruction", "we should respond",
+                      "we need to respond", "we must", "as hamelia", "the assistant",
+                      "let's respond", "i should respond", "<think>")
+
+
+def _looks_like_reasoning(t):
+    low = t.lower()
+    return any(m in low for m in _REASONING_MARKERS)
+
+
+def _call_chat(url, key, model, msgs, extra=None):
+    payload = {"model": model, "messages": msgs, "temperature": 0.8, "max_tokens": 140}
+    if extra:
+        payload.update(extra)
     r = requests.post(
         url, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-        json={"model": model, "messages": msgs, "temperature": 0.8, "max_tokens": 140},
-        timeout=60,
+        json=payload, timeout=60,
     )
     r.raise_for_status()
-    return (r.json()["choices"][0]["message"]["content"] or "").strip()
+    content = r.json()["choices"][0]["message"]["content"] or ""
+    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)  # tira raciocínio
+    return content.strip()
 
 
 def chat_reply(history, user_msg):
     """Resposta da persona: tenta o free do OpenRouter; cai no DeepSeek se falhar."""
     msgs = _chat_messages(history, user_msg)
     text = ""
-    # 1) OpenRouter free (auto-rotaciona modelos grátis)
+    # 1) OpenRouter free (auto-rotaciona modelos grátis), com raciocínio desligado
     if OPENROUTER_API_KEY:
         try:
             text = _call_chat("https://openrouter.ai/api/v1/chat/completions",
-                              OPENROUTER_API_KEY, OPENROUTER_CHAT_MODEL, msgs)
+                              OPENROUTER_API_KEY, OPENROUTER_CHAT_MODEL, msgs,
+                              extra={"reasoning": {"exclude": True}})
+            if _looks_like_reasoning(text):   # modelo free vazou raciocínio → descarta
+                print("OPENROUTER vazou raciocinio, caindo no DeepSeek", flush=True)
+                text = ""
         except Exception as e:
             print("OPENROUTER chat falhou (fallback DeepSeek):", e, flush=True)
     # 2) Fallback: DeepSeek (pago, barato) — garante que nunca trava
