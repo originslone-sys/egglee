@@ -207,6 +207,16 @@ def _build_input(body: dict) -> dict:
     return payload
 
 
+@app.before_request
+def public_domain_to_chat():
+    """Num domínio customizado (não o do Railway), a raiz abre o /chat público.
+    Pelo domínio .up.railway.app, a raiz segue sendo o admin (Dashboard)."""
+    if request.path == "/":
+        host = request.host.split(":")[0].lower()
+        if not (host.endswith("up.railway.app") or host.startswith(("localhost", "127."))):
+            return redirect("/chat")
+
+
 @app.route("/")
 @login_required
 def index():
