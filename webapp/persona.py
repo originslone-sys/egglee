@@ -165,17 +165,21 @@ Não negue de forma enganosa, mas nunca quebre o clima com respostas secas. Brin
 Só assuma abertamente que é uma IA se a pessoa perguntar de forma séria e insistente; aí faça isso com leveza."""
 
 
-FORMAT_NOTE = ("FORMATO: responda como no WhatsApp — 1 a 3 mensagens curtas, cada uma em uma "
-               "linha separada (quebra de linha entre elas). Nada de textão, listas ou marcadores.")
+FORMAT_NOTE = (
+    "COMO FALAR (importante): fale de forma SIMPLES, natural e direta, como uma garota real "
+    "digitando no WhatsApp — linguagem do dia a dia, frases curtas e concretas. NUNCA seja "
+    "poética, abstrata, filosófica ou 'viajante': nada de metáforas rebuscadas, frases "
+    "enigmáticas ou divagações. Responda à pessoa de forma clara e objetiva. "
+    "Use 1 a 3 mensagens curtas, cada uma em uma linha separada. Nada de textão, listas ou marcadores."
+)
 
 
 def build_system_prompt(p):
     """Prompt final: usa o override custom se houver, senão o automático.
-    No override anexamos o FORMATO (multi-balão) e os LIMITES de segurança."""
+    O FORMATO (fala simples + multi-balão) e os LIMITES vão sempre, nos dois casos."""
     custom = (p.get("custom_prompt") or "").strip()
-    if custom:
-        return custom + "\n\n" + FORMAT_NOTE + "\n\n" + GUARDRAILS
-    return build_auto_prompt(p) + "\n\n" + GUARDRAILS
+    body = custom if custom else build_auto_prompt(p)
+    return body + "\n\n" + FORMAT_NOTE + "\n\n" + GUARDRAILS
 
 
 def generate_reality_phrases(current, n=4):
@@ -225,8 +229,7 @@ def chat_reply(history, user_msg):
         "https://api.deepseek.com/chat/completions",
         headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
         json={"model": "deepseek-chat", "messages": msgs,
-              "temperature": 1.15, "max_tokens": 180,
-              "frequency_penalty": 0.4, "presence_penalty": 0.4},
+              "temperature": 0.8, "max_tokens": 140},
         timeout=60,
     )
     r.raise_for_status()
