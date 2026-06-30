@@ -212,27 +212,51 @@ def generate_reality_phrases(current, n=4):
     return out[:n]
 
 
-def chat_reply(history, user_msg):
-    """Devolve uma lista de 1-3 'balões' de resposta da persona."""
-    if not DEEPSEEK_API_KEY:
-        return ["(configure a DEEPSEEK_API_KEY no painel pra eu poder responder 💕)"]
-    persona = get_persona()
-    msgs = [{"role": "system", "content": build_system_prompt(persona)}]
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
+# Roteador free do OpenRouter (escolhe sozinho um modelo free disponível).
+OPENROUTER_CHAT_MODEL = os.environ.get("OPENROUTER_CHAT_MODEL", "openrouter/free").strip()
+
+
+def _chat_messages(history, user_msg):
+    msgs = [{"role": "system", "content": build_system_prompt(get_persona())}]
     for m in (history or [])[-12:]:
         role = "assistant" if m.get("role") == "persona" else "user"
         text = (m.get("text") or "").strip()
         if text:
             msgs.append({"role": role, "content": text})
     msgs.append({"role": "user", "content": (user_msg or "").strip()[:500]})
+    return msgs
 
+
+def _call_chat(url, key, model, msgs):
     r = requests.post(
-        "https://api.deepseek.com/chat/completions",
-        headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
-        json={"model": "deepseek-chat", "messages": msgs,
-              "temperature": 0.8, "max_tokens": 140},
+        url, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        json={"model": model, "messages": msgs, "temperature": 0.8, "max_tokens": 140},
         timeout=60,
     )
     r.raise_for_status()
-    text = r.json()["choices"][0]["message"]["content"].strip()
+    return (r.json()["choices"][0]["message"]["content"] or "").strip()
+
+
+def chat_reply(history, user_msg):
+    """Resposta da persona: tenta o free do OpenRouter; cai no DeepSeek se falhar."""
+    msgs = _chat_messages(history, user_msg)
+    text = ""
+    # 1) OpenRouter free (auto-rotaciona modelos grátis)
+    if OPENROUTER_API_KEY:
+        try:
+            text = _call_chat("https://openrouter.ai/api/v1/chat/completions",
+                              OPENROUTER_API_KEY, OPENROUTER_CHAT_MODEL, msgs)
+        except Exception as e:
+            print("OPENROUTER chat falhou (fallback DeepSeek):", e, flush=True)
+    # 2) Fallback: DeepSeek (pago, barato) — garante que nunca trava
+    if not text and DEEPSEEK_API_KEY:
+        try:
+            text = _call_chat("https://api.deepseek.com/chat/completions",
+                              DEEPSEEK_API_KEY, "deepseek-chat", msgs)
+        except Exception as e:
+            print("DEEPSEEK chat falhou:", e, flush=True)
+    if not text:
+        return ["(configure OPENROUTER_API_KEY ou DEEPSEEK_API_KEY pra eu responder 💕)"]
     bubbles = [b.strip() for b in text.split("\n") if b.strip()]
     return bubbles[:3] if bubbles else [text[:300]]
