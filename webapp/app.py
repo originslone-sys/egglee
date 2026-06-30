@@ -874,11 +874,39 @@ def models_run():
     if not (ENDPOINT_ID and API_KEY):
         return jsonify({"error": "RunPod não configurado."}), 500
     body = request.get_json(force=True)
+    # Injeta o token do Civitai salvo, se a URL for do Civitai e não tiver token.
+    if body.get("action") == "download_model":
+        url = body.get("url") or ""
+        if "civitai.com" in url and "token=" not in url and db.enabled():
+            tok = (db.get_setting("civitai_token") or "").strip()
+            if tok:
+                body["url"] = url + ("&" if "?" in url else "?") + "token=" + tok
     try:
         r = requests.post(f"{BASE_URL}/run", headers=HEADERS, json={"input": body}, timeout=30)
         return jsonify(r.json()), (200 if r.ok else 502)
     except requests.RequestException as e:
         return jsonify({"error": f"Falha ao chamar o RunPod: {e}"}), 502
+
+
+@app.route("/api/settings/civitai_token", methods=["GET", "POST"])
+@login_required
+def civitai_token():
+    if request.method == "POST":
+        if not db.enabled():
+            return jsonify({"ok": False, "reason": "banco não configurado"}), 500
+        db.set_setting("civitai_token", (request.get_json(force=True).get("token") or "").strip())
+        return jsonify({"ok": True})
+    tok = (db.get_setting("civitai_token") if db.enabled() else "") or ""
+    return jsonify({"token": tok})
+
+
+@app.route("/api/checkpoints/active", methods=["POST"])
+@login_required
+def checkpoints_set_active():
+    name = (request.get_json(force=True).get("name") or "").strip()
+    if db.enabled() and name:
+        db.set_setting("active_checkpoint", name)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/checkpoints", methods=["GET"])
@@ -891,7 +919,11 @@ def checkpoints_list():
         names = json.loads(raw) if raw else default
     except Exception:
         names = default
-    return jsonify({"checkpoints": names or default})
+    names = names or default
+    active = (db.get_setting("active_checkpoint") if db.enabled() else "") or ""
+    if active not in names:
+        active = names[0]
+    return jsonify({"checkpoints": names, "active": active})
 
 
 @app.route("/api/checkpoints/cache", methods=["POST"])
