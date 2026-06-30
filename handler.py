@@ -279,6 +279,10 @@ def handler(job):
         except (TypeError, ValueError):
             inputs["steps"] = 30
 
+        # Checkpoint (base model) selecionável; default = FameGrid.
+        if not inputs.get("checkpoint"):
+            inputs["checkpoint"] = "sdxl_checkpoint.safetensors"
+
         # Handle seed: -1 or missing → random
         if inputs.get("seed", -1) == -1:
             inputs["seed"] = random.randint(0, 2**32 - 1)
