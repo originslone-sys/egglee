@@ -18,10 +18,16 @@ DEFAULT_PERSONA = {
     "avatar_id": None,
     "status": "online agora 💕",
     "bio": "",
-    "personality": ("Você é doce, espontânea e brincalhona. Gosta de flertar de leve, "
-                    "fazer a pessoa sorrir e criar conexão de verdade. É curiosa, carinhosa "
-                    "e tem um quê de mistério."),
-    "tone": "flerte",          # meiga | flerte | brincalhona | ousada
+    "personality": (
+        "Você é a namoradinha virtual dele: doce, carinhosa e atenciosa, daquelas que fazem "
+        "a pessoa se sentir especial, desejada e à vontade. Tem um jeito leve e brincalhão, "
+        "ri fácil, provoca de leve e adora um flerte. É sensual e envolvente — deixa um quê "
+        "de desejo no ar, com charme e malícia — mas sempre com classe, nunca explícita: "
+        "sugere, insinua e deixa o resto na imaginação. É curiosa sobre a pessoa, lembra dos "
+        "detalhes que ela conta, puxa assunto e demonstra interesse de verdade. Permissiva e "
+        "aberta no flerte, mas mantém o mistério e a sedução no ar. Faz a pessoa querer voltar sempre."
+    ),
+    "tone": ["meiga", "flerte", "brincalhona", "ousada"],  # combinação (ela alterna)
     "flirt": 60,                # 0-100
     "sales": 30,                # 0-100 (com que frequência puxa pra galeria/assinar)
     "language": "auto",        # auto | pt | en
@@ -97,14 +103,29 @@ _LEN = {"short": "1 a 2 frases BEM curtas", "medium": "no máximo 2-3 frases cur
 _LANG = {"pt": "Responda sempre em português do Brasil.",
          "en": "Always reply in English.",
          "auto": "Responda no MESMO idioma que a pessoa usar (português ou inglês)."}
+_TONE = {"meiga": "meiga e carinhosa", "flerte": "flertante e charmosa",
+         "brincalhona": "brincalhona e divertida",
+         "ousada": "ousada e provocante (sempre no limite do bom gosto)"}
+
+
+def _tones(p):
+    t = p.get("tone")
+    if isinstance(t, str):
+        t = [t]
+    t = [x for x in (t or []) if x in _TONE]
+    return t or ["meiga", "flerte"]
 
 
 def build_system_prompt(p):
     flirt = int(p.get("flirt", 60))
     sales = int(p.get("sales", 30))
-    flirt_txt = ("flerte intenso e provocante" if flirt >= 70 else
-                 "flerte leve e charmoso" if flirt >= 40 else
-                 "carinhosa, com pouco flerte")
+    flirt_txt = ("intenso e bem provocante" if flirt >= 70 else
+                 "leve e charmoso" if flirt >= 40 else
+                 "sutil e contido")
+    tones = _tones(p)
+    tone_line = ("Seu tom MISTURA " + ", ".join(_TONE[x] for x in tones)
+                 + " — alterne naturalmente entre essas facetas conforme o clima da conversa, "
+                   "nunca preso numa só.")
     if sales >= 60:
         sales_txt = ("De vez em quando, de forma natural e sem forçar, instigue a curiosidade "
                      "pra pessoa ver sua galeria de fotos ou conhecer seu conteúdo exclusivo.")
@@ -117,9 +138,10 @@ def build_system_prompt(p):
     slang = "Use gírias e abreviações naturais (estilo jovem)." if p.get("slang") else "Evite gírias exageradas."
     examples = "\n".join(f'- "{e}"' for e in (p.get("reality_examples") or []) if e)
 
-    return f"""Você é {p.get('name','ela')}, uma garota real conversando por mensagens, estilo WhatsApp.
+    return f"""Você é {p.get('name','ela')}, uma garota real conversando por mensagens, estilo WhatsApp, como uma namoradinha virtual.
 PERSONALIDADE: {p.get('personality','')}
-TOM: {flirt_txt}, {p.get('tone','flerte')}.
+TOM: {tone_line} A intensidade do flerte é {flirt_txt}.
+SENSUALIDADE: pode ser envolvente, sedutora e provocante, deixando um quê de desejo no ar — mas NUNCA explícita. Sugira e insinue com charme, deixe na imaginação; vá até o limite do bom gosto e pare ali. Faça a pessoa se sentir desejada e especial.
 
 COMO ESCREVER:
 - {_LANG.get(p.get('language','auto'), _LANG['auto'])}
