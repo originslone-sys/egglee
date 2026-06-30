@@ -38,6 +38,7 @@
     <a href="/generate" class="active">✨ Gerar</a>
     <a href="/library">🖼️ Biblioteca</a>
     <a href="/persona">💬 Persona</a>
+    <a href="/modelos">📦 Modelos</a>
   </nav>
   <div class="sp"></div>
   <div class="right">
@@ -60,7 +61,6 @@
     <label>Modelo base (checkpoint)</label>
     <select id="checkpoint">
       <option value="sdxl_checkpoint.safetensors">FameGrid Bold</option>
-      <option value="realvisxl.safetensors">RealVisXL</option>
     </select>
 
     <div class="check">
@@ -344,6 +344,19 @@ $('delPresetBtn').addEventListener('click', async () => {
   loadPresets();
 });
 loadPresets();
+
+// Popula o dropdown de checkpoint com o cache do Gerenciador de Modelos.
+function ckptLabel(n){
+  const base = n.replace(/\.(safetensors|ckpt|pt)$/i,'');
+  if (base === 'sdxl_checkpoint') return 'FameGrid Bold';
+  return base.replace(/_/g,' ');
+}
+fetch('/api/checkpoints').then(r=>r.json()).then(d=>{
+  const sel = $('checkpoint'); const cur = sel.value;
+  const list = (d.checkpoints && d.checkpoints.length) ? d.checkpoints : ['sdxl_checkpoint.safetensors'];
+  sel.innerHTML = list.map(n=>`<option value="${n}">${ckptLabel(n)}</option>`).join('');
+  if ([...sel.options].some(o=>o.value===cur)) sel.value = cur;
+}).catch(()=>{});
 
 function setStatus(msg, err) {
   const s = $('status'); s.textContent = msg; s.classList.toggle('err', !!err);

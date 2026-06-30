@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egglee · Modelos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+  @media (max-width:900px){ .grid2 { grid-template-columns:1fr; } }
+  .disk { height:10px; background:var(--bg-soft); border-radius:999px; overflow:hidden; border:1px solid var(--border); }
+  .disk > i { display:block; height:100%; background:var(--grad); }
+  .mlist { display:flex; flex-direction:column; gap:8px; }
+  .mrow { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border);
+    border-radius:var(--radius-sm); background:var(--bg-soft); }
+  .mrow .nm { font-size:13.5px; word-break:break-all; }
+  .mrow .sz { color:var(--muted); font-size:12px; margin-left:auto; white-space:nowrap; }
+  .mrow .del { color:var(--danger); background:none; border:1px solid var(--border); border-radius:8px;
+    padding:5px 9px; cursor:pointer; font-size:12px; }
+  .mrow .del:hover { border-color:var(--danger); }
+  .hint { font-size:12px; color:var(--muted); margin:-2px 0 10px; }
+  .msg { font-size:13px; margin-top:8px; min-height:18px; }
+  .msg.ok { color:var(--ok); } .msg.err { color:var(--danger); }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
+  <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+  <nav class="nav" id="nav">
+    <a href="/">📊 Dashboard</a><a href="/generate">✨ Gerar</a><a href="/library">🖼️ Biblioteca</a>
+    <a href="/persona">💬 Persona</a><a href="/modelos" class="active">📦 Modelos</a>
+  </nav>
+  <div class="sp"></div>
+  <div class="right"><a href="/logout" class="ghost">Sair</a></div>
+</div>
+
+<div class="page">
+  <h1 class="h-title">📦 Modelos</h1>
+  <p class="h-sub">Instale, liste e remova checkpoints e LoRAs direto no volume.</p>
+
+  <div class="card pad" style="margin-bottom:18px">
+    <div class="sec-title">💾 Disco do volume <span id="diskTxt" class="hint" style="margin-left:auto"></span></div>
+    <div class="disk"><i id="diskBar" style="width:0%"></i></div>
+    <button class="btn-2" style="margin-top:12px" onclick="refresh()">🔄 Atualizar lista</button>
+    <span id="loadMsg" class="hint" style="margin-left:8px"></span>
+  </div>
+
+  <div class="card pad" style="margin-bottom:18px">
+    <div class="sec-title">⬇️ Instalar modelo (por URL)</div>
+    <div class="hint">Cole o link de download (Civitai/HuggingFace). No Civitai, inclua seu <b>&amp;token=</b> na URL.</div>
+    <div class="row">
+      <div style="flex:2"><label>URL de download</label><input type="text" id="url" placeholder="https://civitai.com/api/download/models/...?token=..."></div>
+      <div><label>Tipo</label><select id="mtype"><option value="checkpoint">Checkpoint</option><option value="lora">LoRA</option></select></div>
+    </div>
+    <label>Nome do arquivo (com .safetensors)</label>
+    <input type="text" id="fname" placeholder="realvisxl.safetensors">
+    <button class="btn" id="dlBtn" style="margin-top:14px" onclick="install()">⬇️ Baixar pro volume</button>
+    <div class="msg" id="dlMsg"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card pad"><div class="sec-title">🎨 Checkpoints</div><div class="mlist" id="ckpts"></div></div>
+    <div class="card pad"><div class="sec-title">🧩 LoRAs</div><div class="mlist" id="loras"></div></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+function fmt(b){ if(!b) return '0'; const g=b/1073741824; return g>=1?g.toFixed(2)+' GB':(b/1048576).toFixed(0)+' MB'; }
+
+// dispara uma ação no worker e espera (poll /api/status)
+async function runAction(body, onmsg){
+  const r = await fetch('/api/models/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data = await r.json();
+  if(data.error) throw new Error(data.error);
+  if(data.status==='COMPLETED') return data.output;
+  const id = data.id;
+  for(let n=0;n<240;n++){
+    await new Promise(s=>setTimeout(s,2500));
+    const d = await (await fetch('/api/status/'+id)).json();
+    if(onmsg) onmsg(d.status, n);
+    if(d.status==='COMPLETED') return d.output;
+    if(d.status==='FAILED') throw new Error('worker falhou: '+JSON.stringify(d.output||''));
+  }
+  throw new Error('tempo esgotado');
+}
+
+function rowHTML(m, type){
+  return `<div class="mrow"><span class="nm">${m.name}</span><span class="sz">${fmt(m.size)}</span>
+    <button class="del" onclick="del('${type}','${m.name.replace(/'/g,"")}')">🗑</button></div>`;
+}
+
+async function refresh(){
+  $('loadMsg').textContent='consultando o worker… (pode levar ~1 min se estiver frio)';
+  try{
+    const out = await runAction({action:'list_models'}, (st)=>$('loadMsg').textContent='status: '+st);
+    if(!out || out.error) throw new Error((out&&out.error)||'sem resposta');
+    $('ckpts').innerHTML = (out.checkpoints||[]).map(m=>rowHTML(m,'checkpoint')).join('') || '<div class="hint">vazio</div>';
+    $('loras').innerHTML = (out.loras||[]).map(m=>rowHTML(m,'lora')).join('') || '<div class="hint">vazio</div>';
+    const d = out.disk||{}; const pct = d.total? Math.round((d.total-d.free)/d.total*100):0;
+    $('diskBar').style.width = pct+'%';
+    $('diskTxt').textContent = fmt(d.free)+' livres de '+fmt(d.total)+' ('+pct+'% usado)';
+    // cacheia checkpoints pro dropdown da geração
+    fetch('/api/checkpoints/cache',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({checkpoints:(out.checkpoints||[]).map(m=>m.name)})});
+    $('loadMsg').textContent='✓ atualizado';
+  }catch(e){ $('loadMsg').textContent='❌ '+e.message; }
+  setTimeout(()=>$('loadMsg').textContent='',4000);
+}
+
+async function install(){
+  const url=$('url').value.trim(), fname=$('fname').value.trim(), mtype=$('mtype').value;
+  if(!url||!fname){ $('dlMsg').className='msg err'; $('dlMsg').textContent='Preencha URL e nome.'; return; }
+  $('dlBtn').disabled=true; $('dlMsg').className='msg'; $('dlMsg').textContent='Baixando no volume… (pode levar minutos)';
+  try{
+    const out = await runAction({action:'download_model', model_type:mtype, url, filename:fname},
+      (st,n)=>$('dlMsg').textContent='Baixando… ('+st+', '+(n*2.5|0)+'s)');
+    if(!out||out.error) throw new Error((out&&out.error)||'falhou');
+    $('dlMsg').className='msg ok'; $('dlMsg').textContent='✓ Baixado: '+out.saved+' ('+fmt(out.size)+')';
+    $('url').value=''; $('fname').value='';
+    refresh();
+  }catch(e){ $('dlMsg').className='msg err'; $('dlMsg').textContent='❌ '+e.message; }
+  $('dlBtn').disabled=false;
+}
+
+async function del(type, name){
+  if(!confirm('Excluir '+name+' do volume? Isso é permanente.')) return;
+  $('loadMsg').textContent='excluindo '+name+'…';
+  try{
+    const out = await runAction({action:'delete_model', model_type:type, filename:name});
+    if(!out||out.error) throw new Error((out&&out.error)||'falhou');
+    refresh();
+  }catch(e){ $('loadMsg').textContent='❌ '+e.message; }
+}
+
+refresh();
+</script>
+</body>
+</html>
