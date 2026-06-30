@@ -896,7 +896,7 @@ def models_run():
     # Injeta o token do Civitai salvo, se a URL for do Civitai e não tiver token.
     if body.get("action") == "download_model":
         url = body.get("url") or ""
-        if "civitai.com" in url and "token=" not in url and db.enabled():
+        if "civitai" in url.lower() and "token=" not in url and db.enabled():
             tok = (db.get_setting("civitai_token") or "").strip()
             if tok:
                 body["url"] = url + ("&" if "?" in url else "?") + "token=" + tok
