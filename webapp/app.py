@@ -206,6 +206,12 @@ def persona_admin_page():
     return render_template("persona_admin.html")
 
 
+@app.route("/modelos")
+@login_required
+def models_page():
+    return render_template("models.html")
+
+
 @app.route("/library")
 @login_required
 def library_page():
@@ -859,6 +865,45 @@ def admin_reality_phrases():
     except Exception as e:
         print("REALITY PHRASES ERROR:", e, flush=True)
         return jsonify({"error": str(e)}), 502
+
+
+@app.route("/api/models/run", methods=["POST"])
+@login_required
+def models_run():
+    """Encaminha uma ação de modelo (list/download/delete) pro worker."""
+    if not (ENDPOINT_ID and API_KEY):
+        return jsonify({"error": "RunPod não configurado."}), 500
+    body = request.get_json(force=True)
+    try:
+        r = requests.post(f"{BASE_URL}/run", headers=HEADERS, json={"input": body}, timeout=30)
+        return jsonify(r.json()), (200 if r.ok else 502)
+    except requests.RequestException as e:
+        return jsonify({"error": f"Falha ao chamar o RunPod: {e}"}), 502
+
+
+@app.route("/api/checkpoints", methods=["GET"])
+@login_required
+def checkpoints_list():
+    """Lista de checkpoints (cache do último 'listar' — popula o dropdown sem worker)."""
+    default = ["sdxl_checkpoint.safetensors", "realvisxl.safetensors"]
+    try:
+        raw = db.get_setting("checkpoints_cache")
+        names = json.loads(raw) if raw else default
+    except Exception:
+        names = default
+    return jsonify({"checkpoints": names or default})
+
+
+@app.route("/api/checkpoints/cache", methods=["POST"])
+@login_required
+def checkpoints_cache():
+    names = request.get_json(force=True).get("checkpoints") or []
+    if db.enabled():
+        try:
+            db.set_setting("checkpoints_cache", json.dumps(names))
+        except Exception as e:
+            print("CKPT CACHE ERROR:", e, flush=True)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/admin/gallery", methods=["POST"])

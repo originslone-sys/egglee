@@ -245,8 +245,92 @@ def save_input_image(b64_data: str) -> str:
     return filename
 
 
+# ── Gerenciador de modelos (ações admin sobre o volume) ─────────────────────────
+
+CKPT_DIR = COMFYUI_DIR / "models" / "checkpoints"
+LORA_DIR = COMFYUI_DIR / "models" / "loras"
+_MODEL_EXT = (".safetensors", ".ckpt", ".pt")
+
+
+def _model_dir(model_type):
+    return {"checkpoint": CKPT_DIR, "lora": LORA_DIR}.get(model_type)
+
+
+def _safe_model_name(name):
+    name = os.path.basename((name or "").strip())
+    return name if name.lower().endswith(_MODEL_EXT) else None
+
+
+def list_models_action():
+    import shutil as _sh
+
+    def listing(d):
+        out = []
+        if d.exists():
+            for f in sorted(d.iterdir()):
+                if f.is_file() and f.suffix.lower() in _MODEL_EXT:
+                    out.append({"name": f.name, "size": f.stat().st_size})
+        return out
+
+    total, _used, free = _sh.disk_usage(str(COMFYUI_DIR))
+    return {"status": "success", "checkpoints": listing(CKPT_DIR),
+            "loras": listing(LORA_DIR), "disk": {"free": free, "total": total}}
+
+
+def download_model_action(j):
+    d = _model_dir(j.get("model_type"))
+    if not d:
+        return {"error": "tipo inválido (use checkpoint ou lora)"}
+    url = (j.get("url") or "").strip()
+    if not url.startswith("https://"):
+        return {"error": "url inválida (precisa ser https)"}
+    name = _safe_model_name(j.get("filename"))
+    if not name:
+        return {"error": "nome de arquivo inválido (use .safetensors/.ckpt/.pt)"}
+    d.mkdir(parents=True, exist_ok=True)
+    dest = d / name
+    tmp = str(dest) + ".part"
+    try:
+        subprocess.run(["wget", "--no-verbose", "--content-disposition", "-O", tmp, url],
+                       check=True, timeout=2400)
+        if os.path.getsize(tmp) < 1024 * 1024:   # < 1MB = quase certo HTML de erro/token
+            os.remove(tmp)
+            return {"error": "arquivo baixado muito pequeno — confira a URL/token do Civitai"}
+        os.replace(tmp, dest)
+        return {"status": "success", "saved": name, "size": os.path.getsize(dest)}
+    except Exception as e:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        return {"error": f"download falhou: {e}"}
+
+
+def delete_model_action(j):
+    d = _model_dir(j.get("model_type"))
+    if not d:
+        return {"error": "tipo inválido"}
+    name = _safe_model_name(j.get("filename"))
+    if not name:
+        return {"error": "nome inválido"}
+    p = d / name
+    if not p.exists():
+        return {"error": "arquivo não encontrado"}
+    try:
+        p.unlink()
+        return {"status": "success", "deleted": name}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def handler(job):
     job_input = job["input"]
+
+    action = job_input.get("action")
+    if action == "list_models":
+        return list_models_action()
+    if action == "download_model":
+        return download_model_action(job_input)
+    if action == "delete_model":
+        return delete_model_action(job_input)
 
     try:
         if "workflow" in job_input:
