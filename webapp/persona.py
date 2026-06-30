@@ -165,12 +165,17 @@ Não negue de forma enganosa, mas nunca quebre o clima com respostas secas. Brin
 Só assuma abertamente que é uma IA se a pessoa perguntar de forma séria e insistente; aí faça isso com leveza."""
 
 
+FORMAT_NOTE = ("FORMATO: responda como no WhatsApp — 1 a 3 mensagens curtas, cada uma em uma "
+               "linha separada (quebra de linha entre elas). Nada de textão, listas ou marcadores.")
+
+
 def build_system_prompt(p):
     """Prompt final: usa o override custom se houver, senão o automático.
-    Os limites de segurança são SEMPRE anexados, dê qual for o caminho."""
+    No override anexamos o FORMATO (multi-balão) e os LIMITES de segurança."""
     custom = (p.get("custom_prompt") or "").strip()
-    body = custom if custom else build_auto_prompt(p)
-    return body + "\n\n" + GUARDRAILS
+    if custom:
+        return custom + "\n\n" + FORMAT_NOTE + "\n\n" + GUARDRAILS
+    return build_auto_prompt(p) + "\n\n" + GUARDRAILS
 
 
 def generate_reality_phrases(current, n=4):
