@@ -121,6 +121,8 @@ async function refresh(){
     // cacheia checkpoints pro dropdown da geração
     await fetch('/api/checkpoints/cache',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({checkpoints:cks.map(m=>m.name)})});
+    fetch('/api/loras/cache',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({loras:lrs.map(m=>m.name)})});
     const active = (await (await fetch('/api/checkpoints')).json()).active;
     $('ckpts').innerHTML = cks.map(m=>ckptRow(m,active)).join('') || '<div class="hint">vazio</div>';
     $('loras').innerHTML = lrs.map(loraRow).join('') || '<div class="hint">vazio</div>';

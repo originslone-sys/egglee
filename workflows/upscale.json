@@ -6,58 +6,11 @@
   },
   "20": {
     "inputs": {
-      "lora_name": "egglee_character.safetensors",
-      "strength_model": 0.85,
-      "strength_clip": 0.8,
       "model": ["1", 0],
       "clip": ["1", 1]
     },
-    "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Personagem (egglee)" }
-  },
-  "2": {
-    "inputs": {
-      "lora_name": "detail_tweaker_xl.safetensors",
-      "strength_model": 0.45,
-      "strength_clip": 0.25,
-      "model": ["20", 0],
-      "clip": ["20", 1]
-    },
-    "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Detail Tweaker XL" }
-  },
-  "3": {
-    "inputs": {
-      "lora_name": "skin_detail_xl.safetensors",
-      "strength_model": 0.4,
-      "strength_clip": 0.3,
-      "model": ["2", 0],
-      "clip": ["2", 1]
-    },
-    "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Skin Detail XL" }
-  },
-  "4": {
-    "inputs": {
-      "lora_name": "mobile_photography.safetensors",
-      "strength_model": 0.4,
-      "strength_clip": 0.3,
-      "model": ["3", 0],
-      "clip": ["3", 1]
-    },
-    "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Mobile Photography" }
-  },
-  "5": {
-    "inputs": {
-      "lora_name": "hand_fix_xl.safetensors",
-      "strength_model": 0.5,
-      "strength_clip": 0.0,
-      "model": ["4", 0],
-      "clip": ["4", 1]
-    },
-    "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Hand Fix XL" }
+    "class_type": "Power Lora Loader (rgthree)",
+    "_meta": { "title": "LoRAs (dinâmico)" }
   },
   "6": {
     "inputs": { "image": "{{input_image}}", "upload": "image" },
@@ -75,12 +28,12 @@
     "_meta": { "title": "VAE Encode" }
   },
   "9": {
-    "inputs": { "text": "{{positive_prompt}}", "clip": ["5", 1] },
+    "inputs": { "text": "{{positive_prompt}}", "clip": ["20", 1] },
     "class_type": "CLIPTextEncode",
     "_meta": { "title": "Positive Prompt" }
   },
   "10": {
-    "inputs": { "text": "{{negative_prompt}}", "clip": ["5", 1] },
+    "inputs": { "text": "{{negative_prompt}}", "clip": ["20", 1] },
     "class_type": "CLIPTextEncode",
     "_meta": { "title": "Negative Prompt" }
   },
@@ -92,7 +45,7 @@
       "sampler_name": "dpmpp_2m_sde",
       "scheduler": "karras",
       "denoise": 0.32,
-      "model": ["5", 0],
+      "model": ["20", 0],
       "positive": ["9", 0],
       "negative": ["10", 0],
       "latent_image": ["8", 0]
@@ -137,8 +90,8 @@
       "wildcard": "detailed face, sharp detailed eyes, clear iris, natural skin texture",
       "cycle": 1,
       "image": ["12", 0],
-      "model": ["5", 0],
-      "clip": ["5", 1],
+      "model": ["20", 0],
+      "clip": ["20", 1],
       "vae": ["1", 2],
       "positive": ["9", 0],
       "negative": ["10", 0],
@@ -179,8 +132,8 @@
       "wildcard": "perfect hands, five fingers, detailed hand, natural fingers",
       "cycle": 1,
       "image": ["14", 0],
-      "model": ["5", 0],
-      "clip": ["5", 1],
+      "model": ["20", 0],
+      "clip": ["20", 1],
       "vae": ["1", 2],
       "positive": ["9", 0],
       "negative": ["10", 0],
