@@ -14,7 +14,7 @@ WORKSPACE="${WORKSPACE:-/workspace}"
 TRAIN_DIR="$WORKSPACE/egglee-train"
 TRIGGER="eg1woman"
 EPOCHS=10
-TARGET_PER_EPOCH=280   # passos por época alvo (≈2800 total em 10 épocas)
+TARGET_PER_EPOCH=240   # passos/época alvo (~2400 total; menos overtraining que o v1)
 CKPT="$WORKSPACE/ComfyUI/models/checkpoints/sdxl_checkpoint.safetensors"
 OUT="$WORKSPACE/ComfyUI/models/loras"
 
@@ -27,41 +27,50 @@ if [ -f "$OUT/egglee_character.safetensors" ] && [ ! -f "$OUT/egglee_character_v
 fi
 
 echo "=== Preparando dataset ==="
-# Limpa dataset anterior para não misturar fotos antigas
 rm -rf "$TRAIN_DIR/img" "$TRAIN_DIR/_stage"
 mkdir -p "$TRAIN_DIR/_stage"
 
-if [ ! -f "$TRAIN_DIR/dataset.zip" ]; then
-    echo "❌ $TRAIN_DIR/dataset.zip não encontrado. Faça o upload primeiro."
-    exit 1
+# Prefere a pasta 'captioned/' (legendas revisadas no caption.py + editor).
+# Se não existir, cai no dataset.zip com legenda padrão (compatível com o v1).
+CAP_DIR="$TRAIN_DIR/captioned"
+if [ -d "$CAP_DIR" ] && [ "$(find "$CAP_DIR" -maxdepth 1 -iname '*.txt' | wc -l)" -ge 4 ]; then
+    echo "  Usando legendas revisadas de captioned/"
+    SRC="$CAP_DIR"; HAVE_CAPTIONS=1
+else
+    if [ ! -f "$TRAIN_DIR/dataset.zip" ]; then
+        echo "❌ Nem captioned/ nem dataset.zip encontrados. Rode caption.py ou suba o zip."
+        exit 1
+    fi
+    echo "  ⚠️ Sem legendas revisadas — usando dataset.zip + legenda padrão."
+    unzip -o -q "$TRAIN_DIR/dataset.zip" -d "$TRAIN_DIR/_stage"
+    SRC="$TRAIN_DIR/_stage"; HAVE_CAPTIONS=0
 fi
-unzip -o -q "$TRAIN_DIR/dataset.zip" -d "$TRAIN_DIR/_stage"
 
-count=$(find "$TRAIN_DIR/_stage" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) | wc -l)
+count=$(find "$SRC" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) | wc -l)
 if [ "$count" -lt 8 ]; then
-    echo "❌ Poucas imagens ($count). Confira o dataset.zip."
+    echo "❌ Poucas imagens ($count)."
     exit 1
 fi
 
-# Repetições automáticas para manter os passos no ponto certo
 REPEATS=$(( (TARGET_PER_EPOCH + count / 2) / count ))
 [ "$REPEATS" -lt 1 ] && REPEATS=1
 TOTAL_STEPS=$(( count * REPEATS * EPOCHS ))
 DATA_DIR="$TRAIN_DIR/img/${REPEATS}_${TRIGGER}"
 mkdir -p "$DATA_DIR"
 
-find "$TRAIN_DIR/_stage" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
-    -exec mv {} "$DATA_DIR"/ \;
+# Move imagem + .txt (se houver) mantendo o par; senão escreve legenda padrão.
+while IFS= read -r f; do
+    base="${f%.*}"
+    cp "$f" "$DATA_DIR/"
+    fname="$(basename "$f")"
+    if [ "$HAVE_CAPTIONS" = "1" ] && [ -f "$base.txt" ]; then
+        cp "$base.txt" "$DATA_DIR/${fname%.*}.txt"
+    else
+        echo "$TRIGGER, woman" > "$DATA_DIR/${fname%.*}.txt"
+    fi
+done < <(find "$SRC" -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \))
 
-echo "  $count fotos | $REPEATS repetições | $EPOCHS épocas → ~$TOTAL_STEPS passos"
-
-echo "=== Gerando captions (trigger: $TRIGGER) ==="
-for f in "$DATA_DIR"/*; do
-    case "$f" in
-        *.png|*.jpg|*.jpeg|*.webp|*.PNG|*.JPG|*.JPEG|*.WEBP)
-            echo "$TRIGGER, woman" > "${f%.*}.txt" ;;
-    esac
-done
+echo "  $count fotos | $REPEATS repetições | $EPOCHS épocas → ~$TOTAL_STEPS passos | legendas: $([ "$HAVE_CAPTIONS" = 1 ] && echo revisadas || echo padrão)"
 
 echo "=== Treinando LoRA (SDXL) ==="
 cd "$WORKSPACE/sd-scripts"
@@ -75,6 +84,7 @@ accelerate launch --num_cpu_threads_per_process 4 sdxl_train_network.py \
     --save_model_as safetensors \
     --network_module networks.lora \
     --network_dim 32 --network_alpha 16 \
+    --caption_extension .txt --shuffle_caption --keep_tokens 1 \
     --learning_rate 1e-4 --unet_lr 1e-4 --text_encoder_lr 5e-5 \
     --lr_scheduler cosine --lr_warmup_steps 0 \
     --train_batch_size 1 --max_train_epochs "$EPOCHS" \
