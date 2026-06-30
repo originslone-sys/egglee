@@ -20,6 +20,10 @@
   .mrow .del { color:var(--danger); background:none; border:1px solid var(--border); border-radius:8px;
     padding:5px 9px; cursor:pointer; font-size:12px; }
   .mrow .del:hover { border-color:var(--danger); }
+  .mrow.act { border-color:var(--accent2); background:var(--grad-soft); }
+  .mrow .use { background:none; border:1px solid var(--border); color:var(--text); border-radius:8px;
+    padding:5px 10px; cursor:pointer; font-size:12px; }
+  .mrow .use:hover { border-color:var(--accent2); color:var(--accent); }
   .hint { font-size:12px; color:var(--muted); margin:-2px 0 10px; }
   .msg { font-size:13px; margin-top:8px; min-height:18px; }
   .msg.ok { color:var(--ok); } .msg.err { color:var(--danger); }
@@ -42,15 +46,22 @@
   <p class="h-sub">Instale, liste e remova checkpoints e LoRAs direto no volume.</p>
 
   <div class="card pad" style="margin-bottom:18px">
-    <div class="sec-title">💾 Disco do volume <span id="diskTxt" class="hint" style="margin-left:auto"></span></div>
-    <div class="disk"><i id="diskBar" style="width:0%"></i></div>
-    <button class="btn-2" style="margin-top:12px" onclick="refresh()">🔄 Atualizar lista</button>
+    <div class="sec-title">💾 Espaço em modelos <span id="diskTxt" class="hint" style="margin-left:auto"></span></div>
+    <div class="hint">Total ocupado pelos checkpoints + LoRAs no volume. (A cota total do volume não é legível por aqui — esse é o uso real dos modelos.)</div>
+    <button class="btn-2" style="margin-top:10px" onclick="refresh()">🔄 Atualizar lista</button>
     <span id="loadMsg" class="hint" style="margin-left:8px"></span>
   </div>
 
   <div class="card pad" style="margin-bottom:18px">
     <div class="sec-title">⬇️ Instalar modelo (por URL)</div>
-    <div class="hint">Cole o link de download (Civitai/HuggingFace). No Civitai, inclua seu <b>&amp;token=</b> na URL.</div>
+    <div class="hint">Cole o link de download (Civitai/HuggingFace). Com o token salvo abaixo, no Civitai basta o link <b>sem</b> o token.</div>
+    <label>Token Civitai (salvo — cole o link sem token)</label>
+    <div class="row">
+      <input type="text" id="civitok" placeholder="seu token do Civitai (Settings → API Keys)">
+      <button class="btn-2" style="flex:0 0 auto" onclick="saveToken()">💾 Salvar token</button>
+    </div>
+    <span id="tokMsg" class="hint"></span>
+    <div style="height:8px"></div>
     <div class="row">
       <div style="flex:2"><label>URL de download</label><input type="text" id="url" placeholder="https://civitai.com/api/download/models/...?token=..."></div>
       <div><label>Tipo</label><select id="mtype"><option value="checkpoint">Checkpoint</option><option value="lora">LoRA</option></select></div>
@@ -88,9 +99,17 @@ async function runAction(body, onmsg){
   throw new Error('tempo esgotado');
 }
 
-function rowHTML(m, type){
+function loraRow(m){
   return `<div class="mrow"><span class="nm">${m.name}</span><span class="sz">${fmt(m.size)}</span>
-    <button class="del" onclick="del('${type}','${m.name.replace(/'/g,"")}')">🗑</button></div>`;
+    <button class="del" onclick="del('lora','${m.name.replace(/'/g,"")}')">🗑</button></div>`;
+}
+function ckptRow(m, active){
+  const isA = m.name===active;
+  const right = isA ? '<span class="badge">⚡ ativo</span>'
+                    : `<button class="use" onclick="setActive('${m.name.replace(/'/g,"")}')">Usar</button>`;
+  return `<div class="mrow ${isA?'act':''}"><span class="nm">${m.name}</span>${right}
+    <span class="sz">${fmt(m.size)}</span>
+    <button class="del" onclick="del('checkpoint','${m.name.replace(/'/g,"")}')">🗑</button></div>`;
 }
 
 async function refresh(){
@@ -98,17 +117,30 @@ async function refresh(){
   try{
     const out = await runAction({action:'list_models'}, (st)=>$('loadMsg').textContent='status: '+st);
     if(!out || out.error) throw new Error((out&&out.error)||'sem resposta');
-    $('ckpts').innerHTML = (out.checkpoints||[]).map(m=>rowHTML(m,'checkpoint')).join('') || '<div class="hint">vazio</div>';
-    $('loras').innerHTML = (out.loras||[]).map(m=>rowHTML(m,'lora')).join('') || '<div class="hint">vazio</div>';
-    const d = out.disk||{}; const pct = d.total? Math.round((d.total-d.free)/d.total*100):0;
-    $('diskBar').style.width = pct+'%';
-    $('diskTxt').textContent = fmt(d.free)+' livres de '+fmt(d.total)+' ('+pct+'% usado)';
+    const cks = out.checkpoints||[], lrs = out.loras||[];
     // cacheia checkpoints pro dropdown da geração
-    fetch('/api/checkpoints/cache',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({checkpoints:(out.checkpoints||[]).map(m=>m.name)})});
+    await fetch('/api/checkpoints/cache',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({checkpoints:cks.map(m=>m.name)})});
+    const active = (await (await fetch('/api/checkpoints')).json()).active;
+    $('ckpts').innerHTML = cks.map(m=>ckptRow(m,active)).join('') || '<div class="hint">vazio</div>';
+    $('loras').innerHTML = lrs.map(loraRow).join('') || '<div class="hint">vazio</div>';
+    const total = [...cks,...lrs].reduce((s,m)=>s+(m.size||0),0);
+    $('diskTxt').textContent = fmt(total)+' · '+(cks.length+lrs.length)+' arquivos';
     $('loadMsg').textContent='✓ atualizado';
   }catch(e){ $('loadMsg').textContent='❌ '+e.message; }
   setTimeout(()=>$('loadMsg').textContent='',4000);
+}
+
+async function setActive(name){
+  await fetch('/api/checkpoints/active',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  refresh();
+}
+
+// Token Civitai
+fetch('/api/settings/civitai_token').then(r=>r.json()).then(d=>{ $('civitok').value=d.token||''; }).catch(()=>{});
+async function saveToken(){
+  await fetch('/api/settings/civitai_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:$('civitok').value.trim()})});
+  $('tokMsg').textContent='✓ token salvo'; setTimeout(()=>$('tokMsg').textContent='',2500);
 }
 
 async function install(){

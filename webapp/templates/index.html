@@ -355,7 +355,8 @@ fetch('/api/checkpoints').then(r=>r.json()).then(d=>{
   const sel = $('checkpoint'); const cur = sel.value;
   const list = (d.checkpoints && d.checkpoints.length) ? d.checkpoints : ['sdxl_checkpoint.safetensors'];
   sel.innerHTML = list.map(n=>`<option value="${n}">${ckptLabel(n)}</option>`).join('');
-  if ([...sel.options].some(o=>o.value===cur)) sel.value = cur;
+  const want = (d.active && list.includes(d.active)) ? d.active : cur;
+  if ([...sel.options].some(o=>o.value===want)) sel.value = want;
 }).catch(()=>{});
 
 function setStatus(msg, err) {
