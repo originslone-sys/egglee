@@ -321,6 +321,41 @@ def delete_model_action(j):
         return {"error": str(e)}
 
 
+CHARACTER_LORA = "egglee_character.safetensors"
+DEFAULT_LORAS = [
+    {"name": CHARACTER_LORA, "weight": 0.8, "on": True},
+    {"name": "skin_detail_xl.safetensors", "weight": 0.4, "on": True},
+    {"name": "detail_tweaker_xl.safetensors", "weight": 0.3, "on": True},
+    {"name": "mobile_photography.safetensors", "weight": 0.4, "on": True},
+    {"name": "hand_fix_xl.safetensors", "weight": 0.5, "on": True},
+]
+
+
+def apply_lora_stack(workflow: dict, loras) -> dict:
+    """Preenche o nó Power Lora Loader com a lista de LoRAs ativos + pesos.
+    O LoRA da personagem é sempre garantido (identidade)."""
+    loras = list(loras) if loras else list(DEFAULT_LORAS)
+    if not any(l.get("name") == CHARACTER_LORA and l.get("on", True) for l in loras):
+        loras = [{"name": CHARACTER_LORA, "weight": 0.8, "on": True}] + loras
+    for node in workflow.values():
+        if node.get("class_type") == "Power Lora Loader (rgthree)":
+            ins = node.setdefault("inputs", {})
+            for k in [k for k in list(ins) if k.startswith("lora_")]:
+                del ins[k]
+            i = 0
+            for l in loras:
+                name = l.get("name")
+                if not name:
+                    continue
+                i += 1
+                ins[f"lora_{i}"] = {
+                    "on": bool(l.get("on", True)),
+                    "lora": name,
+                    "strength": float(l.get("weight", 1.0)),
+                }
+    return workflow
+
+
 def handler(job):
     job_input = job["input"]
 
@@ -388,6 +423,7 @@ def handler(job):
 
         if inputs:
             workflow = inject_inputs(workflow, inputs)
+        workflow = apply_lora_stack(workflow, job_input.get("loras"))
 
         client_id = str(uuid.uuid4())
         prompt_id = queue_prompt(workflow, client_id)

@@ -43,6 +43,23 @@ HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/js
 NATURAL_MOTION = ("subtle natural movement, gentle realistic motion, "
                   "stable camera, smooth, lifelike")
 
+# LoRA stack (Power Lora Loader). O da personagem é sempre ativo (identidade).
+CHARACTER_LORA = "egglee_character.safetensors"
+DEFAULT_STACK_LORAS = ["skin_detail_xl.safetensors", "detail_tweaker_xl.safetensors",
+                       "mobile_photography.safetensors", "hand_fix_xl.safetensors"]
+STACK_DEFAULT_WEIGHTS = {
+    CHARACTER_LORA: 0.8, "skin_detail_xl.safetensors": 0.4,
+    "detail_tweaker_xl.safetensors": 0.3, "mobile_photography.safetensors": 0.4,
+    "hand_fix_xl.safetensors": 0.5,
+}
+
+
+def _lora_stackable(name):
+    nl = name.lower()
+    if name == CHARACTER_LORA:
+        return False
+    return not any(x in nl for x in ("ip-adapter", "ipadapter", "sd15", "_v1", "-0000"))
+
 try:
     db.init()
 except Exception as e:
@@ -182,6 +199,8 @@ def _build_input(body: dict) -> dict:
         payload["character"] = body["character"]
     if body.get("no_grain"):
         payload["no_grain"] = True
+    if body.get("loras"):
+        payload["loras"] = body["loras"]
     if "video" in body["workflow_name"]:
         payload["timeout"] = 1200
         payload["segments"] = video_segments
@@ -906,6 +925,44 @@ def checkpoints_set_active():
     name = (request.get_json(force=True).get("name") or "").strip()
     if db.enabled() and name:
         db.set_setting("active_checkpoint", name)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/loras", methods=["GET"])
+@login_required
+def loras_list():
+    """LoRAs SDXL empilháveis (do cache) + config salva (on/peso)."""
+    try:
+        raw = db.get_setting("loras_cache")
+        names = json.loads(raw) if raw else []
+    except Exception:
+        names = []
+    avail = [n for n in names if _lora_stackable(n)] or list(DEFAULT_STACK_LORAS)
+    try:
+        cfg = json.loads(db.get_setting("lora_config") or "{}")
+    except Exception:
+        cfg = {}
+    return jsonify({"character": CHARACTER_LORA, "loras": avail,
+                    "config": cfg, "defaults": STACK_DEFAULT_WEIGHTS})
+
+
+@app.route("/api/loras", methods=["POST"])
+@login_required
+def loras_save():
+    if db.enabled():
+        db.set_setting("lora_config", json.dumps(request.get_json(force=True).get("config") or {}))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/loras/cache", methods=["POST"])
+@login_required
+def loras_cache():
+    names = request.get_json(force=True).get("loras") or []
+    if db.enabled():
+        try:
+            db.set_setting("loras_cache", json.dumps(names))
+        except Exception as e:
+            print("LORA CACHE ERROR:", e, flush=True)
     return jsonify({"ok": True})
 
 

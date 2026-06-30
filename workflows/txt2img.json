@@ -6,81 +6,24 @@
   },
   "20": {
     "inputs": {
-      "lora_name": "egglee_character.safetensors",
-      "strength_model": 0.85,
-      "strength_clip": 0.8,
       "model": ["1", 0],
       "clip": ["1", 1]
     },
-    "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Personagem (egglee)" }
-  },
-  "2": {
-    "inputs": {
-      "lora_name": "detail_tweaker_xl.safetensors",
-      "strength_model": 0.35,
-      "strength_clip": 0.2,
-      "model": ["20", 0],
-      "clip": ["20", 1]
-    },
-    "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Detail Tweaker XL" }
-  },
-  "3": {
-    "inputs": {
-      "lora_name": "skin_detail_xl.safetensors",
-      "strength_model": 0.4,
-      "strength_clip": 0.3,
-      "model": ["2", 0],
-      "clip": ["2", 1]
-    },
-    "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Skin Detail XL" }
-  },
-  "4": {
-    "inputs": {
-      "lora_name": "mobile_photography.safetensors",
-      "strength_model": 0.4,
-      "strength_clip": 0.3,
-      "model": ["3", 0],
-      "clip": ["3", 1]
-    },
-    "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Mobile Photography" }
-  },
-  "5": {
-    "inputs": {
-      "lora_name": "hand_fix_xl.safetensors",
-      "strength_model": 0.5,
-      "strength_clip": 0.0,
-      "model": ["4", 0],
-      "clip": ["4", 1]
-    },
-    "class_type": "LoraLoader",
-    "_meta": { "title": "LoRA - Hand Fix XL" }
+    "class_type": "Power Lora Loader (rgthree)",
+    "_meta": { "title": "LoRAs (dinâmico)" }
   },
   "6": {
-    "inputs": {
-      "text": "{{positive_prompt}}",
-      "clip": ["5", 1]
-    },
+    "inputs": { "text": "{{positive_prompt}}", "clip": ["20", 1] },
     "class_type": "CLIPTextEncode",
     "_meta": { "title": "Positive Prompt" }
   },
   "7": {
-    "inputs": {
-      "text": "{{negative_prompt}}",
-      "clip": ["5", 1]
-    },
+    "inputs": { "text": "{{negative_prompt}}", "clip": ["20", 1] },
     "class_type": "CLIPTextEncode",
     "_meta": { "title": "Negative Prompt" }
   },
   "8": {
-    "inputs": {
-      "width": 832,
-      "height": 1216,
-      "batch_size": "{{batch_size}}"
-    },
+    "inputs": { "width": 832, "height": 1216, "batch_size": "{{batch_size}}" },
     "class_type": "EmptyLatentImage",
     "_meta": { "title": "Empty Latent" }
   },
@@ -92,7 +35,7 @@
       "sampler_name": "dpmpp_2m_sde",
       "scheduler": "karras",
       "denoise": 1.0,
-      "model": ["5", 0],
+      "model": ["20", 0],
       "positive": ["6", 0],
       "negative": ["7", 0],
       "latent_image": ["8", 0]
@@ -101,18 +44,12 @@
     "_meta": { "title": "KSampler" }
   },
   "10": {
-    "inputs": {
-      "samples": ["9", 0],
-      "vae": ["1", 2]
-    },
+    "inputs": { "samples": ["9", 0], "vae": ["1", 2] },
     "class_type": "VAEDecode",
     "_meta": { "title": "VAE Decode" }
   },
   "11": {
-    "inputs": {
-      "filename_prefix": "txt2img",
-      "images": ["10", 0]
-    },
+    "inputs": { "filename_prefix": "txt2img", "images": ["10", 0] },
     "class_type": "SaveImage",
     "_meta": { "title": "Save Image" }
   }

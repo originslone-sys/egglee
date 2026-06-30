@@ -24,6 +24,11 @@
   .status { font-size: 13px; color: var(--muted); margin-top: 14px; min-height: 18px; }
   .status.err { color: var(--danger); }
   .dl { margin-top: 6px; font-size: 13px; color: var(--accent); text-decoration: none; display: block; }
+  .lrow { display:flex; align-items:center; gap:9px; font-size:13px; }
+  .lrow .lname { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lrow input[type=range] { width:90px; }
+  .lrow .lwv { width:34px; text-align:right; color:var(--accent); }
+  .lrow input[type=checkbox] { width:auto; accent-color:var(--accent2); }
   .dataset { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); }
   .dstitle { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
   .dshelp { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
@@ -52,7 +57,6 @@
     <label>Workflow</label>
     <select id="workflow">
       <option value="txt2img">Texto → Imagem</option>
-      <option value="txt2img_faceid">Texto → Imagem (consistência de rosto)</option>
       <option value="img2img">Imagem → Imagem</option>
       <option value="txt2video">Texto → Vídeo</option>
       <option value="img2video">Imagem → Vídeo</option>
@@ -79,6 +83,11 @@
 
     <label>Prompt negativo (opcional)</label>
     <textarea id="negative" placeholder="(deixe vazio para usar o padrão)"></textarea>
+
+    <label style="display:flex;align-items:center">🧩 LoRAs ativos
+      <button type="button" class="mini" onclick="saveLoraConfig()" style="margin-left:auto;padding:3px 9px" title="Salvar como padrão">💾 padrão</button>
+    </label>
+    <div id="loraStack" style="display:flex;flex-direction:column;gap:9px;margin-top:4px"></div>
 
     <div id="faceBox" class="hidden">
       <label>Foto de referência do rosto</label>
@@ -359,6 +368,46 @@ fetch('/api/checkpoints').then(r=>r.json()).then(d=>{
   if ([...sel.options].some(o=>o.value===want)) sel.value = want;
 }).catch(()=>{});
 
+// ── LoRA stack (Power Lora Loader) ────────────────────────
+let loraData = { character: 'egglee_character.safetensors', loras: [], config: {}, defaults: {} };
+function loraLabel(n){ return n.replace(/\.(safetensors|ckpt|pt)$/i,'').replace(/_/g,' '); }
+function loraRow(name, on, weight, locked){
+  return `<div class="lrow" data-name="${name}">
+    <input type="checkbox" class="lon" ${on?'checked':''} ${locked?'disabled':''}>
+    <span class="lname">${loraLabel(name)}${locked?' 🔒':''}</span>
+    <input type="range" class="lw" min="0" max="100" value="${Math.round(weight*100)}">
+    <span class="lwv">${weight.toFixed(2)}</span></div>`;
+}
+function renderLoras(){
+  const c = loraData.config||{}, dft = loraData.defaults||{};
+  const cw = (c[loraData.character] && c[loraData.character].weight!=null) ? c[loraData.character].weight : (dft[loraData.character] ?? 0.8);
+  let html = loraRow(loraData.character, true, cw, true);
+  for(const n of (loraData.loras||[])){
+    const cc = c[n]||{}; const on = cc.on!==undefined ? cc.on : true;
+    const w = cc.weight!=null ? cc.weight : (dft[n] ?? 0.5);
+    html += loraRow(n, on, w, false);
+  }
+  $('loraStack').innerHTML = html;
+  document.querySelectorAll('#loraStack .lrow').forEach(row=>{
+    const wv=row.querySelector('.lwv'), w=row.querySelector('.lw');
+    w.addEventListener('input',()=>wv.textContent=(w.value/100).toFixed(2));
+  });
+}
+fetch('/api/loras').then(r=>r.json()).then(d=>{ loraData=d; renderLoras(); }).catch(()=>{});
+function buildLoras(){
+  const out=[];
+  document.querySelectorAll('#loraStack .lrow').forEach(row=>{
+    out.push({ name:row.dataset.name, on:row.querySelector('.lon').checked,
+               weight:+(row.querySelector('.lw').value/100).toFixed(2) });
+  });
+  return out;
+}
+async function saveLoraConfig(){
+  const cfg={}; buildLoras().forEach(l=>cfg[l.name]={on:l.on,weight:l.weight});
+  await fetch('/api/loras',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:cfg})});
+  setStatus('LoRAs salvos como padrão ✓');
+}
+
 function setStatus(msg, err) {
   const s = $('status'); s.textContent = msg; s.classList.toggle('err', !!err);
 }
@@ -383,6 +432,7 @@ $('goBtn').addEventListener('click', () => {
     batch_size: autoUpscale ? '1' : $('batch').value,
     steps: steps,
     checkpoint: $('checkpoint').value,
+    loras: buildLoras(),
   };
   if ($('useCharacter').checked) body.character = 'model';
   if (faceB64 && wf === 'txt2img_faceid') body.face_image_b64 = faceB64;
@@ -402,6 +452,7 @@ function upscaleImage(b64) {
     input_image_b64: b64,
     no_grain: true,
     checkpoint: $('checkpoint').value,
+    loras: buildLoras(),
   };
   if ($('useCharacter').checked) body.character = 'model';
   runJob(body, 'Gerando alta definição…');
