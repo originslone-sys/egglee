@@ -1,6 +1,6 @@
 {
   "1": {
-    "inputs": { "ckpt_name": "sdxl_checkpoint.safetensors" },
+    "inputs": { "ckpt_name": "{{checkpoint}}" },
     "class_type": "CheckpointLoaderSimple",
     "_meta": { "title": "Load Checkpoint" }
   },

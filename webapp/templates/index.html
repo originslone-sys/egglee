@@ -57,6 +57,12 @@
       <option value="img2video">Imagem → Vídeo</option>
     </select>
 
+    <label>Modelo base (checkpoint)</label>
+    <select id="checkpoint">
+      <option value="sdxl_checkpoint.safetensors">FameGrid Bold</option>
+      <option value="realvisxl.safetensors">RealVisXL</option>
+    </select>
+
     <div class="check">
       <input type="checkbox" id="useCharacter" checked>
       <label for="useCharacter">Usar character fixo da modelo</label>
@@ -362,6 +368,7 @@ $('goBtn').addEventListener('click', () => {
     seed: $('seed').value.trim() || '-1',
     batch_size: autoUpscale ? '1' : $('batch').value,
     steps: steps,
+    checkpoint: $('checkpoint').value,
   };
   if ($('useCharacter').checked) body.character = 'model';
   if (faceB64 && wf === 'txt2img_faceid') body.face_image_b64 = faceB64;
@@ -380,6 +387,7 @@ function upscaleImage(b64) {
     batch_size: 1,
     input_image_b64: b64,
     no_grain: true,
+    checkpoint: $('checkpoint').value,
   };
   if ($('useCharacter').checked) body.character = 'model';
   runJob(body, 'Gerando alta definição…');

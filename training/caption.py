@@ -10,9 +10,10 @@ Fluxo:
   2) gera <imagem>.txt com:  eg1woman, <tags descritivas>
 Depois: revise em caption_editor.py e treine com train.sh.
 
-Rodar na pod (com GPU):
+Rodar na pod (CPU já basta p/ ~86 fotos; evita conflito de CUDA do gpu):
   export WORKSPACE=/workspace
-  pip install -q onnxruntime-gpu huggingface_hub pillow numpy
+  pip uninstall -y onnxruntime onnxruntime-gpu
+  pip install -q onnxruntime huggingface_hub pillow numpy
   python caption.py
 """
 import os

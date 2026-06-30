@@ -149,6 +149,8 @@ def _build_input(body: dict) -> dict:
         except (TypeError, ValueError):
             pass
 
+    if body.get("checkpoint"):
+        inputs["checkpoint"] = body["checkpoint"]
     if body.get("face_image_b64"):
         inputs["face_image_b64"] = body["face_image_b64"]
     if body.get("input_image_b64"):
