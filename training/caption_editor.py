@@ -3,7 +3,7 @@
 
 Roda na pod (depois do caption.py):
   export WORKSPACE=/workspace
-  pip install -q flask
+  pip install -q --ignore-installed blinker flask
   python caption_editor.py
 Abra a porta 7860 da pod (botão Connect da RunPod) no navegador.
 """
