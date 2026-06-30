@@ -839,6 +839,13 @@ def admin_page_save():
     return jsonify({"ok": True})
 
 
+@app.route("/api/admin/prompt_preview")
+@login_required
+def admin_prompt_preview():
+    """Prompt automático montado pelos campos (sem os limites fixos), pra editar."""
+    return jsonify({"prompt": persona.build_auto_prompt(persona.get_persona())})
+
+
 @app.route("/api/admin/reality_phrases", methods=["POST"])
 @login_required
 def admin_reality_phrases():
