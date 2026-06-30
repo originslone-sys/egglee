@@ -88,6 +88,7 @@ accelerate launch --num_cpu_threads_per_process 4 sdxl_train_network.py \
     --learning_rate 1e-4 --unet_lr 1e-4 --text_encoder_lr 5e-5 \
     --lr_scheduler cosine --lr_warmup_steps 0 \
     --train_batch_size 1 --max_train_epochs "$EPOCHS" \
+    --min_snr_gamma 5 --noise_offset 0.05 \
     --mixed_precision bf16 --save_precision bf16 \
     --optimizer_type AdamW8bit \
     --sdpa --cache_latents --gradient_checkpointing \
