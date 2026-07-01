@@ -40,8 +40,25 @@ BASE_URL = f"https://api.runpod.ai/v2/{ENDPOINT_ID}"
 HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
 # Bias de movimento para a geração de vídeo via API (trava de "movimento natural").
-NATURAL_MOTION = ("subtle natural movement, gentle realistic motion, "
-                  "stable camera, smooth, lifelike")
+# Trava fixa de vídeo (segurança/qualidade): manda a IA LER a imagem e apenas
+# animar a mesma pessoa/cena com movimento humano realista e sutil — sem trocar
+# rosto/identidade, sem morphing. Aplicada nos dois caminhos (API e Wan local).
+VIDEO_MOTION_LOCK = (
+    "animate the provided image: keep the exact same person, face, identity, hair, "
+    "body, skin and clothing as in the image; keep the same background, scene, "
+    "lighting and framing. Add only subtle, natural, human motion — gentle "
+    "breathing, soft body sway, natural eye blinking, slight head and hand "
+    "movement, hair and fabric moving softly; realistic lifelike movement, stable "
+    "camera, smooth photorealistic result"
+)
+VIDEO_MOTION_NEG = (
+    "morphing, face morphing, changing identity, different face, face swap, "
+    "deformed face, distorted face, warping, melting, flickering, extra limbs, "
+    "extra fingers, duplicate person, teleporting, sudden jerky movement, "
+    "unnatural motion, camera shake, glitch, artifacts"
+)
+# alias legado
+NATURAL_MOTION = VIDEO_MOTION_LOCK
 
 # LoRA stack (Power Lora Loader). O da personagem é sempre ativo (identidade).
 CHARACTER_LORA = "egglee_character.safetensors"
@@ -194,6 +211,17 @@ def _build_input(body: dict) -> dict:
         inputs["steps"] = 20
         inputs["split_step"] = 10
 
+        # Trava fixa: LER a imagem e só animar (movimento humano realista),
+        # somada ao prompt do usuário. Idem no negativo (anti-morphing).
+        user_motion = (body.get("prompt") or "").strip()
+        inputs["positive_prompt"] = (
+            VIDEO_MOTION_LOCK if not user_motion else f"{VIDEO_MOTION_LOCK}, {user_motion}"
+        )
+        user_neg = (body.get("negative_prompt") or "").strip()
+        inputs["negative_prompt"] = (
+            VIDEO_MOTION_NEG if not user_neg else f"{VIDEO_MOTION_NEG}, {user_neg}"
+        )
+
     payload = {"workflow_name": body["workflow_name"], "inputs": inputs}
     if body.get("character"):
         payload["character"] = body["character"]
@@ -341,9 +369,10 @@ def video_generate():
         first_url = _image_data_url(media_id=b.get("media_id"), image_b64=b.get("image_b64"))
     except Exception as e:
         return jsonify({"error": f"Imagem de origem inválida: {e}"}), 400
-    # Trava de movimento natural: bias sutil/realista somado ao prompt do usuário.
+    # Trava fixa: LER a imagem e só animar com movimento humano realista,
+    # somada ao prompt do usuário (a API não tem campo de negativo — vai no lock).
     motion = b.get("prompt", "").strip()
-    full_prompt = NATURAL_MOTION if not motion else f"{NATURAL_MOTION}, {motion}"
+    full_prompt = VIDEO_MOTION_LOCK if not motion else f"{VIDEO_MOTION_LOCK}, {motion}"
     try:
         job = video.create(
             model=model,
