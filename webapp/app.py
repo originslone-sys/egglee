@@ -275,6 +275,101 @@ def library_page():
     return render_template("library.html")
 
 
+@app.route("/leads")
+@login_required
+def leads_page():
+    return render_template("leads.html")
+
+
+# ── Página premium (pública) + captação de lista de espera ────────────────────
+
+@app.route("/premium")
+def premium_page():
+    """Landing premium pública (lista de espera). Sem login."""
+    return render_template("premium.html")
+
+
+# rate-limit simples em memória por IP pra não spammar a lista
+_WAITLIST_HITS = {}
+
+
+def _valid_email(e):
+    e = (e or "").strip()
+    return "@" in e and "." in e.split("@")[-1] and len(e) <= 200
+
+
+@app.route("/api/waitlist", methods=["POST"])
+def waitlist_join():
+    if not db.enabled():
+        return jsonify({"ok": False, "error": "indisponível no momento"}), 503
+    # rate-limit leve: máx 5 envios / 10 min por IP
+    ip = (request.headers.get("X-Forwarded-For", request.remote_addr or "") or "").split(",")[0].strip()
+    now = time.time()
+    hits = [t for t in _WAITLIST_HITS.get(ip, []) if now - t < 600]
+    if len(hits) >= 5:
+        return jsonify({"ok": False, "error": "muitas tentativas, tente mais tarde"}), 429
+    hits.append(now)
+    _WAITLIST_HITS[ip] = hits
+
+    b = request.get_json(force=True, silent=True) or {}
+    name = (b.get("name") or "").strip()[:120]
+    email = (b.get("email") or "").strip()[:200]
+    whatsapp = (b.get("whatsapp") or "").strip()[:40]
+    note = (b.get("note") or "").strip()[:500]
+    if not _valid_email(email) and not whatsapp:
+        return jsonify({"ok": False, "error": "Informe um e-mail ou WhatsApp válido."}), 400
+    if email and not _valid_email(email):
+        return jsonify({"ok": False, "error": "E-mail inválido."}), 400
+    try:
+        _row, is_new = db.insert_lead(name=name, email=email, whatsapp=whatsapp,
+                                      source=b.get("source", "premium"), note=note)
+    except Exception as e:
+        print("WAITLIST ERROR:", e, flush=True)
+        return jsonify({"ok": False, "error": "não foi possível salvar, tente de novo"}), 500
+    return jsonify({"ok": True, "new": is_new})
+
+
+@app.route("/api/admin/leads")
+@login_required
+def admin_leads():
+    if not db.enabled():
+        return jsonify({"leads": [], "total": 0})
+    rows = db.list_leads()
+    leads = [{
+        "id": r["id"], "name": r.get("name") or "", "email": r.get("email") or "",
+        "whatsapp": r.get("whatsapp") or "", "source": r.get("source") or "",
+        "note": r.get("note") or "",
+        "created_at": r["created_at"].isoformat() if r.get("created_at") else "",
+    } for r in rows]
+    return jsonify({"leads": leads, "total": len(leads)})
+
+
+@app.route("/api/admin/leads/delete", methods=["POST"])
+@login_required
+def admin_leads_delete():
+    lead_id = (request.get_json(force=True) or {}).get("id")
+    if lead_id is not None:
+        db.delete_lead(int(lead_id))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/leads.csv")
+@login_required
+def admin_leads_csv():
+    rows = db.list_leads() if db.enabled() else []
+    out = io.StringIO()
+    out.write("nome,email,whatsapp,origem,observacao,data\n")
+    for r in rows:
+        def esc(v):
+            v = str(v or "").replace('"', '""')
+            return f'"{v}"'
+        dt = r["created_at"].strftime("%Y-%m-%d %H:%M") if r.get("created_at") else ""
+        out.write(",".join([esc(r.get("name")), esc(r.get("email")), esc(r.get("whatsapp")),
+                            esc(r.get("source")), esc(r.get("note")), esc(dt)]) + "\n")
+    return Response(out.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=leads_egglee.csv"})
+
+
 @app.route("/api/config")
 @login_required
 def config():

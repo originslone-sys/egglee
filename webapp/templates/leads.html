@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egglee · Leads</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  .stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+  .stat { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:14px 20px; min-width:120px; }
+  .stat .n { font-size:26px; font-weight:800; background:var(--grad); -webkit-background-clip:text;
+    background-clip:text; color:transparent; }
+  .stat .l { font-size:12px; color:var(--muted); margin-top:2px; }
+  .toolbar { display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .toolbar input { flex:1; min-width:180px; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:11px 12px; border-bottom:1px solid var(--border); font-size:14px; }
+  th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+  tr:hover td { background:var(--bg-soft); }
+  td .nm { font-weight:600; }
+  td a { color:var(--accent); text-decoration:none; }
+  td a:hover { text-decoration:underline; }
+  .wa { color:#25D366; }
+  .del { background:none; border:1px solid var(--border); color:var(--danger); border-radius:8px;
+    padding:5px 9px; cursor:pointer; font-size:12px; }
+  .del:hover { border-color:var(--danger); }
+  .when { color:var(--muted); font-size:12.5px; white-space:nowrap; }
+  .empty { text-align:center; color:var(--muted); padding:50px; border:1px dashed var(--border); border-radius:var(--radius); }
+  .table-wrap { overflow-x:auto; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); }
+  @media(max-width:640px){ .hide-sm { display:none; } }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
+  <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+  <nav class="nav" id="nav">
+    <a href="/">📊 Dashboard</a>
+    <a href="/generate">✨ Gerar</a>
+    <a href="/library">🖼️ Biblioteca</a>
+    <a href="/persona">💬 Persona</a>
+    <a href="/modelos">📦 Modelos</a>
+    <a href="/leads" class="active">📋 Leads</a>
+  </nav>
+  <div class="sp"></div>
+  <div class="right"><a href="/logout" class="ghost">Sair</a></div>
+</div>
+
+<div class="page">
+  <h1 class="h-title">📋 Lista de espera</h1>
+  <p class="h-sub">Contatos captados na página premium (<a href="/premium" target="_blank" style="color:var(--accent)">ver página →</a>).</p>
+
+  <div class="stats">
+    <div class="stat"><div class="n" id="stTotal">—</div><div class="l">Total de leads</div></div>
+    <div class="stat"><div class="n" id="stMail">—</div><div class="l">Com e-mail</div></div>
+    <div class="stat"><div class="n" id="stWa">—</div><div class="l">Com WhatsApp</div></div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="🔎 Buscar por nome, e-mail ou WhatsApp…" oninput="render()">
+    <button class="btn-2" onclick="load()">🔄 Atualizar</button>
+    <a class="btn-2" href="/api/admin/leads.csv">⬇️ Exportar CSV</a>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Nome</th><th>E-mail</th><th>WhatsApp</th>
+        <th class="hide-sm">Origem</th><th class="hide-sm">Quando</th><th></th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none">Nenhum lead ainda. Divulgue a página premium 😉</div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let LEADS = [];
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); if(isNaN(d)) return '—';
+  return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+function waLink(n){ const digits=(n||'').replace(/\D/g,''); return digits ? 'https://wa.me/'+digits : ''; }
+
+async function load(){
+  try{
+    const d = await (await fetch('/api/admin/leads')).json();
+    LEADS = d.leads || [];
+    $('stTotal').textContent = LEADS.length;
+    $('stMail').textContent = LEADS.filter(l=>l.email).length;
+    $('stWa').textContent = LEADS.filter(l=>l.whatsapp).length;
+    render();
+  }catch(e){ $('rows').innerHTML=''; $('empty').style.display='block'; $('empty').textContent='Erro ao carregar.'; }
+}
+
+function render(){
+  const q = $('search').value.trim().toLowerCase();
+  const list = !q ? LEADS : LEADS.filter(l =>
+    (l.name+' '+l.email+' '+l.whatsapp).toLowerCase().includes(q));
+  if(!list.length){ $('rows').innerHTML=''; $('empty').style.display='block';
+    if(!$('search').value) $('empty').textContent='Nenhum lead ainda. Divulgue a página premium 😉';
+    else $('empty').textContent='Nada encontrado pra “'+esc($('search').value)+'”.';
+    return; }
+  $('empty').style.display='none';
+  $('rows').innerHTML = list.map(l=>{
+    const wa = waLink(l.whatsapp);
+    return `<tr>
+      <td><span class="nm">${esc(l.name)||'<span style=\"color:var(--muted)\">—</span>'}</span></td>
+      <td>${l.email?`<a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`:'—'}</td>
+      <td>${l.whatsapp?(wa?`<a class="wa" href="${wa}" target="_blank">${esc(l.whatsapp)}</a>`:esc(l.whatsapp)):'—'}</td>
+      <td class="hide-sm">${esc(l.source)||'—'}</td>
+      <td class="hide-sm when">${fmtDate(l.created_at)}</td>
+      <td><button class="del" onclick="del(${l.id})">🗑</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function del(id){
+  if(!confirm('Excluir esse lead?')) return;
+  await fetch('/api/admin/leads/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  load();
+}
+
+load();
+</script>
+</body>
+</html>
