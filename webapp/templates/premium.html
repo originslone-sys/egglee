@@ -64,6 +64,15 @@
       rgba(255,255,255,.03); display:grid; place-items:center; }
   .showcase .em{ font-size:64px; filter:drop-shadow(0 10px 30px rgba(176,108,255,.5)); }
   .showcase .cap{ position:absolute; bottom:16px; left:0; right:0; text-align:center; font-size:13px; color:var(--soft); }
+  /* vitrine dinâmica (mídias escolhidas pelo admin) */
+  .gallery{ display:none; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-top:44px; }
+  .gallery.on{ display:grid; }
+  .gallery .g{ aspect-ratio:3/4; border-radius:16px; overflow:hidden; border:1px solid var(--line);
+    background:#141019; position:relative; box-shadow:0 12px 34px rgba(0,0,0,.35); }
+  .gallery .g img, .gallery .g video{ width:100%; height:100%; object-fit:cover; display:block; }
+  .gallery .g .vtag{ position:absolute; top:8px; left:8px; font-size:11px; font-weight:600; color:#fff;
+    background:rgba(0,0,0,.55); padding:3px 9px; border-radius:999px; backdrop-filter:blur(4px); }
+  @media(max-width:520px){ .gallery{ grid-template-columns:repeat(2,1fr); } }
 
   /* features */
   .sec{ padding:64px 0 10px; }
@@ -137,7 +146,8 @@
     <a href="#entrar" class="cta">✨ Quero acesso antecipado</a>
     <span class="micro">Entre na lista VIP e seja avisado no lançamento.</span>
 
-    <div class="showcase">
+    <div class="gallery" id="gallery"></div>
+    <div class="showcase" id="showFallback">
       <div class="em">📸🎬💬</div>
       <div class="cap">Imagens · Vídeos · Chat com IA — no mesmo lugar</div>
     </div>
@@ -226,6 +236,23 @@
 
 <script>
 const $ = id => document.getElementById(id);
+
+// Vitrine de demonstração (mídias escolhidas no painel admin)
+(async function loadShowcase(){
+  try{
+    const d = await (await fetch('/api/premium/showcase')).json();
+    const items = d.items || [];
+    if(!items.length) return;                 // mantém o fallback
+    const g = $('gallery');
+    g.innerHTML = items.map(it => it.type === 'video'
+      ? `<div class="g"><span class="vtag">▶ vídeo</span>
+           <video src="${it.full}" poster="${it.thumb}" muted loop autoplay playsinline preload="none"></video></div>`
+      : `<div class="g"><img src="${it.thumb}" loading="lazy" alt=""></div>`
+    ).join('');
+    g.classList.add('on');
+    $('showFallback').style.display = 'none';
+  }catch(e){ /* silencioso: fica o fallback */ }
+})();
 
 async function joinWaitlist(e){
   e.preventDefault();

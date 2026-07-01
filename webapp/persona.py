@@ -97,6 +97,18 @@ def save_page(data):     db.set_setting("page", json.dumps(data))
 def save_gallery(ids):   db.set_setting("gallery", json.dumps(list(ids)))
 
 
+def get_showcase():
+    """IDs de mídia (fotos/vídeos) escolhidos pra vitrine da página premium."""
+    try:
+        raw = db.get_setting("premium_showcase")
+        return json.loads(raw) if raw else []
+    except Exception:
+        return []
+
+
+def save_showcase(ids):  db.set_setting("premium_showcase", json.dumps(list(ids)))
+
+
 # ── Montagem do system prompt ──────────────────────────────────────────────────
 
 _EMOJI = {"none": "não use emojis", "few": "use 1 emoji só às vezes",
