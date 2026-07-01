@@ -918,6 +918,24 @@ def chat_persona():
     })
 
 
+@app.route("/api/premium/showcase")
+def premium_showcase():
+    """Mídias de demonstração da página premium (público, sem login)."""
+    ids = persona.get_showcase()
+    items = []
+    for i in ids:
+        row = db.get(i) if db.enabled() else None
+        if not row:
+            continue
+        items.append({
+            "id": i,
+            "type": row.get("type", "image"),
+            "thumb": f"/api/pub/media/{i}?t=1",
+            "full": f"/api/pub/media/{i}",
+        })
+    return jsonify({"items": items})
+
+
 @app.route("/api/chat", methods=["POST"])
 def public_chat():
     """Chat público com a persona (efêmero; limite + cooldown por sessão)."""
@@ -948,7 +966,7 @@ def public_chat():
 @app.route("/api/pub/media/<int:media_id>")
 def pub_media(media_id):
     """Serve só as imagens liberadas (avatar + galeria da persona) — sem login."""
-    allowed = set(persona.get_gallery())
+    allowed = set(persona.get_gallery()) | set(persona.get_showcase())
     av = persona.get_persona().get("avatar_id")
     if av:
         allowed.add(av)
@@ -1136,6 +1154,22 @@ def admin_gallery_save():
         return jsonify({"ok": False, "reason": "banco não configurado"}), 500
     ids = request.get_json(force=True).get("ids", [])
     persona.save_gallery([int(i) for i in ids])
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/showcase", methods=["GET"])
+@login_required
+def admin_showcase_get():
+    return jsonify({"ids": persona.get_showcase()})
+
+
+@app.route("/api/admin/showcase", methods=["POST"])
+@login_required
+def admin_showcase_save():
+    if not db.enabled():
+        return jsonify({"ok": False, "reason": "banco não configurado"}), 500
+    ids = request.get_json(force=True).get("ids", [])
+    persona.save_showcase([int(i) for i in ids])
     return jsonify({"ok": True})
 
 
