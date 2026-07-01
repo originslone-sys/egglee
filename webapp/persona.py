@@ -214,11 +214,6 @@ def generate_reality_phrases(current, n=4):
     return out[:n]
 
 
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
-# Roteador free do OpenRouter (escolhe sozinho um modelo free disponível).
-OPENROUTER_CHAT_MODEL = os.environ.get("OPENROUTER_CHAT_MODEL", "openrouter/free").strip()
-
-
 def _chat_messages(history, user_msg):
     msgs = [{"role": "system", "content": build_system_prompt(get_persona())}]
     for m in (history or [])[-12:]:
@@ -230,53 +225,25 @@ def _chat_messages(history, user_msg):
     return msgs
 
 
-_REASONING_MARKERS = ("the user asks", "according to the instruction", "we should respond",
-                      "we need to respond", "we must", "as hamelia", "the assistant",
-                      "let's respond", "i should respond", "<think>")
-
-
-def _looks_like_reasoning(t):
-    low = t.lower()
-    return any(m in low for m in _REASONING_MARKERS)
-
-
-def _call_chat(url, key, model, msgs, extra=None):
-    payload = {"model": model, "messages": msgs, "temperature": 0.8, "max_tokens": 140}
-    if extra:
-        payload.update(extra)
-    r = requests.post(
-        url, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-        json=payload, timeout=60,
-    )
-    r.raise_for_status()
-    content = r.json()["choices"][0]["message"]["content"] or ""
-    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)  # tira raciocínio
-    return content.strip()
-
-
 def chat_reply(history, user_msg):
-    """Resposta da persona: tenta o free do OpenRouter; cai no DeepSeek se falhar."""
+    """Resposta da persona no chat público — DeepSeek (deepseek-chat)."""
+    if not DEEPSEEK_API_KEY:
+        return ["(configure DEEPSEEK_API_KEY pra eu responder 💕)"]
     msgs = _chat_messages(history, user_msg)
-    text = ""
-    # 1) OpenRouter free (auto-rotaciona modelos grátis), com raciocínio desligado
-    if OPENROUTER_API_KEY:
-        try:
-            text = _call_chat("https://openrouter.ai/api/v1/chat/completions",
-                              OPENROUTER_API_KEY, OPENROUTER_CHAT_MODEL, msgs,
-                              extra={"reasoning": {"exclude": True}})
-            if _looks_like_reasoning(text):   # modelo free vazou raciocínio → descarta
-                print("OPENROUTER vazou raciocinio, caindo no DeepSeek", flush=True)
-                text = ""
-        except Exception as e:
-            print("OPENROUTER chat falhou (fallback DeepSeek):", e, flush=True)
-    # 2) Fallback: DeepSeek (pago, barato) — garante que nunca trava
-    if not text and DEEPSEEK_API_KEY:
-        try:
-            text = _call_chat("https://api.deepseek.com/chat/completions",
-                              DEEPSEEK_API_KEY, "deepseek-chat", msgs)
-        except Exception as e:
-            print("DEEPSEEK chat falhou:", e, flush=True)
+    try:
+        r = requests.post(
+            "https://api.deepseek.com/chat/completions",
+            headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
+            json={"model": "deepseek-chat", "messages": msgs, "temperature": 0.8, "max_tokens": 140},
+            timeout=60,
+        )
+        r.raise_for_status()
+        text = r.json()["choices"][0]["message"]["content"] or ""
+        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    except Exception as e:
+        print("DEEPSEEK chat falhou:", e, flush=True)
+        return ["(deu um probleminha aqui, tenta de novo em instantes 💕)"]
     if not text:
-        return ["(configure OPENROUTER_API_KEY ou DEEPSEEK_API_KEY pra eu responder 💕)"]
+        return ["(deu um probleminha aqui, tenta de novo em instantes 💕)"]
     bubbles = [b.strip() for b in text.split("\n") if b.strip()]
     return bubbles[:3] if bubbles else [text[:300]]
