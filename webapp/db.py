@@ -61,6 +61,20 @@ def init():
             cur.execute(
                 "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)"
             )
+            # Lista de espera / captação de leads da página premium
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS leads (
+                    id SERIAL PRIMARY KEY,
+                    name TEXT DEFAULT '',
+                    email TEXT DEFAULT '',
+                    whatsapp TEXT DEFAULT '',
+                    source TEXT DEFAULT 'premium',
+                    note TEXT DEFAULT '',
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+                """
+            )
         c.commit()
 
 
@@ -233,6 +247,65 @@ def set_setting(key, value):
                 "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
                 (key, value),
             )
+        c.commit()
+
+
+# ── Lista de espera (leads) ───────────────────────────────────────────────────
+
+def insert_lead(name="", email="", whatsapp="", source="premium", note=""):
+    """Insere um lead. Faz dedupe leve: se já existe o mesmo email OU whatsapp,
+    atualiza os dados em vez de criar duplicado. Devolve (row, is_new)."""
+    email = (email or "").strip().lower()
+    whatsapp = (whatsapp or "").strip()
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            existing = None
+            if email or whatsapp:
+                cur.execute(
+                    "SELECT * FROM leads WHERE (email <> '' AND email = %s) "
+                    "OR (whatsapp <> '' AND whatsapp = %s) ORDER BY id LIMIT 1",
+                    (email, whatsapp),
+                )
+                existing = cur.fetchone()
+            if existing:
+                cur.execute(
+                    "UPDATE leads SET name = COALESCE(NULLIF(%s,''), name), "
+                    "email = COALESCE(NULLIF(%s,''), email), "
+                    "whatsapp = COALESCE(NULLIF(%s,''), whatsapp), "
+                    "note = COALESCE(NULLIF(%s,''), note) WHERE id = %s RETURNING *",
+                    (name.strip(), email, whatsapp, (note or "").strip(), existing["id"]),
+                )
+                row = cur.fetchone()
+                c.commit()
+                return row, False
+            cur.execute(
+                "INSERT INTO leads (name, email, whatsapp, source, note) "
+                "VALUES (%s, %s, %s, %s, %s) RETURNING *",
+                (name.strip(), email, whatsapp, source, (note or "").strip()),
+            )
+            row = cur.fetchone()
+        c.commit()
+        return row, True
+
+
+def list_leads(limit=1000):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT %s", (limit,))
+            return cur.fetchall()
+
+
+def count_leads():
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM leads")
+            return cur.fetchone()[0]
+
+
+def delete_lead(lead_id):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("DELETE FROM leads WHERE id = %s", (lead_id,))
         c.commit()
 
 
