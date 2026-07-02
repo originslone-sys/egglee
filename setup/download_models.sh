@@ -141,29 +141,10 @@ hf_download "$MODELS/upscale_models" \
     "ESRGAN/4x-UltraSharp.pth" \
     "4x-UltraSharp.pth"
 
-# ── Wan2.1 Models (~40 GB total) ──────────────────────────────────────────────
-
-echo ""
-echo "=== Wan2.1 Video Models (this will take a while) ==="
-
-# FP8 quantized versions via Kijai's HF repo (lower VRAM, same quality)
-hf_download "$MODELS/diffusion_models" \
-    "Kijai/WanVideo_comfy" \
-    "Wan2_1-T2V-14B_fp8_e4m3fn.safetensors"
-
-hf_download "$MODELS/diffusion_models" \
-    "Kijai/WanVideo_comfy" \
-    "Wan2_1-I2V-14B-480P_fp8_e4m3fn.safetensors"
-
-# Shared text encoder
-hf_download "$MODELS/clip" \
-    "Kijai/WanVideo_comfy" \
-    "umt5-xxl-enc-bf16.safetensors"
-
-# Wan2.1 VAE
-hf_download "$MODELS/vae" \
-    "Kijai/WanVideo_comfy" \
-    "Wan2_1_VAE_bf16.safetensors"
+# NOTA: modelos de vídeo antigos (Wan 2.1 14B e Wan 2.2 A14B) foram
+# DESCONTINUADOS — migramos pro Wan 2.2 TI2V-5B (abaixo), leve e rápido.
+# Não baixe os antigos; se existirem no volume, podem ser apagados p/ liberar
+# espaço (Wan2_1-*, umt5-xxl-enc-bf16, Wan2_1_VAE_bf16, *A14B*Q8*.gguf).
 
 # ── Wan 2.2 TI2V-5B (vídeo — modelo leve, rápido) ─────────────────────────────
 
