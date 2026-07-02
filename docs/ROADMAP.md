@@ -196,6 +196,25 @@ placa grande). Resolvendo o vídeo (**Wan 5B** ou **API**), **tudo cabe em
 Enquanto o A14B seguir self-host, considerar **endpoint separado** pra vídeo
 (GPU maior) e manter o de imagem em GPU pequena.
 
+### Auto scaling (quando ligar worker novo)
+Define **como o RunPod decide escalar** (é a fila nativa dele):
+- **Queue delay** (por tempo de espera): liga worker quando um job fica X
+  segundos esperando na fila. Ex.: `4 sec` = espera 4s sem processar → sobe 1.
+- **Request count** (por quantidade): liga worker baseado no **número** de
+  pedidos acumulados na fila, não no tempo.
+
+Trade-off do valor (no Queue delay):
+- **Menor (1–2s)** → escala **rápido/agressivo**; bom se o **cold start é curto**;
+  custa mais (liga worker mais fácil).
+- **Maior (8–15s)** → escala **devagar/econômico**; bom se o **cold start é
+  longo** (não adianta ligar rápido, o worker demora a subir mesmo).
+
+**Nosso caso:** cold start é **longo** (sobe ComfyUI + carrega modelos/LoRAs
+grandes do volume). Então **4–8s está bom**; ser agressivo só gasta mais sem
+ganho. Com 1 usuário isso quase não importa (raramente há fila); passa a
+importar de verdade **no SaaS**, com vários gerando ao mesmo tempo — aí esse
+botão equilibra **rapidez de resposta × custo**.
+
 ---
 
 ## 8. Decisões em aberto (aguardando o dono)
