@@ -59,8 +59,7 @@
     <select id="workflow">
       <option value="txt2img">Texto → Imagem</option>
       <option value="img2img">Imagem → Imagem</option>
-      <option value="txt2video">Texto → Vídeo</option>
-      <option value="img2video">Imagem → Vídeo</option>
+      <option value="video_i2v">Imagem → Vídeo</option>
     </select>
 
     <label>Modelo base (checkpoint)</label>
@@ -180,7 +179,7 @@ async function saveToLibrary(data, type, body, attempt = 1) {
 function syncUI() {
   const wf = $('workflow').value;
   $('faceBox').classList.toggle('hidden', wf !== 'txt2img_faceid');
-  $('inputBox').classList.toggle('hidden', !(wf === 'img2img' || wf === 'img2video'));
+  $('inputBox').classList.toggle('hidden', !(wf === 'img2img' || wf === 'video_i2v'));
 }
 $('workflow').addEventListener('change', syncUI);
 syncUI();
@@ -419,7 +418,7 @@ function headers() {
 $('goBtn').addEventListener('click', () => {
   const wf = $('workflow').value;
   if (wf === 'txt2img_faceid' && !faceB64) return setStatus('Envie a foto de referência do rosto.', true);
-  if ((wf === 'img2img' || wf === 'img2video') && !inputB64) return setStatus('Envie a imagem de entrada.', true);
+  if ((wf === 'img2img' || wf === 'video_i2v') && !inputB64) return setStatus('Envie a imagem de entrada.', true);
 
   const q = $('quality').value;
   const steps = q === 'draft' ? 20 : 30;
@@ -437,7 +436,7 @@ $('goBtn').addEventListener('click', () => {
   };
   if ($('useCharacter').checked) body.character = 'model';
   if (faceB64 && wf === 'txt2img_faceid') body.face_image_b64 = faceB64;
-  if (inputB64 && (wf === 'img2img' || wf === 'img2video')) body.input_image_b64 = inputB64;
+  if (inputB64 && (wf === 'img2img' || wf === 'video_i2v')) body.input_image_b64 = inputB64;
 
   runJob(body, autoUpscale ? 'Gerando + alta definição…' : 'Enviando para a fila…');
 });
