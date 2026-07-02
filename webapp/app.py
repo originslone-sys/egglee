@@ -519,7 +519,7 @@ def library_page():
 
 
 @app.route("/leads")
-@login_required
+@admin_required
 def leads_page():
     return render_template("leads.html")
 
@@ -573,7 +573,7 @@ def waitlist_join():
 
 
 @app.route("/api/admin/leads")
-@login_required
+@admin_required
 def admin_leads():
     if not db.enabled():
         return jsonify({"leads": [], "total": 0})
@@ -588,7 +588,7 @@ def admin_leads():
 
 
 @app.route("/api/admin/leads/delete", methods=["POST"])
-@login_required
+@admin_required
 def admin_leads_delete():
     lead_id = (request.get_json(force=True) or {}).get("id")
     if lead_id is not None:
@@ -597,7 +597,7 @@ def admin_leads_delete():
 
 
 @app.route("/api/admin/leads.csv")
-@login_required
+@admin_required
 def admin_leads_csv():
     rows = db.list_leads() if db.enabled() else []
     out = io.StringIO()
@@ -1405,18 +1405,18 @@ def admin_gallery_save():
 
 
 @app.route("/api/admin/showcase", methods=["GET"])
-@login_required
+@admin_required
 def admin_showcase_get():
-    return jsonify({"ids": persona.get_showcase(uid())})
+    return jsonify({"ids": persona.get_showcase(owner_uid())})
 
 
 @app.route("/api/admin/showcase", methods=["POST"])
-@login_required
+@admin_required
 def admin_showcase_save():
     if not db.enabled():
         return jsonify({"ok": False, "reason": "banco não configurado"}), 500
     ids = request.get_json(force=True).get("ids", [])
-    persona.save_showcase(uid(), [int(i) for i in ids])
+    persona.save_showcase(owner_uid(), [int(i) for i in ids])
     return jsonify({"ok": True})
 
 

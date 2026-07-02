@@ -95,6 +95,11 @@ Estúdio de criação de conteúdo com IA para uma **influenciadora virtual / mo
 7. **Chat por tenant:** subdomínio/slug (`fulana.egglee.com`), rate-limit,
    proteção contra prompt-injection do visitante.
 
+> **Decisão de escopo:** a página **`/premium` (lista de espera + vitrine) e os
+> `/leads` são SÓ do admin** — NÃO são por-tenant. Rotas de gestão são
+> `admin_required`; a vitrine é fixada no `owner_uid`. Na Fase 3, o **`/chat`
+> vira por-tenant**, mas o `/premium` continua exclusivo do admin.
+
 ---
 
 ## 4. Fila de processamento (prioridade técnica do SaaS)
