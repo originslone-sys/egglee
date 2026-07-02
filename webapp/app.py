@@ -22,6 +22,7 @@ from functools import wraps
 import requests
 from flask import (Flask, request, jsonify, render_template,
                    session, redirect, url_for, Response)
+from werkzeug.security import generate_password_hash, check_password_hash
 
 import storage
 import db
@@ -34,6 +35,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "egglee-dev-secret-change-me")
 ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID", "").strip()
 API_KEY = os.environ.get("RUNPOD_API_KEY", "").strip()
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "").strip()
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").strip().lower()
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "").strip()
 
 BASE_URL = f"https://api.runpod.ai/v2/{ENDPOINT_ID}"
@@ -81,6 +83,28 @@ try:
     db.init()
 except Exception as e:
     print("DB init falhou:", e, flush=True)
+
+
+def bootstrap_admin():
+    """Garante que exista uma conta admin (o dono). Usa ADMIN_EMAIL + a senha
+    (ADMIN_PASSWORD ou o APP_PASSWORD legado). Roda uma vez, se não houver admin."""
+    if not db.enabled():
+        return
+    try:
+        if db.count_admins() > 0:
+            return
+        pw = os.environ.get("ADMIN_PASSWORD", "").strip() or APP_PASSWORD
+        email = ADMIN_EMAIL or "admin@egglee.com"
+        if pw:
+            row = db.create_user(email, generate_password_hash(pw),
+                                 name="Admin", role="admin", plan="unlimited")
+            if row:
+                print(f"[bootstrap] conta admin criada: {email}", flush=True)
+    except Exception as e:
+        print("bootstrap_admin falhou:", e, flush=True)
+
+
+bootstrap_admin()
 
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -131,10 +155,28 @@ def apply_watermark(img_bytes: bytes, cfg: dict) -> bytes:
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
+def current_user():
+    """Devolve a row do usuário logado (ou None). Cacheia no request."""
+    uid = session.get("uid")
+    if not uid:
+        return None
+    if not db.enabled():
+        return None
+    u = db.get_user(uid)
+    if not u or u.get("status") != "active":
+        return None
+    return u
+
+
+def is_admin():
+    return session.get("role") == "admin"
+
+
 def login_required(f):
+    """Exige uma sessão válida (qualquer usuário ativo)."""
     @wraps(f)
     def wrap(*a, **k):
-        if APP_PASSWORD and not session.get("authed"):
+        if "uid" not in session:
             if request.path.startswith("/api/"):
                 return jsonify({"error": "unauthorized"}), 401
             return redirect(url_for("login"))
@@ -142,22 +184,202 @@ def login_required(f):
     return wrap
 
 
+def admin_required(f):
+    """Exige sessão de admin (o dono/agência)."""
+    @wraps(f)
+    def wrap(*a, **k):
+        if "uid" not in session:
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "unauthorized"}), 401
+            return redirect(url_for("login"))
+        if session.get("role") != "admin":
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "forbidden"}), 403
+            return redirect(url_for("conta"))
+        return f(*a, **k)
+    return wrap
+
+
+# Enquanto o isolamento de dados (Fase 2) não existe, o painel é SÓ do admin.
+# Clientes logados são mandados pra área da conta (placeholder) — sem ver dados.
+_USER_ALLOWED_PREFIXES = ("/conta", "/logout", "/api/account", "/static",
+                          "/chat", "/premium", "/api/chat", "/api/pub",
+                          "/api/premium", "/api/waitlist")
+
+
+@app.before_request
+def _role_gate():
+    if "uid" not in session:
+        return  # anônimo: rotas cuidam do próprio login
+    if session.get("role") == "admin":
+        return  # admin: acesso total
+    path = request.path
+    if path == "/" or not any(path.startswith(p) for p in _USER_ALLOWED_PREFIXES):
+        if path.startswith("/api/"):
+            return jsonify({"error": "forbidden", "reason": "conta em preparação"}), 403
+        return redirect(url_for("conta"))
+
+
+def _start_session(user):
+    session.clear()
+    session["uid"] = user["id"]
+    session["role"] = user.get("role", "user")
+    session["email"] = user.get("email", "")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if not APP_PASSWORD:
-        return redirect(url_for("index"))
+    if "uid" in session:
+        return redirect(url_for("index" if is_admin() else "conta"))
     if request.method == "POST":
-        if request.form.get("password", "") == APP_PASSWORD:
-            session["authed"] = True
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+        # Legado: sem e-mail + senha == APP_PASSWORD → entra como admin (não trava o dono).
+        if not email and APP_PASSWORD and password == APP_PASSWORD:
+            admin = db.get_user_by_email(ADMIN_EMAIL or "admin@egglee.com") if db.enabled() else None
+            if admin:
+                _start_session(admin)
+            else:
+                session.clear(); session["uid"] = 0; session["role"] = "admin"; session["email"] = "admin"
             return redirect(url_for("index"))
-        return render_template("login.html", error="Senha incorreta")
+        user = db.get_user_by_email(email) if (db.enabled() and email) else None
+        if user and user.get("status") == "active" and check_password_hash(user["password_hash"], password):
+            _start_session(user)
+            return redirect(url_for("index" if user.get("role") == "admin" else "conta"))
+        return render_template("login.html", error="E-mail ou senha incorretos")
     return render_template("login.html", error=None)
+
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if "uid" in session:
+        return redirect(url_for("index" if is_admin() else "conta"))
+    if request.method == "POST":
+        if not db.enabled():
+            return render_template("signup.html", error="Cadastro indisponível no momento.")
+        name = (request.form.get("name") or "").strip()[:120]
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+        if "@" not in email or "." not in email.split("@")[-1]:
+            return render_template("signup.html", error="E-mail inválido.")
+        if len(password) < 6:
+            return render_template("signup.html", error="A senha precisa de pelo menos 6 caracteres.")
+        if db.get_user_by_email(email):
+            return render_template("signup.html", error="Já existe uma conta com esse e-mail.")
+        row = db.create_user(email, generate_password_hash(password), name=name, role="user")
+        if not row:
+            return render_template("signup.html", error="Não foi possível criar a conta.")
+        _start_session(row)
+        return redirect(url_for("conta"))
+    return render_template("signup.html", error=None)
+
+
+@app.route("/conta")
+@login_required
+def conta():
+    u = current_user()
+    return render_template("conta.html", user=u or {})
 
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+# ── Conta do cliente (self) ───────────────────────────────────────────────────
+
+@app.route("/api/account")
+@login_required
+def api_account():
+    u = current_user()
+    if not u:
+        return jsonify({"error": "unauthorized"}), 401
+    return jsonify({"id": u["id"], "email": u["email"], "name": u.get("name") or "",
+                    "role": u.get("role"), "plan": u.get("plan"), "status": u.get("status")})
+
+
+# ── Admin: gestão de usuários ─────────────────────────────────────────────────
+
+@app.route("/usuarios")
+@admin_required
+def usuarios_page():
+    return render_template("usuarios.html")
+
+
+def _user_public(u):
+    return {"id": u["id"], "email": u["email"], "name": u.get("name") or "",
+            "role": u.get("role"), "status": u.get("status"), "plan": u.get("plan"),
+            "created_at": u["created_at"].isoformat() if u.get("created_at") else ""}
+
+
+@app.route("/api/admin/users")
+@admin_required
+def admin_users_list():
+    if not db.enabled():
+        return jsonify({"users": []})
+    return jsonify({"users": [_user_public(u) for u in db.list_users()]})
+
+
+@app.route("/api/admin/users", methods=["POST"])
+@admin_required
+def admin_users_create():
+    if not db.enabled():
+        return jsonify({"ok": False, "reason": "banco não configurado"}), 500
+    b = request.get_json(force=True)
+    email = (b.get("email") or "").strip().lower()
+    password = b.get("password") or ""
+    name = (b.get("name") or "").strip()[:120]
+    role = "admin" if b.get("role") == "admin" else "user"
+    plan = (b.get("plan") or "free").strip()[:40]
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return jsonify({"ok": False, "reason": "e-mail inválido"}), 400
+    if len(password) < 6:
+        return jsonify({"ok": False, "reason": "senha muito curta (mín. 6)"}), 400
+    if db.get_user_by_email(email):
+        return jsonify({"ok": False, "reason": "e-mail já cadastrado"}), 409
+    row = db.create_user(email, generate_password_hash(password), name=name, role=role, plan=plan)
+    if not row:
+        return jsonify({"ok": False, "reason": "falha ao criar"}), 500
+    return jsonify({"ok": True, "user": _user_public(row)})
+
+
+@app.route("/api/admin/users/update", methods=["POST"])
+@admin_required
+def admin_users_update():
+    b = request.get_json(force=True)
+    uid = int(b.get("id"))
+    target = db.get_user(uid)
+    if not target:
+        return jsonify({"ok": False, "reason": "usuário não encontrado"}), 404
+    # trava de segurança: não deixar rebaixar/desativar o último admin
+    if target.get("role") == "admin" and (b.get("role") == "user" or b.get("status") == "disabled"):
+        if db.count_admins() <= 1:
+            return jsonify({"ok": False, "reason": "não dá pra remover o último admin"}), 400
+    if "status" in b:
+        db.set_user_status(uid, "disabled" if b["status"] == "disabled" else "active")
+    if "role" in b:
+        db.set_user_role(uid, "admin" if b["role"] == "admin" else "user")
+    if "plan" in b:
+        db.set_user_plan(uid, (b["plan"] or "free").strip()[:40])
+    if b.get("password"):
+        if len(b["password"]) < 6:
+            return jsonify({"ok": False, "reason": "senha muito curta"}), 400
+        db.update_user_password(uid, generate_password_hash(b["password"]))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/users/delete", methods=["POST"])
+@admin_required
+def admin_users_delete():
+    uid = int((request.get_json(force=True) or {}).get("id"))
+    target = db.get_user(uid)
+    if target and target.get("role") == "admin" and db.count_admins() <= 1:
+        return jsonify({"ok": False, "reason": "não dá pra excluir o último admin"}), 400
+    if uid == session.get("uid"):
+        return jsonify({"ok": False, "reason": "não dá pra excluir você mesmo"}), 400
+    db.delete_user(uid)
+    return jsonify({"ok": True})
 
 
 # ── RunPod ────────────────────────────────────────────────────────────────────

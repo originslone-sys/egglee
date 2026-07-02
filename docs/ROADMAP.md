@@ -65,8 +65,18 @@ Estúdio de criação de conteúdo com IA para uma **influenciadora virtual / mo
   Segpay se Stripe recusar).
 - **Exclusão de dados (LGPD/GDPR):** apagar conta → purgar R2 + banco.
 
-### Trabalho técnico do multi-tenant (a fazer)
-1. **Contas de usuário:** tabela `users` (signup, hash de senha, e-mail, reset).
+### Trabalho técnico do multi-tenant
+> **FASE 1 — CONCLUÍDA (2026-07-02):** contas + auth + papéis.
+> - Tabela `users` (email único, hash de senha via werkzeug, role, status, plan).
+> - Login por e-mail+senha, cadastro (`/signup`), logout, sessão.
+> - Papéis **admin × cliente**; `admin_required` nas rotas do painel.
+> - Bootstrap do admin (dono) via `ADMIN_EMAIL`/`ADMIN_PASSWORD` (ou `APP_PASSWORD`
+>   legado — login com e-mail em branco + senha antiga ainda funciona).
+> - **Isolamento ainda NÃO existe** → clientes logados caem em `/conta`
+>   (placeholder), sem acessar o painel/dados. Isso é a Fase 2.
+> - Admin gerencia contas em `/usuarios` (criar/ativar/desativar/papel/senha).
+
+1. **Contas de usuário:** tabela `users` (signup, hash de senha, e-mail, reset). ✅
 2. **Isolamento de dados:** `user_id` em **toda** tabela (`media`, `folders`,
    `prompt_presets`, `settings`/persona, `leads`) + filtro em toda query.
 3. **Storage:** R2 com prefixo por tenant (`u/<id>/...`) + controle de acesso.

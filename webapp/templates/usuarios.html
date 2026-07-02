@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egglee · Usuários</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  .stats { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+  .stat { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px 20px; min-width:110px; }
+  .stat .n { font-size:26px; font-weight:800; background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .stat .l { font-size:12px; color:var(--muted); margin-top:2px; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:11px 12px; border-bottom:1px solid var(--border); font-size:14px; }
+  th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+  tr:hover td { background:var(--bg-soft); }
+  .table-wrap { overflow-x:auto; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); }
+  .badge2 { font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; border:1px solid var(--border); }
+  .badge2.admin { color:var(--accent); background:var(--grad-soft); border-color:var(--accent2); }
+  .badge2.dis { color:var(--danger); }
+  .act { display:flex; gap:6px; flex-wrap:wrap; }
+  .act button { background:none; border:1px solid var(--border); color:var(--text); border-radius:8px; padding:5px 9px; cursor:pointer; font-size:12px; }
+  .act button:hover { border-color:var(--accent2); }
+  .act .del { color:var(--danger); }
+  .act .del:hover { border-color:var(--danger); }
+  .empty { text-align:center; color:var(--muted); padding:40px; }
+  .msg { font-size:13px; min-height:18px; margin-top:8px; }
+  .msg.ok { color:var(--ok); } .msg.err { color:var(--danger); }
+  .form-row { display:grid; grid-template-columns:1fr 1fr 1fr auto auto; gap:10px; align-items:end; }
+  @media(max-width:820px){ .form-row { grid-template-columns:1fr 1fr; } }
+  @media(max-width:560px){ .hide-sm { display:none; } }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
+  <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+  <nav class="nav" id="nav">
+    <a href="/">📊 Dashboard</a>
+    <a href="/generate">✨ Gerar</a>
+    <a href="/library">🖼️ Biblioteca</a>
+    <a href="/persona">💬 Persona</a>
+    <a href="/modelos">📦 Modelos</a>
+    <a href="/leads">📋 Leads</a>
+    <a href="/usuarios" class="active">👥 Usuários</a>
+  </nav>
+  <div class="sp"></div>
+  <div class="right"><a href="/logout" class="ghost">Sair</a></div>
+</div>
+
+<div class="page">
+  <h1 class="h-title">👥 Usuários</h1>
+  <p class="h-sub">Contas do SaaS. <b>Admin</b> tem acesso total; <b>cliente</b> terá o estúdio próprio (em construção).</p>
+
+  <div class="stats">
+    <div class="stat"><div class="n" id="stTotal">—</div><div class="l">Total</div></div>
+    <div class="stat"><div class="n" id="stUsers">—</div><div class="l">Clientes</div></div>
+    <div class="stat"><div class="n" id="stAdmins">—</div><div class="l">Admins</div></div>
+  </div>
+
+  <div class="card pad" style="margin-bottom:18px">
+    <div class="sec-title">➕ Criar usuário</div>
+    <div class="form-row">
+      <div><label>Nome</label><input type="text" id="nName" placeholder="Nome"></div>
+      <div><label>E-mail</label><input type="email" id="nEmail" placeholder="cliente@email.com"></div>
+      <div><label>Senha (mín. 6)</label><input type="text" id="nPass" placeholder="senha inicial"></div>
+      <div><label>Papel</label><select id="nRole"><option value="user">Cliente</option><option value="admin">Admin</option></select></div>
+      <div><button class="btn" onclick="createUser()">Criar</button></div>
+    </div>
+    <div class="msg" id="cMsg"></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Nome</th><th>E-mail</th><th>Papel</th><th class="hide-sm">Plano</th>
+        <th>Status</th><th class="hide-sm">Desde</th><th></th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none">Nenhum usuário ainda.</div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let USERS = [];
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return isNaN(d)?'—':d.toLocaleDateString('pt-BR'); }
+
+async function load(){
+  try{
+    const d = await (await fetch('/api/admin/users')).json();
+    USERS = d.users || [];
+    $('stTotal').textContent = USERS.length;
+    $('stUsers').textContent = USERS.filter(u=>u.role!=='admin').length;
+    $('stAdmins').textContent = USERS.filter(u=>u.role==='admin').length;
+    render();
+  }catch(e){ $('empty').style.display='block'; $('empty').textContent='Erro ao carregar.'; }
+}
+
+function render(){
+  if(!USERS.length){ $('rows').innerHTML=''; $('empty').style.display='block'; return; }
+  $('empty').style.display='none';
+  $('rows').innerHTML = USERS.map(u=>{
+    const roleBadge = u.role==='admin'?'<span class="badge2 admin">admin</span>':'<span class="badge2">cliente</span>';
+    const statusBadge = u.status==='disabled'?'<span class="badge2 dis">desativado</span>':'<span class="badge2">ativo</span>';
+    return `<tr>
+      <td>${esc(u.name)||'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${esc(u.email)}</td>
+      <td>${roleBadge}</td>
+      <td class="hide-sm">${esc(u.plan)||'—'}</td>
+      <td>${statusBadge}</td>
+      <td class="hide-sm">${fmtDate(u.created_at)}</td>
+      <td><div class="act">
+        <button onclick="toggleStatus(${u.id},'${u.status}')">${u.status==='disabled'?'Ativar':'Desativar'}</button>
+        <button onclick="toggleRole(${u.id},'${u.role}')">${u.role==='admin'?'→ cliente':'→ admin'}</button>
+        <button onclick="resetPass(${u.id})">Senha</button>
+        <button class="del" onclick="delUser(${u.id})">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function createUser(){
+  const body = { name:$('nName').value.trim(), email:$('nEmail').value.trim(),
+                 password:$('nPass').value, role:$('nRole').value };
+  $('cMsg').className='msg';
+  const r = await fetch('/api/admin/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d = await r.json();
+  if(d.ok){ $('cMsg').className='msg ok'; $('cMsg').textContent='✓ Usuário criado';
+    $('nName').value=$('nEmail').value=$('nPass').value=''; load(); }
+  else { $('cMsg').className='msg err'; $('cMsg').textContent='❌ '+(d.reason||'falhou'); }
+  setTimeout(()=>$('cMsg').textContent='',3500);
+}
+
+async function upd(body){
+  const r = await fetch('/api/admin/users/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d = await r.json();
+  if(!d.ok) alert(d.reason||'falhou');
+  load();
+}
+function toggleStatus(id,st){ upd({id, status: st==='disabled'?'active':'disabled'}); }
+function toggleRole(id,role){ if(confirm('Mudar o papel deste usuário?')) upd({id, role: role==='admin'?'user':'admin'}); }
+function resetPass(id){ const p=prompt('Nova senha (mín. 6):'); if(p) upd({id, password:p}); }
+async function delUser(id){
+  if(!confirm('Excluir este usuário? Isso é permanente.')) return;
+  const r = await fetch('/api/admin/users/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  const d = await r.json();
+  if(!d.ok) alert(d.reason||'falhou');
+  load();
+}
+
+load();
+</script>
+</body>
+</html>
