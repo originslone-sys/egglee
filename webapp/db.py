@@ -40,16 +40,11 @@ def init():
             # Migração: garante a coluna tags se a tabela já existia
             cur.execute("ALTER TABLE media ADD COLUMN IF NOT EXISTS tags TEXT DEFAULT ''")
             cur.execute("ALTER TABLE media ADD COLUMN IF NOT EXISTS size BIGINT DEFAULT 0")
-            # Pastas como entidade própria (podem existir vazias)
+            # Pastas como entidade própria (por usuário — ver migração abaixo)
             cur.execute(
                 "CREATE TABLE IF NOT EXISTS folders ("
-                "id SERIAL PRIMARY KEY, name TEXT UNIQUE NOT NULL, "
+                "id SERIAL PRIMARY KEY, name TEXT NOT NULL, "
                 "created_at TIMESTAMP DEFAULT NOW())"
-            )
-            cur.execute("INSERT INTO folders(name) VALUES ('Geral') ON CONFLICT DO NOTHING")
-            cur.execute(
-                "INSERT INTO folders(name) SELECT DISTINCT folder FROM media "
-                "WHERE folder IS NOT NULL ON CONFLICT DO NOTHING"
             )
             # Presets de prompt (cenas/roupas salvas)
             cur.execute(
@@ -90,24 +85,41 @@ def init():
                 )
                 """
             )
+            # ── Multi-tenant (Fase 2): user_id em tudo + settings por usuário ──
+            cur.execute("ALTER TABLE media ADD COLUMN IF NOT EXISTS user_id INTEGER")
+            cur.execute("ALTER TABLE folders ADD COLUMN IF NOT EXISTS user_id INTEGER")
+            cur.execute("ALTER TABLE prompt_presets ADD COLUMN IF NOT EXISTS user_id INTEGER")
+            # remove a unicidade GLOBAL antiga de nome de pasta (agora é por usuário)
+            cur.execute("ALTER TABLE folders DROP CONSTRAINT IF EXISTS folders_name_key")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_media_user ON media(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_folders_user ON folders(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_presets_user ON prompt_presets(user_id)")
+            # Configurações POR USUÁRIO (persona, página, galeria, vitrine).
+            cur.execute(
+                "CREATE TABLE IF NOT EXISTS user_settings ("
+                "user_id INTEGER NOT NULL, key TEXT NOT NULL, value TEXT, "
+                "PRIMARY KEY (user_id, key))"
+            )
         c.commit()
 
 
-def insert(r2_key, type="image", prompt="", seed=None, workflow="", folder="Geral", size=0):
+# ── Mídia / biblioteca (por usuário) ──────────────────────────────────────────
+
+def insert(user_id, r2_key, type="image", prompt="", seed=None, workflow="", folder="Geral", size=0):
     with _conn() as c:
         with c.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
-                "INSERT INTO media (r2_key, type, prompt, seed, workflow, folder, size) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING *",
-                (r2_key, type, prompt, seed, workflow, folder, size),
+                "INSERT INTO media (user_id, r2_key, type, prompt, seed, workflow, folder, size) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING *",
+                (user_id, r2_key, type, prompt, seed, workflow, folder, size),
             )
             row = cur.fetchone()
         c.commit()
         return row
 
 
-def list_media(limit=400, offset=0, folder=None, favorite=False, q=None, type=None):
-    clauses, params = [], []
+def list_media(user_id, limit=400, offset=0, folder=None, favorite=False, q=None, type=None):
+    clauses, params = ["user_id = %s"], [user_id]
     if folder:
         clauses.append("folder = %s"); params.append(folder)
     if favorite:
@@ -117,7 +129,7 @@ def list_media(limit=400, offset=0, folder=None, favorite=False, q=None, type=No
     if q:
         clauses.append("(prompt ILIKE %s OR tags ILIKE %s)")
         params.extend([f"%{q}%", f"%{q}%"])
-    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    where = " WHERE " + " AND ".join(clauses)
     params.extend([limit, offset])
     with _conn() as c:
         with c.cursor(cursor_factory=RealDictCursor) as cur:
@@ -128,123 +140,159 @@ def list_media(limit=400, offset=0, folder=None, favorite=False, q=None, type=No
             return cur.fetchall()
 
 
-def list_folders():
+def ensure_geral(user_id):
+    """Garante que o usuário tenha a pasta 'Geral'."""
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute(
+                "INSERT INTO folders(user_id, name) SELECT %s, 'Geral' "
+                "WHERE NOT EXISTS (SELECT 1 FROM folders WHERE user_id = %s AND name = 'Geral')",
+                (user_id, user_id),
+            )
+        c.commit()
+
+
+def list_folders(user_id):
+    ensure_geral(user_id)
     with _conn() as c:
         with c.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
                 """
-                SELECT f.name AS folder,
-                       COALESCE(m.n, 0) AS n
+                SELECT f.name AS folder, COALESCE(m.n, 0) AS n
                 FROM folders f
-                LEFT JOIN (SELECT folder, COUNT(*) n FROM media GROUP BY folder) m
+                LEFT JOIN (SELECT folder, COUNT(*) n FROM media
+                           WHERE user_id = %s GROUP BY folder) m
                        ON m.folder = f.name
+                WHERE f.user_id = %s
                 ORDER BY (f.name = 'Geral') DESC, f.name
-                """
+                """,
+                (user_id, user_id),
             )
             return cur.fetchall()
 
 
-def create_folder(name):
+def create_folder(user_id, name):
     with _conn() as c:
         with c.cursor() as cur:
-            cur.execute("INSERT INTO folders(name) VALUES (%s) ON CONFLICT DO NOTHING", (name,))
+            cur.execute(
+                "INSERT INTO folders(user_id, name) SELECT %s, %s "
+                "WHERE NOT EXISTS (SELECT 1 FROM folders WHERE user_id = %s AND name = %s)",
+                (user_id, name, user_id, name),
+            )
         c.commit()
 
 
-def rename_folder(old, new):
+def rename_folder(user_id, old, new):
     with _conn() as c:
         with c.cursor() as cur:
-            cur.execute("UPDATE folders SET name = %s WHERE name = %s", (new, old))
-            cur.execute("UPDATE media SET folder = %s WHERE folder = %s", (new, old))
+            cur.execute("UPDATE folders SET name = %s WHERE user_id = %s AND name = %s",
+                        (new, user_id, old))
+            cur.execute("UPDATE media SET folder = %s WHERE user_id = %s AND folder = %s",
+                        (new, user_id, old))
         c.commit()
 
 
-def delete_folder(name):
+def delete_folder(user_id, name):
     if name == "Geral":
         return
     with _conn() as c:
         with c.cursor() as cur:
-            cur.execute("UPDATE media SET folder = 'Geral' WHERE folder = %s", (name,))
-            cur.execute("DELETE FROM folders WHERE name = %s", (name,))
+            cur.execute("UPDATE media SET folder = 'Geral' WHERE user_id = %s AND folder = %s",
+                        (user_id, name))
+            cur.execute("DELETE FROM folders WHERE user_id = %s AND name = %s", (user_id, name))
         c.commit()
 
 
-def get(media_id):
+def get(media_id, user_id=None):
+    """Busca uma mídia. Se user_id for passado, só devolve se pertencer a ele."""
     with _conn() as c:
         with c.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM media WHERE id = %s", (media_id,))
+            if user_id is None:
+                cur.execute("SELECT * FROM media WHERE id = %s", (media_id,))
+            else:
+                cur.execute("SELECT * FROM media WHERE id = %s AND user_id = %s",
+                            (media_id, user_id))
             return cur.fetchone()
 
 
-def keys_for(ids):
+def keys_for(ids, user_id):
     with _conn() as c:
         with c.cursor() as cur:
-            cur.execute("SELECT r2_key FROM media WHERE id = ANY(%s)", (list(ids),))
+            cur.execute("SELECT r2_key FROM media WHERE id = ANY(%s) AND user_id = %s",
+                        (list(ids), user_id))
             return [r[0] for r in cur.fetchall()]
 
 
-def set_favorite(media_id, value):
+def set_favorite(media_id, value, user_id):
     with _conn() as c:
         with c.cursor() as cur:
-            cur.execute("UPDATE media SET favorite = %s WHERE id = %s", (bool(value), media_id))
+            cur.execute("UPDATE media SET favorite = %s WHERE id = %s AND user_id = %s",
+                        (bool(value), media_id, user_id))
         c.commit()
 
 
-def set_folder(ids, folder):
+def set_folder(ids, folder, user_id):
     with _conn() as c:
         with c.cursor() as cur:
-            cur.execute("UPDATE media SET folder = %s WHERE id = ANY(%s)", (folder, list(ids)))
+            cur.execute("UPDATE media SET folder = %s WHERE id = ANY(%s) AND user_id = %s",
+                        (folder, list(ids), user_id))
         c.commit()
 
 
-def set_tags(media_id, tags):
+def set_tags(media_id, tags, user_id):
     with _conn() as c:
         with c.cursor() as cur:
-            cur.execute("UPDATE media SET tags = %s WHERE id = %s", (tags, media_id))
+            cur.execute("UPDATE media SET tags = %s WHERE id = %s AND user_id = %s",
+                        (tags, media_id, user_id))
         c.commit()
 
 
-def delete(media_id):
+def delete(media_id, user_id):
     with _conn() as c:
         with c.cursor() as cur:
-            cur.execute("DELETE FROM media WHERE id = %s", (media_id,))
+            cur.execute("DELETE FROM media WHERE id = %s AND user_id = %s", (media_id, user_id))
         c.commit()
 
 
-def delete_many(ids):
+def delete_many(ids, user_id):
     with _conn() as c:
         with c.cursor() as cur:
-            cur.execute("DELETE FROM media WHERE id = ANY(%s)", (list(ids),))
+            cur.execute("DELETE FROM media WHERE id = ANY(%s) AND user_id = %s",
+                        (list(ids), user_id))
         c.commit()
 
 
-# ── Presets de prompt ─────────────────────────────────────────────────────────
+# ── Presets de prompt (por usuário) ───────────────────────────────────────────
 
-def list_presets():
+def list_presets(user_id):
     with _conn() as c:
         with c.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT id, name, prompt FROM prompt_presets ORDER BY name")
+            cur.execute("SELECT id, name, prompt FROM prompt_presets "
+                        "WHERE user_id = %s ORDER BY name", (user_id,))
             return cur.fetchall()
 
 
-def create_preset(name, prompt):
+def create_preset(user_id, name, prompt):
     with _conn() as c:
         with c.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
-                "INSERT INTO prompt_presets(name, prompt) VALUES (%s, %s) RETURNING id",
-                (name, prompt),
+                "INSERT INTO prompt_presets(user_id, name, prompt) VALUES (%s, %s, %s) RETURNING id",
+                (user_id, name, prompt),
             )
             row = cur.fetchone()
         c.commit()
         return row
 
 
-def delete_preset(preset_id):
+def delete_preset(preset_id, user_id):
     with _conn() as c:
         with c.cursor() as cur:
-            cur.execute("DELETE FROM prompt_presets WHERE id = %s", (preset_id,))
+            cur.execute("DELETE FROM prompt_presets WHERE id = %s AND user_id = %s",
+                        (preset_id, user_id))
         c.commit()
 
+
+# ── Settings GLOBAIS (infra: token civitai, caches, checkpoint ativo…) ────────
 
 def get_setting(key, default=None):
     with _conn() as c:
@@ -261,6 +309,28 @@ def set_setting(key, value):
                 "INSERT INTO settings(key, value) VALUES (%s, %s) "
                 "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
                 (key, value),
+            )
+        c.commit()
+
+
+# ── Settings POR USUÁRIO (persona, página, galeria, vitrine) ──────────────────
+
+def get_user_setting(user_id, key, default=None):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("SELECT value FROM user_settings WHERE user_id = %s AND key = %s",
+                        (user_id, key))
+            row = cur.fetchone()
+            return row[0] if row else default
+
+
+def set_user_setting(user_id, key, value):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute(
+                "INSERT INTO user_settings(user_id, key, value) VALUES (%s, %s, %s) "
+                "ON CONFLICT (user_id, key) DO UPDATE SET value = EXCLUDED.value",
+                (user_id, key, value),
             )
         c.commit()
 
@@ -408,7 +478,40 @@ def delete_user(uid):
         c.commit()
 
 
-def stats():
+def first_admin_id():
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE role = 'admin' ORDER BY id LIMIT 1")
+            row = cur.fetchone()
+            return row[0] if row else None
+
+
+def backfill_owner(owner_id):
+    """Fase 2: atribui ao dono (admin) todos os dados órfãos (user_id NULL) e
+    migra as settings globais dele (persona/página/galeria/vitrine) pro per-user.
+    Idempotente."""
+    if not owner_id:
+        return
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("UPDATE media SET user_id = %s WHERE user_id IS NULL", (owner_id,))
+            cur.execute("UPDATE folders SET user_id = %s WHERE user_id IS NULL", (owner_id,))
+            cur.execute("UPDATE prompt_presets SET user_id = %s WHERE user_id IS NULL", (owner_id,))
+            # migra as chaves per-user do dono do 'settings' global -> 'user_settings'
+            for key in ("persona", "page", "gallery", "premium_showcase"):
+                cur.execute("SELECT value FROM settings WHERE key = %s", (key,))
+                row = cur.fetchone()
+                if row:
+                    cur.execute(
+                        "INSERT INTO user_settings(user_id, key, value) VALUES (%s, %s, %s) "
+                        "ON CONFLICT (user_id, key) DO NOTHING",
+                        (owner_id, key, row[0]),
+                    )
+                    cur.execute("DELETE FROM settings WHERE key = %s", (key,))
+        c.commit()
+
+
+def stats(user_id):
     with _conn() as c:
         with c.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
@@ -416,11 +519,12 @@ def stats():
                 "COUNT(*) FILTER (WHERE type='image') AS images, "
                 "COUNT(*) FILTER (WHERE type='video') AS videos, "
                 "COUNT(*) FILTER (WHERE favorite) AS favorites, "
-                "COALESCE(SUM(size),0) AS bytes FROM media"
+                "COALESCE(SUM(size),0) AS bytes FROM media WHERE user_id = %s",
+                (user_id,),
             )
             m = cur.fetchone()
-            cur.execute("SELECT COUNT(*) AS n FROM folders")
+            cur.execute("SELECT COUNT(*) AS n FROM folders WHERE user_id = %s", (user_id,))
             f = cur.fetchone()
-            cur.execute("SELECT COUNT(*) AS n FROM prompt_presets")
+            cur.execute("SELECT COUNT(*) AS n FROM prompt_presets WHERE user_id = %s", (user_id,))
             p = cur.fetchone()
             return {**m, "folders": f["n"], "presets": p["n"]}
