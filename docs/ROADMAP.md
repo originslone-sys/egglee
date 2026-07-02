@@ -158,13 +158,54 @@ fraco real que sentimos é **disponibilidade de GPU (throttling)** numa região 
 
 ---
 
-## 7. Decisões em aberto (aguardando o dono)
+## 7. Configuração do endpoint RunPod (GPU) — economia
+
+**Como funciona a cobrança:** paga-se **por segundo só da GPU que rodou** o job;
+escala a zero quando ocioso. Você só paga pela config **disponível no momento**.
+
+**Regra de ouro:** `custo do job = preço/segundo × tempo`. Uma GPU 5x mais cara
+que roda 2x mais rápido **sai mais cara no total**. **Velocidade ≠ economia.**
+
+### Erros a evitar (aprendido na prática)
+- **Não** colocar a GPU **mais cara como prioridade 1.** Isso força **todo** job
+  (inclusive geração de imagem, que roda numa 16GB por ~$0.00016/s) numa GPU de
+  ~$0.00240/s → até ~15x mais caro sem ganho (SDXL usa ~10GB, não satura a placa).
+- **Não** desabilitar as GPUs pequenas se o endpoint também faz imagem.
+
+### Configuração recomendada
+- **Ordem de prioridade: do mais barato → mais caro.** A GPU barata-que-funciona
+  como 1ª; as grandes como **fallback** só quando a barata está indisponível.
+  (Mesma disponibilidade contra throttling, custo muito menor.)
+- **Habilitar vários tipos de GPU** ajuda contra throttling (mais oferta no pool).
+- `max workers`: 1–2 (2 só melhora **vazão** com fila, não a velocidade de 1 job).
+- `active workers`: **0** (senão paga GPU parada 24/7).
+
+### Referência de custo (números reais do painel + estimativa de tempo)
+| GPU | Preço/s | Vídeo 5s (est.) | Custo do job |
+|---|---|---|---|
+| 16GB | $0.00016 | (ideal p/ imagem) | ~centavos |
+| 32GB PRO | $0.00044 | ~4 min | ~$0.11 |
+| 180GB B200 | $0.00240 | ~2 min | ~$0.29 |
+
+> A 180GB é mais rápida, mas o mesmo vídeo sai **~3x mais caro**.
+
+### O conserto de fundo
+A razão de sermos empurrados pra GPU cara é o **A14B de vídeo** (pesado, exige
+placa grande). Resolvendo o vídeo (**Wan 5B** ou **API**), **tudo cabe em
+16–24GB** e o endpoint inteiro volta a rodar em GPU barata — melhor economia.
+Enquanto o A14B seguir self-host, considerar **endpoint separado** pra vídeo
+(GPU maior) e manter o de imagem em GPU pequena.
+
+---
+
+## 8. Decisões em aberto (aguardando o dono)
 
 - [ ] Vídeo: **API como padrão** vs **migrar pro Wan 5B**.
 - [ ] Iniciar o **multi-tenant** (contas + isolamento + fila) — só depois de
       validar demanda pela lista de espera.
 - [ ] Definir **planos/limites** (cotas) — quando for precificar.
 - [ ] Escolher **processador de pagamento** (testar Stripe; plano B especializado).
+- [ ] Ajustar prioridade de GPU do endpoint RunPod (barato→caro) — ver seção 7.
 
 ---
 
