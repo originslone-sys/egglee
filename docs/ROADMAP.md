@@ -124,8 +124,21 @@ timeout de 1200s. **Não é bug: é modelo pesado demais pra placa.**
 - **Mais workers NÃO acelera** um vídeo (é paralelismo entre jobs). **Active
   workers = pagar GPU parada** → manter em 0.
 
-> **Pendente de decisão do dono** (não implementar ainda): API como padrão vs
-> migrar pro Wan 5B. Analisar exemplos de vídeo do 5B antes.
+> **DECIDIDO (2026-07-02): migrar self-host pro Wan 2.2 TI2V-5B.** Implementado
+> no código (workflow + handler + params). **Pendente:** baixar o modelo no
+> volume e rodar teste real cronometrado. Detalhes técnicos abaixo.
+
+### Migração pro Wan 5B — o que mudou no código
+- `workflows/video_i2v.json` reescrito: **modelo único** `wan2.2_ti2v_5B_fp16`
+  (UNETLoader), **1 KSampler** (sem split MoE), node `Wan22ImageToVideoLatent`,
+  **VAE novo** `wan2.2_vae.safetensors`, mesmo text encoder `umt5_xxl_fp8`.
+- `app.py`: vídeo agora **720p nativo @ 24fps**, 121 frames/5s, 30 passos
+  single-pass, dims múltiplas de 32. Removido `split_step`.
+- `setup/download_models.sh`: baixa o 5B + VAE 2.2 do repo Comfy-Org repackaged.
+- **Ação manual necessária:** baixar os arquivos no **network volume** (o
+  rebuild da imagem NÃO baixa modelos). Sem isso, o worker dá "model not found".
+- **Ajustes finos possíveis após teste:** `steps` (30→20 p/ velocidade),
+  `shift` (8.0; menor = menos movimento), resolução (720p↔480p).
 
 ---
 
@@ -219,7 +232,8 @@ botão equilibra **rapidez de resposta × custo**.
 
 ## 8. Decisões em aberto (aguardando o dono)
 
-- [ ] Vídeo: **API como padrão** vs **migrar pro Wan 5B**.
+- [x] Vídeo: **migrar pro Wan 5B** — DECIDIDO e implementado (2026-07-02).
+      Falta baixar o modelo no volume + teste real.
 - [ ] Iniciar o **multi-tenant** (contas + isolamento + fila) — só depois de
       validar demanda pela lista de espera.
 - [ ] Definir **planos/limites** (cotas) — quando for precificar.

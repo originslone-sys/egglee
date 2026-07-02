@@ -165,6 +165,29 @@ hf_download "$MODELS/vae" \
     "Kijai/WanVideo_comfy" \
     "Wan2_1_VAE_bf16.safetensors"
 
+# ── Wan 2.2 TI2V-5B (vídeo — modelo leve, rápido) ─────────────────────────────
+
+echo ""
+echo "=== Wan 2.2 TI2V-5B (vídeo self-host — ~10 GB) ==="
+
+# Modelo de difusão 5B (single-file, fp16). Vai em diffusion_models/.
+hf_download "$MODELS/diffusion_models" \
+    "Comfy-Org/Wan_2.2_ComfyUI_Repackaged" \
+    "split_files/diffusion_models/wan2.2_ti2v_5B_fp16.safetensors" \
+    "wan2.2_ti2v_5B_fp16.safetensors"
+
+# VAE do Wan 2.2 (NOVO — diferente do 2.1; alta compressão 16x16x4).
+hf_download "$MODELS/vae" \
+    "Comfy-Org/Wan_2.2_ComfyUI_Repackaged" \
+    "split_files/vae/wan2.2_vae.safetensors" \
+    "wan2.2_vae.safetensors"
+
+# Text encoder umt5 (mesmo do A14B; idempotente — pula se já existir).
+hf_download "$MODELS/text_encoders" \
+    "Comfy-Org/Wan_2.2_ComfyUI_Repackaged" \
+    "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
+    "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+
 # ── IPAdapter FaceID (SDXL) ───────────────────────────────────────────────────
 
 echo ""
