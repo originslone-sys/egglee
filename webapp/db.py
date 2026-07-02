@@ -75,6 +75,21 @@ def init():
                 )
                 """
             )
+            # Contas de usuário (SaaS multi-tenant — Fase 1)
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    name TEXT DEFAULT '',
+                    role TEXT DEFAULT 'user',
+                    status TEXT DEFAULT 'active',
+                    plan TEXT DEFAULT 'free',
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+                """
+            )
         c.commit()
 
 
@@ -306,6 +321,90 @@ def delete_lead(lead_id):
     with _conn() as c:
         with c.cursor() as cur:
             cur.execute("DELETE FROM leads WHERE id = %s", (lead_id,))
+        c.commit()
+
+
+# ── Usuários (contas / auth) ──────────────────────────────────────────────────
+
+def _norm_email(e):
+    return (e or "").strip().lower()
+
+
+def create_user(email, password_hash, name="", role="user", plan="free"):
+    """Cria um usuário. Devolve a row, ou None se o e-mail já existe."""
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "INSERT INTO users (email, password_hash, name, role, plan) "
+                "VALUES (%s, %s, %s, %s, %s) "
+                "ON CONFLICT (email) DO NOTHING RETURNING *",
+                (_norm_email(email), password_hash, (name or "").strip(), role, plan),
+            )
+            row = cur.fetchone()
+        c.commit()
+        return row
+
+
+def get_user_by_email(email):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM users WHERE email = %s", (_norm_email(email),))
+            return cur.fetchone()
+
+
+def get_user(uid):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM users WHERE id = %s", (uid,))
+            return cur.fetchone()
+
+
+def list_users(limit=1000):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM users ORDER BY created_at DESC LIMIT %s", (limit,))
+            return cur.fetchall()
+
+
+def count_admins():
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+            return cur.fetchone()[0]
+
+
+def set_user_status(uid, status):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("UPDATE users SET status = %s WHERE id = %s", (status, uid))
+        c.commit()
+
+
+def set_user_role(uid, role):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("UPDATE users SET role = %s WHERE id = %s", (role, uid))
+        c.commit()
+
+
+def set_user_plan(uid, plan):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("UPDATE users SET plan = %s WHERE id = %s", (plan, uid))
+        c.commit()
+
+
+def update_user_password(uid, password_hash):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("UPDATE users SET password_hash = %s WHERE id = %s", (password_hash, uid))
+        c.commit()
+
+
+def delete_user(uid):
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("DELETE FROM users WHERE id = %s", (uid,))
         c.commit()
 
 
