@@ -1,13 +1,8 @@
 {
   "1": {
-    "inputs": { "unet_name": "Wan2.2-I2V-A14B-HighNoise-Q8_0.gguf" },
-    "class_type": "UnetLoaderGGUF",
-    "_meta": { "title": "Wan 2.2 I2V — High Noise (GGUF)" }
-  },
-  "2": {
-    "inputs": { "unet_name": "Wan2.2-I2V-A14B-LowNoise-Q8_0.gguf" },
-    "class_type": "UnetLoaderGGUF",
-    "_meta": { "title": "Wan 2.2 I2V — Low Noise (GGUF)" }
+    "inputs": { "unet_name": "wan2.2_ti2v_5B_fp16.safetensors", "weight_dtype": "default" },
+    "class_type": "UNETLoader",
+    "_meta": { "title": "Wan 2.2 TI2V-5B (diffusion model)" }
   },
   "3": {
     "inputs": { "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "type": "wan" },
@@ -15,9 +10,9 @@
     "_meta": { "title": "Text Encoder (umt5)" }
   },
   "4": {
-    "inputs": { "vae_name": "wan_2.1_vae.safetensors" },
+    "inputs": { "vae_name": "wan2.2_vae.safetensors" },
     "class_type": "VAELoader",
-    "_meta": { "title": "VAE (wan 2.1)" }
+    "_meta": { "title": "VAE (wan 2.2)" }
   },
   "5": {
     "inputs": { "text": "{{positive_prompt}}", "clip": ["3", 0] },
@@ -40,64 +35,35 @@
       "height": "{{height}}",
       "length": "{{length}}",
       "batch_size": 1,
-      "positive": ["5", 0],
-      "negative": ["6", 0],
       "vae": ["4", 0],
       "start_image": ["7", 0]
     },
-    "class_type": "WanImageToVideo",
-    "_meta": { "title": "Wan Image To Video" }
+    "class_type": "Wan22ImageToVideoLatent",
+    "_meta": { "title": "Wan 2.2 Image → Video Latent" }
   },
   "9": {
     "inputs": { "shift": 8.0, "model": ["1", 0] },
     "class_type": "ModelSamplingSD3",
-    "_meta": { "title": "Sampling (high)" }
+    "_meta": { "title": "Sampling shift" }
   },
   "10": {
-    "inputs": { "shift": 8.0, "model": ["2", 0] },
-    "class_type": "ModelSamplingSD3",
-    "_meta": { "title": "Sampling (low)" }
-  },
-  "11": {
     "inputs": {
-      "add_noise": "enable",
-      "noise_seed": "{{seed}}",
+      "seed": "{{seed}}",
       "steps": "{{steps}}",
       "cfg": 5.0,
       "sampler_name": "euler",
       "scheduler": "simple",
-      "start_at_step": 0,
-      "end_at_step": "{{split_step}}",
-      "return_with_leftover_noise": "enable",
+      "denoise": 1.0,
       "model": ["9", 0],
-      "positive": ["8", 0],
-      "negative": ["8", 1],
-      "latent_image": ["8", 2]
+      "positive": ["5", 0],
+      "negative": ["6", 0],
+      "latent_image": ["8", 0]
     },
-    "class_type": "KSamplerAdvanced",
-    "_meta": { "title": "KSampler — High Noise" }
-  },
-  "12": {
-    "inputs": {
-      "add_noise": "disable",
-      "noise_seed": "{{seed}}",
-      "steps": "{{steps}}",
-      "cfg": 5.0,
-      "sampler_name": "euler",
-      "scheduler": "simple",
-      "start_at_step": "{{split_step}}",
-      "end_at_step": "{{steps}}",
-      "return_with_leftover_noise": "disable",
-      "model": ["10", 0],
-      "positive": ["8", 0],
-      "negative": ["8", 1],
-      "latent_image": ["11", 0]
-    },
-    "class_type": "KSamplerAdvanced",
-    "_meta": { "title": "KSampler — Low Noise" }
+    "class_type": "KSampler",
+    "_meta": { "title": "KSampler (5B — single pass)" }
   },
   "13": {
-    "inputs": { "samples": ["12", 0], "vae": ["4", 0] },
+    "inputs": { "samples": ["10", 0], "vae": ["4", 0] },
     "class_type": "VAEDecode",
     "_meta": { "title": "VAE Decode" }
   },
@@ -105,7 +71,7 @@
     "inputs": {
       "frame_rate": "{{frame_rate}}",
       "loop_count": 0,
-      "filename_prefix": "wan_i2v",
+      "filename_prefix": "wan_ti2v_5b",
       "format": "video/h264-mp4",
       "pingpong": false,
       "save_output": true,

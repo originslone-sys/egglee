@@ -190,15 +190,16 @@ def _build_input(body: dict) -> dict:
     if body.get("input_image_b64"):
         inputs["input_image_b64"] = body["input_image_b64"]
 
-    # Vídeo self-host (Wan): traduz resolução/proporção/duração em dimensões.
+    # Vídeo self-host (Wan 2.2 TI2V-5B): traduz resolução/proporção em dimensões.
+    # O 5B é nativo 720p @ 24fps; dimensões múltiplas de 32 (exigência do node).
     if "video" in body["workflow_name"]:
         _DIMS = {
             "480p": {"9:16": (480, 832), "16:9": (832, 480), "1:1": (640, 640)},
-            "720p": {"9:16": (720, 1280), "16:9": (1280, 720), "1:1": (960, 960)},
+            "720p": {"9:16": (704, 1280), "16:9": (1280, 704), "1:1": (960, 960)},
         }
-        res = body.get("resolution", "480p")
+        res = body.get("resolution", "720p")
         ar = body.get("aspect_ratio", "9:16")
-        w, h = _DIMS.get(res, _DIMS["480p"]).get(ar, (480, 832))
+        w, h = _DIMS.get(res, _DIMS["720p"]).get(ar, (704, 1280))
         try:
             dur = int(float(body.get("duration", 5)))
         except (TypeError, ValueError):
@@ -206,10 +207,9 @@ def _build_input(body: dict) -> dict:
         video_segments = max(1, min(3, dur // 5))   # 5s=1, 10s=2, 15s=3
         inputs["width"] = w
         inputs["height"] = h
-        inputs["length"] = 81                 # 5s por trecho (frames 4n+1)
-        inputs["frame_rate"] = 16
-        inputs["steps"] = 20
-        inputs["split_step"] = 10
+        inputs["length"] = 121                # 5s por trecho @ 24fps (frames 4n+1)
+        inputs["frame_rate"] = 24
+        inputs["steps"] = 30                  # 5B é single-pass; 30 passos (ajustável)
 
         # Trava fixa: LER a imagem e só animar (movimento humano realista),
         # somada ao prompt do usuário. Idem no negativo (anti-morphing).
