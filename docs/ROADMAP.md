@@ -77,8 +77,17 @@ Estúdio de criação de conteúdo com IA para uma **influenciadora virtual / mo
 > - Admin gerencia contas em `/usuarios` (criar/ativar/desativar/papel/senha).
 
 1. **Contas de usuário:** tabela `users` (signup, hash de senha, e-mail, reset). ✅
-2. **Isolamento de dados:** `user_id` em **toda** tabela (`media`, `folders`,
-   `prompt_presets`, `settings`/persona, `leads`) + filtro em toda query.
+2. **Isolamento de dados:** `user_id` em **toda** tabela + filtro em toda query. ✅
+   > **FASE 2 — CONCLUÍDA (2026-07-02):**
+   > - `user_id` em `media`, `folders`, `prompt_presets`; tabela `user_settings`
+   >   (persona/página/galeria/vitrine por usuário) + índices por `user_id`.
+   > - **Toda** query de biblioteca/pastas/presets/persona filtra pelo dono;
+   >   serving de mídia (`/api/media`, `/api/thumb`) verifica propriedade.
+   > - Front público (`/chat`, `/premium`) serve a persona do **dono** (`owner_uid`).
+   > - **Backfill idempotente:** dados existentes viram do admin; settings globais
+   >   dele (persona/página/galeria/vitrine) migram pro `user_settings`.
+   > - Settings de infra (civitai_token, caches, checkpoint ativo, watermark)
+   >   seguem **globais** (do dono/admin) de propósito.
 3. **Storage:** R2 com prefixo por tenant (`u/<id>/...`) + controle de acesso.
 4. **Fila robusta** (crítico — ver seção 4).
 5. **Cotas + billing:** créditos por plano (imagem/vídeo/chat), Stripe, medição.

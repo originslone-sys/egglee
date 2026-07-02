@@ -107,6 +107,27 @@ def bootstrap_admin():
 bootstrap_admin()
 
 try:
+    if db.enabled():
+        db.backfill_owner(db.first_admin_id())
+except Exception as e:
+    print("backfill_owner falhou:", e, flush=True)
+
+# id do dono (admin principal) — a persona/página/galeria PÚBLICA é a dele.
+_OWNER_UID = None
+
+
+def owner_uid():
+    global _OWNER_UID
+    if _OWNER_UID is None and db.enabled():
+        _OWNER_UID = db.first_admin_id()
+    return _OWNER_UID
+
+
+def uid():
+    """id do usuário logado (dono dos dados que ele acessa)."""
+    return session.get("uid")
+
+try:
     from PIL import Image, ImageDraw, ImageFont
     _PIL_OK = True
 except Exception:
@@ -653,7 +674,7 @@ def _image_data_url(media_id=None, image_b64=None):
     if image_b64:
         b64 = image_b64.split(",", 1)[-1]  # aceita data URL ou b64 puro
         return f"data:image/png;base64,{b64}"
-    row = db.get(media_id)
+    row = db.get(media_id, uid())
     if not row:
         raise ValueError("imagem não encontrada na biblioteca")
     raw = storage.get_bytes(row["r2_key"])
@@ -736,7 +757,7 @@ def video_status():
         storage.upload_bytes(key, mp4, "video/mp4")
         make_and_store_thumb(key, mp4, is_video=True)
         folder = (b.get("folder") or "Geral").strip() or "Geral"
-        row = db.insert(key, type="video", prompt=b.get("prompt", ""),
+        row = db.insert(uid(), key, type="video", prompt=b.get("prompt", ""),
                         workflow="video", folder=folder, size=len(mp4))
         return jsonify({"status": "completed", "media_id": row["id"]})
     except Exception as e:
@@ -767,7 +788,7 @@ def library_save():
         seed = body.get("seed")
         seed = int(seed) if isinstance(seed, (int, str)) and str(seed).lstrip("-").isdigit() else None
         folder = (body.get("folder") or "Geral").strip() or "Geral"
-        row = db.insert(key, type=mtype, prompt=body.get("prompt", ""),
+        row = db.insert(uid(), key, type=mtype, prompt=body.get("prompt", ""),
                         seed=seed, workflow=body.get("workflow", ""), folder=folder, size=len(raw))
         return jsonify({"ok": True, "id": row["id"]})
     except Exception as e:
@@ -782,13 +803,14 @@ def library_list():
         return jsonify({"items": [], "folders": [], "configured": False})
     try:
         rows = db.list_media(
+            uid(),
             limit=int(request.args.get("limit", 400)),
             folder=request.args.get("folder") or None,
             favorite=request.args.get("favorite") == "1",
             q=request.args.get("q") or None,
             type=request.args.get("type") or None,
         )
-        folders = db.list_folders()
+        folders = db.list_folders(uid())
     except Exception as e:
         print("LIBRARY LIST ERROR:", e, flush=True)
         return jsonify({"items": [], "folders": [], "configured": True, "error": str(e)})
@@ -815,7 +837,7 @@ def presets_list():
     if not db.enabled():
         return jsonify({"presets": []})
     try:
-        return jsonify({"presets": db.list_presets()})
+        return jsonify({"presets": db.list_presets(uid())})
     except Exception as e:
         print("PRESETS LIST ERROR:", e, flush=True)
         return jsonify({"presets": []})
@@ -831,7 +853,7 @@ def presets_create():
     prompt = (b.get("prompt") or "").strip()
     if not name or not prompt:
         return jsonify({"ok": False, "reason": "nome e prompt obrigatórios"}), 400
-    row = db.create_preset(name, prompt)
+    row = db.create_preset(uid(), name, prompt)
     return jsonify({"ok": True, "id": row["id"]})
 
 
@@ -839,7 +861,7 @@ def presets_create():
 @login_required
 def presets_delete(preset_id):
     if db.enabled():
-        db.delete_preset(preset_id)
+        db.delete_preset(preset_id, uid())
     return jsonify({"ok": True})
 
 
@@ -849,7 +871,7 @@ def folder_create():
     name = (request.get_json(force=True).get("name") or "").strip()
     if not name:
         return jsonify({"ok": False, "reason": "nome vazio"}), 400
-    db.create_folder(name)
+    db.create_folder(uid(), name)
     return jsonify({"ok": True})
 
 
@@ -860,7 +882,7 @@ def folder_rename():
     old, new = (b.get("old") or "").strip(), (b.get("new") or "").strip()
     if not old or not new or old == "Geral":
         return jsonify({"ok": False, "reason": "inválido"}), 400
-    db.rename_folder(old, new)
+    db.rename_folder(uid(), old, new)
     return jsonify({"ok": True})
 
 
@@ -870,7 +892,7 @@ def folder_delete():
     name = (request.get_json(force=True).get("name") or "").strip()
     if not name or name == "Geral":
         return jsonify({"ok": False, "reason": "inválido"}), 400
-    db.delete_folder(name)
+    db.delete_folder(uid(), name)
     return jsonify({"ok": True})
 
 
@@ -880,7 +902,7 @@ def stats():
     if not db.enabled():
         return jsonify({})
     try:
-        return jsonify(db.stats())
+        return jsonify(db.stats(uid()))
     except Exception as e:
         print("STATS ERROR:", e, flush=True)
         return jsonify({})
@@ -1002,7 +1024,7 @@ def _ensure_thumb(r2_key: str, is_video: bool = False) -> bytes:
 @login_required
 def thumb_proxy(media_id):
     """Miniatura JPEG leve para a grade (gerada e cacheada no R2)."""
-    row = db.get(media_id)
+    row = db.get(media_id, uid())
     if not row:
         return ("not found", 404)
     if not _PIL_OK:
@@ -1021,7 +1043,7 @@ def thumb_proxy(media_id):
 @login_required
 def media_proxy(media_id):
     """Serve a mídia via backend (evita CORS no fetch direto ao R2)."""
-    row = db.get(media_id)
+    row = db.get(media_id, uid())
     if not row:
         return ("not found", 404)
     try:
@@ -1056,7 +1078,7 @@ def settings_watermark():
 @login_required
 def library_favorite():
     b = request.get_json(force=True)
-    db.set_favorite(b["id"], b.get("value", True))
+    db.set_favorite(b["id"], b.get("value", True), uid())
     return jsonify({"ok": True})
 
 
@@ -1065,7 +1087,7 @@ def library_favorite():
 def library_move():
     b = request.get_json(force=True)
     folder = (b.get("folder") or "Geral").strip() or "Geral"
-    db.set_folder(b.get("ids", []), folder)
+    db.set_folder(b.get("ids", []), folder, uid())
     return jsonify({"ok": True})
 
 
@@ -1073,7 +1095,7 @@ def library_move():
 @login_required
 def library_tags():
     b = request.get_json(force=True)
-    db.set_tags(b["id"], (b.get("tags") or "").strip())
+    db.set_tags(b["id"], (b.get("tags") or "").strip(), uid())
     return jsonify({"ok": True})
 
 
@@ -1084,13 +1106,13 @@ def library_delete_many():
     if not ids:
         return jsonify({"ok": False, "reason": "sem ids"}), 400
     try:
-        for key in db.keys_for(ids):
+        for key in db.keys_for(ids, uid()):
             try:
                 storage.delete_key(key)
                 storage.delete_key(_thumb_key(key))
             except Exception as e:
                 print("DELETE R2 ERROR:", e, flush=True)
-        db.delete_many(ids)
+        db.delete_many(ids, uid())
     except Exception as e:
         print("BULK DELETE ERROR:", e, flush=True)
         return jsonify({"ok": False, "reason": str(e)}), 500
@@ -1100,7 +1122,7 @@ def library_delete_many():
 @app.route("/api/library/<int:media_id>", methods=["DELETE"])
 @login_required
 def library_delete(media_id):
-    row = db.get(media_id)
+    row = db.get(media_id, uid())
     if not row:
         return jsonify({"ok": False}), 404
     try:
@@ -1108,7 +1130,7 @@ def library_delete(media_id):
         storage.delete_key(_thumb_key(row["r2_key"]))
     except Exception as e:
         print("LIBRARY DELETE R2 ERROR:", e, flush=True)
-    db.delete(media_id)
+    db.delete(media_id, uid())
     return jsonify({"ok": True})
 
 
@@ -1127,9 +1149,10 @@ def chat_gallery_page():
 @app.route("/api/chat/persona")
 def chat_persona():
     """Dados públicos da persona pra montar a página /chat (sem login)."""
-    p = persona.get_persona()
-    pg = persona.get_page()
-    gal = persona.get_gallery()
+    ow = owner_uid()
+    p = persona.get_persona(ow)
+    pg = persona.get_page(ow)
+    gal = persona.get_gallery(ow)
     avatar = f"/api/pub/media/{p['avatar_id']}?t=1" if p.get("avatar_id") else None
     gallery = [{"id": i, "thumb": f"/api/pub/media/{i}?t=1", "full": f"/api/pub/media/{i}"} for i in gal]
     return jsonify({
@@ -1143,10 +1166,11 @@ def chat_persona():
 @app.route("/api/premium/showcase")
 def premium_showcase():
     """Mídias de demonstração da página premium (público, sem login)."""
-    ids = persona.get_showcase()
+    ow = owner_uid()
+    ids = persona.get_showcase(ow)
     items = []
     for i in ids:
-        row = db.get(i) if db.enabled() else None
+        row = db.get(i, ow) if db.enabled() else None
         if not row:
             continue
         items.append({
@@ -1178,7 +1202,7 @@ def public_chat():
     rl["last"] = now
     session["rl"] = rl
     try:
-        bubbles = persona.chat_reply(b.get("history") or [], msg)
+        bubbles = persona.chat_reply(owner_uid(), b.get("history") or [], msg)
     except Exception as e:
         print("CHAT ERROR:", e, flush=True)
         bubbles = ["opa, me perdi aqui 🙈 tenta de novo?"]
@@ -1188,13 +1212,14 @@ def public_chat():
 @app.route("/api/pub/media/<int:media_id>")
 def pub_media(media_id):
     """Serve só as imagens liberadas (avatar + galeria da persona) — sem login."""
-    allowed = set(persona.get_gallery()) | set(persona.get_showcase())
-    av = persona.get_persona().get("avatar_id")
+    ow = owner_uid()
+    allowed = set(persona.get_gallery(ow)) | set(persona.get_showcase(ow))
+    av = persona.get_persona(ow).get("avatar_id")
     if av:
         allowed.add(av)
     if media_id not in allowed:
         return ("forbidden", 403)
-    row = db.get(media_id)
+    row = db.get(media_id, ow)
     if not row:
         return ("not found", 404)
     try:
@@ -1217,9 +1242,9 @@ def pub_media(media_id):
 @app.route("/api/admin/persona", methods=["GET"])
 @login_required
 def admin_persona_get():
-    return jsonify({"persona": persona.get_persona(),
-                    "page": persona.get_page(),
-                    "gallery": persona.get_gallery()})
+    return jsonify({"persona": persona.get_persona(uid()),
+                    "page": persona.get_page(uid()),
+                    "gallery": persona.get_gallery(uid())})
 
 
 @app.route("/api/admin/persona", methods=["POST"])
@@ -1227,7 +1252,7 @@ def admin_persona_get():
 def admin_persona_save():
     if not db.enabled():
         return jsonify({"ok": False, "reason": "banco não configurado"}), 500
-    persona.save_persona(request.get_json(force=True))
+    persona.save_persona(uid(), request.get_json(force=True))
     return jsonify({"ok": True})
 
 
@@ -1236,7 +1261,7 @@ def admin_persona_save():
 def admin_page_save():
     if not db.enabled():
         return jsonify({"ok": False, "reason": "banco não configurado"}), 500
-    persona.save_page(request.get_json(force=True))
+    persona.save_page(uid(), request.get_json(force=True))
     return jsonify({"ok": True})
 
 
@@ -1244,7 +1269,7 @@ def admin_page_save():
 @login_required
 def admin_prompt_preview():
     """Prompt automático montado pelos campos (sem os limites fixos), pra editar."""
-    return jsonify({"prompt": persona.build_auto_prompt(persona.get_persona())})
+    return jsonify({"prompt": persona.build_auto_prompt(persona.get_persona(uid()))})
 
 
 @app.route("/api/admin/reality_phrases", methods=["POST"])
@@ -1375,14 +1400,14 @@ def admin_gallery_save():
     if not db.enabled():
         return jsonify({"ok": False, "reason": "banco não configurado"}), 500
     ids = request.get_json(force=True).get("ids", [])
-    persona.save_gallery([int(i) for i in ids])
+    persona.save_gallery(uid(), [int(i) for i in ids])
     return jsonify({"ok": True})
 
 
 @app.route("/api/admin/showcase", methods=["GET"])
 @login_required
 def admin_showcase_get():
-    return jsonify({"ids": persona.get_showcase()})
+    return jsonify({"ids": persona.get_showcase(uid())})
 
 
 @app.route("/api/admin/showcase", methods=["POST"])
@@ -1391,7 +1416,7 @@ def admin_showcase_save():
     if not db.enabled():
         return jsonify({"ok": False, "reason": "banco não configurado"}), 500
     ids = request.get_json(force=True).get("ids", [])
-    persona.save_showcase([int(i) for i in ids])
+    persona.save_showcase(uid(), [int(i) for i in ids])
     return jsonify({"ok": True})
 
 

@@ -58,9 +58,9 @@ DEFAULT_PAGE = {
 }
 
 
-def _get_json(key, default):
+def _get_json(user_id, key, default):
     try:
-        raw = db.get_setting(key)
+        raw = db.get_user_setting(user_id, key)
         if not raw:
             return dict(default)
         data = json.loads(raw)
@@ -71,12 +71,12 @@ def _get_json(key, default):
         return dict(default)
 
 
-def get_persona():
-    return _get_json("persona", DEFAULT_PERSONA)
+def get_persona(user_id):
+    return _get_json(user_id, "persona", DEFAULT_PERSONA)
 
 
-def get_page():
-    p = _get_json("page", DEFAULT_PAGE)
+def get_page(user_id):
+    p = _get_json(user_id, "page", DEFAULT_PAGE)
     # garante sub-objetos
     for k in ("banner", "ads"):
         if not isinstance(p.get(k), dict):
@@ -84,29 +84,29 @@ def get_page():
     return p
 
 
-def get_gallery():
+def get_gallery(user_id):
     try:
-        raw = db.get_setting("gallery")
+        raw = db.get_user_setting(user_id, "gallery")
         return json.loads(raw) if raw else []
     except Exception:
         return []
 
 
-def save_persona(data):  db.set_setting("persona", json.dumps(data))
-def save_page(data):     db.set_setting("page", json.dumps(data))
-def save_gallery(ids):   db.set_setting("gallery", json.dumps(list(ids)))
+def save_persona(user_id, data):  db.set_user_setting(user_id, "persona", json.dumps(data))
+def save_page(user_id, data):     db.set_user_setting(user_id, "page", json.dumps(data))
+def save_gallery(user_id, ids):   db.set_user_setting(user_id, "gallery", json.dumps(list(ids)))
 
 
-def get_showcase():
+def get_showcase(user_id):
     """IDs de mídia (fotos/vídeos) escolhidos pra vitrine da página premium."""
     try:
-        raw = db.get_setting("premium_showcase")
+        raw = db.get_user_setting(user_id, "premium_showcase")
         return json.loads(raw) if raw else []
     except Exception:
         return []
 
 
-def save_showcase(ids):  db.set_setting("premium_showcase", json.dumps(list(ids)))
+def save_showcase(user_id, ids):  db.set_user_setting(user_id, "premium_showcase", json.dumps(list(ids)))
 
 
 # ── Montagem do system prompt ──────────────────────────────────────────────────
@@ -226,8 +226,8 @@ def generate_reality_phrases(current, n=4):
     return out[:n]
 
 
-def _chat_messages(history, user_msg):
-    msgs = [{"role": "system", "content": build_system_prompt(get_persona())}]
+def _chat_messages(persona_owner_id, history, user_msg):
+    msgs = [{"role": "system", "content": build_system_prompt(get_persona(persona_owner_id))}]
     for m in (history or [])[-12:]:
         role = "assistant" if m.get("role") == "persona" else "user"
         text = (m.get("text") or "").strip()
@@ -237,11 +237,11 @@ def _chat_messages(history, user_msg):
     return msgs
 
 
-def chat_reply(history, user_msg):
+def chat_reply(persona_owner_id, history, user_msg):
     """Resposta da persona no chat público — DeepSeek (deepseek-chat)."""
     if not DEEPSEEK_API_KEY:
         return ["(configure DEEPSEEK_API_KEY pra eu responder 💕)"]
-    msgs = _chat_messages(history, user_msg)
+    msgs = _chat_messages(persona_owner_id, history, user_msg)
     try:
         r = requests.post(
             "https://api.deepseek.com/chat/completions",
