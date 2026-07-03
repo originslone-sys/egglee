@@ -227,3 +227,51 @@ shift 8. Custo ~4 min/clipe na RTX A4500.
 - [ ] endpoint serverless apontando pro novo volume + imagem `:latest`
 - [ ] testar txt2img e vídeo Wan 5B pelo painel admin
 - [ ] confirmar que R2, Postgres e Railway seguem intactos (não dependem do volume)
+
+---
+
+## 10. Backup do Railway (preventivo)
+
+> O Railway é uma conta **separada** do RunPod. Enquanto você seguir pagando/dentro do
+> limite, ele **não some** como o volume. Este backup é apólice de seguro contra:
+> deletar sem querer, projeto suspenso, ou trocar de conta.
+
+### 🔒 REGRA DE OURO
+Os **valores** das variáveis são **segredos**. **NUNCA** commite os valores neste
+repositório (nem privado). Guarde-os num **gerenciador de senhas** (Bitwarden/1Password)
+ou nota segura. Aqui ficam só os **nomes** (que já são públicos no código).
+
+### 10.1 Exportar as variáveis de ambiente
+Do serviço do site no Railway:
+- **Painel:** serviço → aba **Variables** → **Raw Editor** → copiar tudo (`CHAVE=valor`).
+- **Ou CLI:** `railway variables --kv > egglee_railway.env`
+
+Salve o `egglee_railway.env` **no gerenciador de senhas**, não no PC solto nem no Git.
+
+Variáveis a conferir (nomes — valores no cofre): ver **Seção 7.1**. Resumo dos segredos
+de terceiros que doem mais se perdidos:
+`R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_ENDPOINT`, `R2_BUCKET`, `DEEPSEEK_API_KEY`,
+`OPENROUTER_API_KEY`, `RUNPOD_API_KEY`, `ZETTPAY_CLIENT_ID`, `ZETTPAY_CLIENT_SECRET`,
+`SECRET_KEY`. (Alguns dá pra rotacionar no provedor, mas dá trabalho.)
+
+### 10.2 Dump do banco Postgres (usuários, pagamentos, jobs, settings)
+O Railway persiste o banco, mas se o **projeto inteiro** for perdido, o banco vai junto.
+Um dump periódico protege:
+```bash
+pg_dump "$DATABASE_PUBLIC_URL" > egglee_backup_$(date +%Y%m%d).sql
+```
+Guarde o `.sql` no seu Drive. Restaurar num banco novo:
+```bash
+psql "$NOVA_DATABASE_URL" < egglee_backup_AAAAMMDD.sql
+```
+
+### 10.3 Checklist de backup Railway
+- [ ] exportar variáveis (Raw Editor ou `railway variables --kv`) → **gerenciador de senhas**
+- [ ] `pg_dump` do Postgres → guardar `.sql` no Drive
+- [ ] (opcional) repetir o `pg_dump` de tempos em tempos conforme a base cresce
+
+---
+
+## 📌 Histórico de backups
+- **2026-07-03** — backup do LoRA da personagem (`egglee_character.safetensors`) feito
+  pelo usuário. ✅ Item insubstituível protegido.
