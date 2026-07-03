@@ -65,7 +65,8 @@
     </div>
 
     <div id="pixview" style="display:none">
-      <p style="font-size:14px">Abra o app do seu banco → <b>PIX</b> → <b>Pix Copia e Cola</b> → cole o código:</p>
+      <p style="font-size:14px">Escaneie o QR no app do seu banco, ou use <b>Pix Copia e Cola</b>:</p>
+      <img id="qrimg" alt="QR Code PIX" style="display:none; width:220px; height:220px; border-radius:12px; background:#fff; padding:10px; margin:0 auto">
       <div class="pixbox"><div class="pixcode" id="pixcode"></div></div>
       <button class="btn-2" style="margin-top:10px" onclick="copyPix()" id="copyBtn">📋 Copiar código PIX</button>
       <div class="waiting" id="waiting"><span class="spin"></span> aguardando pagamento…</div>
@@ -118,6 +119,7 @@ async function pay(){
     currentExt=d.external_id;
     $('offer').style.display='none'; $('pixview').style.display='block';
     $('pixcode').textContent = d.pix_copy_paste||'(código indisponível)';
+    if(d.qr_image){ $('qrimg').src=d.qr_image; $('qrimg').style.display='block'; }
     startPolling();
   }catch(e){ $('msg').className='msg err'; $('msg').textContent='❌ '+e.message; $('payBtn').disabled=false; }
 }

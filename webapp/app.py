@@ -1730,6 +1730,21 @@ def _digits(s):
     return "".join(ch for ch in (s or "") if ch.isdigit())
 
 
+def _qr_data_uri(text):
+    """Gera o QR do código PIX como data URI PNG (renderizado no servidor)."""
+    if not text:
+        return None
+    try:
+        import qrcode
+        img = qrcode.make(text)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+    except Exception as e:
+        print("QR ERROR:", e, flush=True)
+        return None
+
+
 def _confirm_and_activate(external_id):
     """Idempotente: confirma o pagamento (só a 1ª vez) e ativa/estende o Pro."""
     row = db.confirm_payment_atomic(external_id)
@@ -1785,7 +1800,8 @@ def pay_pro():
     qr = d.get("qr_code") or d.get("pix_copy_paste") or ""
     db.update_payment(external_id, zettpay_id=d.get("id"), qr_code=qr)
     return jsonify({"external_id": external_id, "amount_brl": price,
-                    "pix_copy_paste": qr, "expires_at": d.get("expires_at")})
+                    "pix_copy_paste": qr, "qr_image": _qr_data_uri(qr),
+                    "expires_at": d.get("expires_at")})
 
 
 @app.route("/api/pay/status")
