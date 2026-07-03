@@ -241,6 +241,9 @@ _USER_ALLOWED_PREFIXES = (
     "/api/folders", "/api/presets",
     "/api/admin/persona", "/api/admin/page", "/api/admin/gallery",
     "/api/admin/prompt_preview", "/api/admin/reality_phrases",
+    # Fase 3B: gerador do cliente
+    "/api/client/", "/api/generate", "/api/status", "/api/video",
+    "/api/caption",
     "/static", "/u/", "/chat", "/premium",
     "/api/chat", "/api/pub", "/api/premium", "/api/waitlist",
 )
@@ -1441,6 +1444,47 @@ def checkpoints_cache():
         except Exception as e:
             print("CKPT CACHE ERROR:", e, flush=True)
     return jsonify({"ok": True})
+
+
+# ── Disponibilidade de modelos pro cliente (Fase 3B) ──────────────────────────
+
+def _client_loras():
+    try:
+        return json.loads(db.get_setting("client_loras") or "[]")
+    except Exception:
+        return []
+
+
+def _client_checkpoints():
+    try:
+        return json.loads(db.get_setting("client_checkpoints") or "[]")
+    except Exception:
+        return []
+
+
+@app.route("/api/admin/client_models", methods=["GET"])
+@admin_required
+def admin_client_models_get():
+    return jsonify({"loras": _client_loras(), "checkpoints": _client_checkpoints()})
+
+
+@app.route("/api/admin/client_models", methods=["POST"])
+@admin_required
+def admin_client_models_save():
+    if not db.enabled():
+        return jsonify({"ok": False, "reason": "banco não configurado"}), 500
+    b = request.get_json(force=True)
+    db.set_setting("client_loras", json.dumps([str(x) for x in (b.get("loras") or [])]))
+    db.set_setting("client_checkpoints", json.dumps([str(x) for x in (b.get("checkpoints") or [])]))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/client/models", methods=["GET"])
+@login_required
+def client_models():
+    """Modelos liberados pro cliente montar o gerador dele."""
+    return jsonify({"checkpoints": _client_checkpoints(), "loras": _client_loras(),
+                    "defaults": STACK_DEFAULT_WEIGHTS})
 
 
 @app.route("/api/admin/gallery", methods=["POST"])
