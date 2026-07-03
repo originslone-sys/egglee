@@ -108,7 +108,7 @@
       <button class="tb" id="allBtn" onclick="selectAll()" style="display:none">Selecionar todos</button>
       {% if role == 'admin' %}<button class="tb" id="upBtn" onclick="bulkUpscale()" style="display:none" disabled><i class="ic ic-spark"></i> Upscalar</button>{% endif %}
       <button class="tb" id="zipBtn" onclick="bulkZip()" style="display:none" disabled><i class="ic ic-down"></i> Baixar zip</button>
-      {% if role == 'admin' %}<label class="tb" id="zipWmLbl" style="display:none"><input type="checkbox" id="zipWm"> 🏷️ c/ marca</label>{% endif %}
+      {% if role == 'admin' %}<label class="tb" id="zipWmLbl" style="display:none"><input type="checkbox" id="zipWm"> <i class="ic ic-tag"></i> c/ marca</label>{% endif %}
       <button class="tb" id="moveBtn" onclick="bulkMove()" style="display:none" disabled><i class="ic ic-folder"></i> Mover</button>
       <button class="tb danger" id="delBtn" onclick="bulkDelete()" style="display:none" disabled><i class="ic ic-trash"></i> Deletar</button>
       <span id="libStatus" style="color:var(--accent);font-size:13px"></span>
@@ -249,9 +249,9 @@ function renderSide(folders) {
   const side = $('side'); side.innerHTML = '';
   side.appendChild(grp('Filtros'));
   side.appendChild(navItem('Todos', total, !curFolder && !curFav && !curType, () => { curFolder=''; curFav=false; curType=''; load(); }));
-  side.appendChild(navItem('⭐ Favoritos', '', curFav, () => { curFav=true; curFolder=''; curType=''; load(); }));
-  side.appendChild(navItem('🖼️ Imagens', '', curType==='image', () => { curType='image'; curFav=false; curFolder=''; load(); }));
-  side.appendChild(navItem('🎬 Vídeos', '', curType==='video', () => { curType='video'; curFav=false; curFolder=''; load(); }));
+  side.appendChild(navItem('<i class="ic ic-star"></i> Favoritos', '', curFav, () => { curFav=true; curFolder=''; curType=''; load(); }));
+  side.appendChild(navItem('<i class="ic ic-image"></i> Imagens', '', curType==='image', () => { curType='image'; curFav=false; curFolder=''; load(); }));
+  side.appendChild(navItem('<i class="ic ic-film"></i> Vídeos', '', curType==='video', () => { curType='video'; curFav=false; curFolder=''; load(); }));
 
   const ph = grp('Pastas');
   const add = document.createElement('span');
@@ -264,10 +264,10 @@ function renderSide(folders) {
     const row = navItem(f.folder, f.n, curFolder===f.folder && !curFav, () => { curFolder=f.folder; curFav=false; load(); });
     if (f.folder !== 'Geral') {
       const fa = row.querySelector('.fa');
-      const ed = document.createElement('span'); ed.textContent='✏️'; ed.title='Renomear';
+      const ed = document.createElement('span'); ed.innerHTML='<i class="ic ic-edit"></i>'; ed.title='Renomear';
       ed.style.cssText='cursor:pointer;margin-left:6px;font-size:11px';
       ed.onclick = e => { e.stopPropagation(); renameFolder(f.folder); };
-      const rm = document.createElement('span'); rm.textContent='🗑'; rm.title='Excluir';
+      const rm = document.createElement('span'); rm.innerHTML='<i class="ic ic-trash"></i>'; rm.title='Excluir';
       rm.style.cssText='cursor:pointer;margin-left:4px;font-size:11px';
       rm.onclick = e => { e.stopPropagation(); deleteFolder(f.folder); };
       fa.appendChild(ed); fa.appendChild(rm);
@@ -311,7 +311,7 @@ function renderGrid() {
     const date = it.created_at ? new Date(it.created_at).toLocaleString('pt-BR') : '';
     cell.innerHTML =
       (selectMode ? `<input type="checkbox" class="chk" ${selected.has(it.id)?'checked':''}>` : '') +
-      `<span class="star">${it.favorite ? '⭐' : '☆'}</span>` +
+      `<span class="star">${it.favorite ? '<i class="ic ic-star" style="color:#ffcf4a"></i>' : '<i class="ic ic-star" style="opacity:.45"></i>'}</span>` +
       media +
       `<div class="meta"><span class="wf">${it.workflow||it.type}</span> · ${it.folder||''}<br>${date}</div>` +
       `<div class="acts"><a href="${it.url}" download><i class="ic ic-down"></i></a><button class="del"><i class="ic ic-trash"></i></button></div>`;
@@ -402,7 +402,7 @@ async function bulkZip() {
   }
   const out = await zip.generateAsync({type:'blob'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(out); a.download = 'egglee_selecao.zip'; a.click();
-  $('zipBtn').disabled = false; $('zipBtn').textContent = '⬇ Baixar zip';
+  $('zipBtn').disabled = false; $('zipBtn').innerHTML = '<i class="ic ic-down"></i> Baixar zip';
 }
 
 // ── Geração a partir da biblioteca (upscale / variações) ──
@@ -520,13 +520,13 @@ async function openStats(){
   try{
     const s = await (await fetch('/api/stats')).json();
     $('statsBody').innerHTML =
-      `📦 Total de arquivos: <b>${s.total||0}</b><br>`+
-      `🖼️ Imagens: <b>${s.images||0}</b><br>`+
-      `🎬 Vídeos: <b>${s.videos||0}</b><br>`+
-      `⭐ Favoritos: <b>${s.favorites||0}</b><br>`+
-      `📁 Pastas: <b>${s.folders||0}</b><br>`+
-      `📝 Presets de prompt: <b>${s.presets||0}</b><br>`+
-      `💾 Armazenamento: <b>${fmtBytes(s.bytes)}</b> <span style="color:var(--muted)">(de 10 GB grátis no R2)</span>`;
+      `<i class="ic ic-box"></i> Total de arquivos: <b>${s.total||0}</b><br>`+
+      `<i class="ic ic-image"></i> Imagens: <b>${s.images||0}</b><br>`+
+      `<i class="ic ic-film"></i> Vídeos: <b>${s.videos||0}</b><br>`+
+      `<i class="ic ic-star"></i> Favoritos: <b>${s.favorites||0}</b><br>`+
+      `<i class="ic ic-folder"></i> Pastas: <b>${s.folders||0}</b><br>`+
+      `<i class="ic ic-clip"></i> Presets de prompt: <b>${s.presets||0}</b><br>`+
+      `<i class="ic ic-save"></i> Armazenamento: <b>${fmtBytes(s.bytes)}</b> <span style="color:var(--muted)">(de 10 GB grátis no R2)</span>`;
   }catch(e){ $('statsBody').textContent = 'Erro ao carregar estatísticas.'; }
 }
 $('statsModal').addEventListener('click', e => { if(e.target.id==='statsModal') $('statsModal').classList.remove('show'); });
@@ -567,7 +567,7 @@ async function genCaption(){
     $('lbCaptionText').value = 'Erro: ' + e.message;
     $('lbCaption').style.display = 'block';
   }
-  $('capBtn').disabled = false; $('capBtn').textContent = '✍️ Legenda IA';
+  $('capBtn').disabled = false; $('capBtn').innerHTML = '<i class="ic ic-edit"></i> Legenda IA';
 }
 function copyCaption(){
   const t = $('lbCaptionText'); t.select();
@@ -592,7 +592,7 @@ function openLb(it) {
   $('dlOrig').href = it.url;
   // elementos admin-only (podem não existir no estúdio do cliente)
   const _lbCap=$('lbCaption'); if(_lbCap) _lbCap.style.display='none';
-  const _capBtn=$('capBtn'); if(_capBtn){ _capBtn.disabled=false; _capBtn.textContent='✍️ Legenda IA'; }
+  const _capBtn=$('capBtn'); if(_capBtn){ _capBtn.disabled=false; _capBtn.innerHTML='<i class="ic ic-edit"></i> Legenda IA'; }
   const _dlWm=$('dlWm'); if(_dlWm){ _dlWm.href='/api/media/'+it.id+'?watermark=1'; _dlWm.style.display=it.type==='video'?'none':''; }
   const _vidBtn=$('vidBtn'); if(_vidBtn) _vidBtn.style.display=it.type==='video'?'none':'';
   $('lb').classList.add('show');
