@@ -115,6 +115,7 @@ function render(){
       <td>${statusBadge}</td>
       <td class="hide-sm">${fmtDate(u.created_at)}</td>
       <td><div class="act">
+        ${u.role!=='admin' ? `<button onclick="cyclePlan(${u.id},'${u.plan||'free'}')">Plano: ${u.plan||'free'}</button>` : ''}
         <button onclick="toggleStatus(${u.id},'${u.status}')">${u.status==='disabled'?'Ativar':'Desativar'}</button>
         <button onclick="toggleRole(${u.id},'${u.role}')">${u.role==='admin'?'→ cliente':'→ admin'}</button>
         <button onclick="resetPass(${u.id})">Senha</button>
@@ -142,6 +143,7 @@ async function upd(body){
   if(!d.ok) alert(d.reason||'falhou');
   load();
 }
+function cyclePlan(id,plan){ upd({id, plan: plan==='pro'?'free':'pro'}); }
 function toggleStatus(id,st){ upd({id, status: st==='disabled'?'active':'disabled'}); }
 function toggleRole(id,role){ if(confirm('Mudar o papel deste usuário?')) upd({id, role: role==='admin'?'user':'admin'}); }
 function resetPass(id){ const p=prompt('Nova senha (mín. 6):'); if(p) upd({id, password:p}); }

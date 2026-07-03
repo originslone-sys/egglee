@@ -112,9 +112,21 @@ Estúdio de criação de conteúdo com IA para uma **influenciadora virtual / mo
    >   workflow permitido) — bloqueio real, não cosmético.
    > - **FALTA (Fase 4+):** cotas/créditos, fila com prioridade, teto de custo.
 3. **Storage:** R2 com prefixo por tenant (`u/<id>/...`) + controle de acesso.
-4. **Fila robusta** (crítico — ver seção 4).
-5. **Cotas + billing:** créditos por plano (imagem/vídeo/chat), Stripe, medição.
-6. **Teto de custo por usuário** (evita queimar GPU com script/abuso).
+4. **Fila robusta + cotas** (Fase 4).
+   > **FASE 4 — CONCLUÍDA (2026-07-02):** fila persistente + cotas por plano.
+   > - Modelo (decidido com o dono, NÃO é crédito clássico):
+   >   - **Free:** 5 gerações de imagem + 3 de vídeo — teto **vitalício** (trial).
+   >   - **Pro:** **ilimitado**, mas **máx. 10 requisições na fila** ao mesmo tempo.
+   >   - **Admin:** gera direto (sem fila) → **fura a fila** dos clientes.
+   > - Tabela `jobs` + **dispatcher em background** (thread): despacha por
+   >   prioridade sob um `DISPATCH_LIMIT` (clientes segurados → admin passa na
+   >   frente), acompanha no RunPod e salva o resultado na biblioteca do dono.
+   > - `/api/jobs` (cria+valida cotas/concorrência), `/api/client/quota`.
+   > - **Gerar não-bloqueante** + área **/studio/fila** (Requisições:
+   >   pendentes/processando/concluídas/falhas, auto-refresh, cancelar da fila).
+   > - Admin define plano free/pro por usuário em `/usuarios`.
+   > - Regras em `PLAN_RULES` (ajustáveis). Admin permanece no fluxo direto atual.
+5. **Billing:** assinatura (Stripe/processador) ligada ao plano.
 7. **Chat por tenant:** subdomínio/slug (`fulana.egglee.com`), rate-limit,
    proteção contra prompt-injection do visitante.
 

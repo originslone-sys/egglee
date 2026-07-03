@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egglee · Requisições</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  .counts { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .cbox { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 16px; font-size:13px; }
+  .cbox b { font-size:20px; display:block; }
+  .cbox.processing b { color:#e59; } .cbox.queued b { color:var(--accent); }
+  .cbox.done b { color:var(--ok); } .cbox.failed b { color:var(--danger); }
+  .jgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; }
+  .card2 { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; position:relative; }
+  .card2 .media { width:100%; aspect-ratio:3/4; object-fit:cover; display:block; background:var(--bg-soft); }
+  .card2 .ph { width:100%; aspect-ratio:3/4; display:grid; place-items:center; color:var(--muted); font-size:13px; text-align:center; padding:10px; }
+  .card2 .meta { padding:8px 10px; }
+  .card2 .pp { font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--muted); }
+  .st { position:absolute; top:8px; left:8px; font-size:11px; font-weight:600; padding:2px 9px; border-radius:999px; }
+  .st.queued { color:#fff; background:rgba(140,80,220,.85); }
+  .st.processing { color:#fff; background:rgba(230,80,150,.9); }
+  .st.done { color:#fff; background:rgba(60,180,120,.9); }
+  .st.failed { color:#fff; background:rgba(220,70,90,.9); }
+  .st.canceled { color:#fff; background:rgba(120,120,140,.85); }
+  .spin { display:inline-block; width:8px; height:8px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; margin-right:4px; vertical-align:0; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+  .x { position:absolute; top:6px; right:6px; background:rgba(0,0,0,.5); color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:12px; padding:2px 7px; }
+  .empty { color:var(--muted); text-align:center; padding:60px; }
+  .lb { position:fixed; inset:0; background:rgba(4,5,8,.94); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .lb.show { display:flex; } .lb img, .lb video { max-width:90vw; max-height:86vh; border-radius:12px; }
+  .lb .close { position:absolute; top:16px; right:22px; color:#fff; font-size:30px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/studio" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
+  <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+  <nav class="nav" id="nav">
+    <a href="/studio">🏠 Estúdio</a>
+    <a href="/studio/gerar">✨ Gerar</a>
+    <a href="/studio/fila" class="active">📥 Requisições</a>
+    <a href="/library">🖼️ Biblioteca</a>
+    <a href="/persona">💬 Persona</a>
+  </nav>
+  <div class="sp"></div>
+  <div class="right"><a href="/logout" class="ghost">Sair</a></div>
+</div>
+
+<div class="page">
+  <h1 class="h-title">📥 Requisições</h1>
+  <p class="h-sub">Acompanhe suas gerações. As concluídas também ficam na <a href="/library" style="color:var(--accent)">Biblioteca</a>.</p>
+
+  <div class="counts" id="counts"></div>
+  <div class="jgrid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">Você ainda não fez nenhuma geração. Vá em <a href="/studio/gerar" style="color:var(--accent)">✨ Gerar</a>.</div>
+</div>
+
+<div class="lb" id="lb"><span class="close" onclick="closeLb()">✕</span><div id="lbc"></div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+function esc(s){ return (s||'').replace(/</g,'&lt;'); }
+const STLBL = {queued:'na fila', processing:'processando', done:'concluída', failed:'falhou', canceled:'cancelada'};
+
+function card(j){
+  let media;
+  if(j.status==='done' && j.media && j.media.length){
+    media = `<img class="media" src="/api/thumb/${j.media[0]}" loading="lazy" onclick="openLb(${JSON.stringify(j.media)},'${j.kind}')">`;
+  } else if(j.status==='failed'){
+    media = `<div class="ph">⚠️<br>${esc(j.error||'falhou')}</div>`;
+  } else if(j.status==='processing'){
+    media = `<div class="ph"><span class="spin"></span> gerando…</div>`;
+  } else if(j.status==='canceled'){
+    media = `<div class="ph">cancelada</div>`;
+  } else {
+    media = `<div class="ph">⏳ na fila</div>`;
+  }
+  const cancel = j.status==='queued' ? `<button class="x" onclick="cancelJob(${j.id})">cancelar</button>` : '';
+  return `<div class="card2"><span class="st ${j.status}">${j.status==='processing'?'<span class="spin"></span>':''}${STLBL[j.status]||j.status}</span>${cancel}
+    ${media}
+    <div class="meta"><div class="pp" title="${esc(j.prompt)}">${(j.kind==='video'?'🎬 ':'🖼️ ')}${esc(j.prompt)||'(sem prompt)'}</div></div></div>`;
+}
+
+let MEDIA_LOOKUP = {};
+function load(){
+  fetch('/api/jobs').then(r=>r.json()).then(d=>{
+    const js = d.jobs || [];
+    if(!js.length){ $('grid').innerHTML=''; $('empty').style.display='block'; $('counts').innerHTML=''; return; }
+    $('empty').style.display='none';
+    const c = {queued:0,processing:0,done:0,failed:0};
+    js.forEach(j=>{ if(c[j.status]!==undefined) c[j.status]++; });
+    $('counts').innerHTML = `
+      <div class="cbox queued"><b>${c.queued}</b>na fila</div>
+      <div class="cbox processing"><b>${c.processing}</b>processando</div>
+      <div class="cbox done"><b>${c.done}</b>concluídas</div>
+      <div class="cbox failed"><b>${c.failed}</b>falharam</div>`;
+    $('grid').innerHTML = js.map(card).join('');
+  }).catch(()=>{});
+}
+
+function openLb(mediaIds, kind){
+  const id = mediaIds[0];
+  $('lbc').innerHTML = kind==='video'
+    ? `<video src="/api/media/${id}" controls autoplay loop></video>`
+    : `<img src="/api/media/${id}">`;
+  $('lb').classList.add('show');
+}
+function closeLb(){ $('lb').classList.remove('show'); $('lbc').innerHTML=''; }
+$('lb').addEventListener('click', e=>{ if(e.target.id==='lb') closeLb(); });
+
+async function cancelJob(id){
+  await fetch('/api/jobs/'+id+'/cancel',{method:'POST'});
+  load();
+}
+
+load();
+setInterval(load, 4000);
+</script>
+</body>
+</html>
