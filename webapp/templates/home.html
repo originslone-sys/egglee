@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egglee · Seu estúdio de conteúdo com IA</title>
+<meta name="description" content="Crie sua modelo de IA: imagens e vídeos ultrarrealistas e uma persona que conversa com seus fãs. Comece grátis.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='6' y1='6' x2='58' y2='58' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23ff7eb3'/%3E%3Cstop offset='.55' stop-color='%23ff9ec7'/%3E%3Cstop offset='1' stop-color='%23b06cff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4' y='4' width='56' height='56' rx='17' fill='url(%23g)'/%3E%3Cpath d='M32 47c-10.5-6.7-15-12.2-15-18 0-4.6 3.5-8 7.8-8 3.2 0 5.6 1.9 7.2 4 1.6-2.1 4-4 7.2-4 4.3 0 7.8 3.4 7.8 8 0 5.8-4.5 11.3-15 18z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --rose:#ff6fa5; --pink:#ff9ec7; --lav:#b06cff; --violet:#8b5cf6;
+    --grad:linear-gradient(120deg,#ff7eb3,#b06cff); --ink:#f4eefb; --soft:#b6acc8;
+    --line:rgba(176,108,255,.18); --bg:#0c0a12; --card:rgba(255,255,255,.035); }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{ font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink);
+    background:var(--bg); overflow-x:hidden; position:relative; }
+  body::before{ content:""; position:fixed; inset:0; z-index:-2; background:
+    radial-gradient(60% 50% at 15% 0%, rgba(176,108,255,.28), transparent 60%),
+    radial-gradient(55% 45% at 90% 12%, rgba(255,126,179,.22), transparent 60%),
+    radial-gradient(70% 60% at 50% 108%, rgba(139,92,246,.20), transparent 60%),
+    linear-gradient(180deg,#0c0a12,#0a0810); }
+  a{color:inherit;}
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 22px; }
+
+  .nav{ display:flex; align-items:center; gap:12px; padding:20px 0; }
+  .brand{ display:flex; align-items:center; gap:9px; font-family:"Sora"; font-weight:800; font-size:20px; color:#fff; text-decoration:none; }
+  .brand .egg{ width:34px; height:34px; border-radius:11px; background:var(--grad); display:grid; place-items:center; font-size:18px; box-shadow:0 6px 20px rgba(176,108,255,.5); }
+  .brand b{ background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .nav .sp{ flex:1; }
+  .nav a.ghost{ text-decoration:none; font-weight:600; font-size:14px; padding:9px 16px; border-radius:999px; color:var(--ink); }
+  .nav a.ghost:hover{ color:#fff; }
+  .nav a.cta{ text-decoration:none; font-weight:700; font-size:14px; padding:10px 18px; border-radius:999px; color:#fff; background:var(--grad); box-shadow:0 8px 24px rgba(176,108,255,.4); }
+
+  .hero{ text-align:center; padding:56px 0 30px; }
+  .pill{ display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:#ffd9ec;
+    background:rgba(255,126,179,.10); border:1px solid rgba(255,126,179,.35); padding:7px 15px; border-radius:999px; margin-bottom:22px; }
+  .pill .dot{ width:7px; height:7px; border-radius:50%; background:#ff7eb3; box-shadow:0 0 10px #ff7eb3; }
+  h1{ font-family:"Sora"; font-weight:800; font-size:clamp(34px,6.2vw,62px); line-height:1.04; margin:0 0 18px; letter-spacing:-.02em; }
+  h1 .g{ background:linear-gradient(120deg,#ff9ec7,#b06cff 60%,#8b5cf6); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .lead{ font-size:clamp(16px,2.2vw,20px); color:var(--soft); max-width:640px; margin:0 auto 30px; line-height:1.55; }
+  .cta-row{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .btn-primary{ display:inline-flex; align-items:center; gap:9px; font-family:"Sora"; font-weight:700; font-size:16px; color:#fff;
+    text-decoration:none; padding:15px 30px; border-radius:999px; background:var(--grad); box-shadow:0 12px 40px rgba(176,108,255,.5); transition:transform .15s; }
+  .btn-primary:hover{ transform:translateY(-2px); }
+  .btn-ghost2{ display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:15px; text-decoration:none; color:var(--ink);
+    padding:15px 26px; border-radius:999px; border:1px solid var(--line); background:rgba(255,255,255,.03); }
+  .micro{ display:block; margin-top:14px; font-size:13px; color:var(--soft); }
+
+  .gallery{ display:none; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-top:46px; }
+  .gallery.on{ display:grid; }
+  .gallery .g{ aspect-ratio:3/4; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:#141019; position:relative; box-shadow:0 12px 34px rgba(0,0,0,.35); }
+  .gallery .g img,.gallery .g video{ width:100%; height:100%; object-fit:cover; display:block; }
+  .gallery .g .vtag{ position:absolute; top:8px; left:8px; font-size:11px; font-weight:600; color:#fff; background:rgba(0,0,0,.55); padding:3px 9px; border-radius:999px; }
+  @media(max-width:520px){ .gallery{ grid-template-columns:repeat(2,1fr); } }
+
+  .sec{ padding:66px 0 10px; }
+  .sec h2{ font-family:"Sora"; font-weight:800; font-size:clamp(24px,4vw,36px); text-align:center; margin:0 0 10px; letter-spacing:-.01em; }
+  .sec .sub{ text-align:center; color:var(--soft); max-width:560px; margin:0 auto 40px; font-size:16px; }
+  .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  @media(max-width:820px){ .grid{ grid-template-columns:1fr; } }
+  .f{ background:var(--card); border:1px solid var(--line); border-radius:20px; padding:26px 22px; transition:transform .18s,border-color .18s; }
+  .f:hover{ transform:translateY(-4px); border-color:rgba(176,108,255,.4); }
+  .f .ic{ width:50px; height:50px; border-radius:14px; display:grid; place-items:center; font-size:24px; margin-bottom:16px;
+    background:linear-gradient(135deg,rgba(255,126,179,.18),rgba(139,92,246,.18)); border:1px solid var(--line); }
+  .f h3{ font-family:"Sora"; font-weight:700; font-size:18px; margin:0 0 8px; }
+  .f p{ margin:0; color:var(--soft); font-size:14.5px; line-height:1.55; }
+
+  .steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  @media(max-width:820px){ .steps{ grid-template-columns:1fr; } }
+  .step{ text-align:center; padding:22px; }
+  .step .n{ width:44px; height:44px; margin:0 auto 14px; border-radius:50%; display:grid; place-items:center; font-family:"Sora"; font-weight:800; font-size:18px; color:#fff; background:var(--grad); box-shadow:0 8px 24px rgba(176,108,255,.45); }
+  .step h4{ font-family:"Sora"; margin:0 0 6px; font-size:16px; } .step p{ margin:0; color:var(--soft); font-size:14px; }
+
+  .plans{ display:grid; grid-template-columns:1fr 1fr; gap:18px; max-width:760px; margin:0 auto; }
+  @media(max-width:680px){ .plans{ grid-template-columns:1fr; } }
+  .plan{ background:var(--card); border:1px solid var(--line); border-radius:22px; padding:30px 26px; text-align:center; }
+  .plan.pro{ border-color:rgba(176,108,255,.5); background:linear-gradient(180deg,rgba(176,108,255,.08),rgba(255,255,255,.02)); position:relative; }
+  .plan .tag{ font-family:"Sora"; font-weight:700; font-size:15px; color:var(--soft); }
+  .plan.pro .tag{ color:var(--lav); }
+  .plan .val{ font-family:"Sora"; font-weight:800; font-size:34px; margin:10px 0 4px; }
+  .plan .val small{ font-size:14px; color:var(--soft); font-weight:600; }
+  .plan ul{ list-style:none; padding:0; margin:18px 0; text-align:left; font-size:14px; }
+  .plan ul li{ margin:8px 0; } .plan ul li::before{ content:'✓ '; color:var(--ok,#7CFFB2); font-weight:700; }
+  .plan .go{ display:inline-block; text-decoration:none; font-weight:700; padding:12px 24px; border-radius:999px; margin-top:6px; }
+  .plan.free .go{ border:1px solid var(--line); color:var(--ink); }
+  .plan.pro .go{ background:var(--grad); color:#fff; box-shadow:0 10px 30px rgba(176,108,255,.45); }
+  .ribbon{ position:absolute; top:16px; right:16px; font-size:11px; font-weight:700; color:#fff; background:var(--grad); padding:4px 10px; border-radius:999px; }
+
+  .final{ text-align:center; padding:70px 0 30px; }
+  footer{ text-align:center; padding:44px 0 40px; color:#6f6584; font-size:13px; border-top:1px solid var(--line); margin-top:40px; }
+  footer .b18{ display:inline-block; margin-bottom:10px; padding:4px 10px; border:1px solid var(--line); border-radius:999px; color:var(--soft); font-weight:600; }
+  footer a{ color:var(--soft); text-decoration:none; margin:0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="nav">
+    <a href="/home" class="brand"><span class="egg">🥚</span> Egg<b>lee</b></a>
+    <div class="sp"></div>
+    <a href="/login" class="ghost">Entrar</a>
+    <a href="/signup" class="cta">Criar conta</a>
+  </div>
+
+  <section class="hero">
+    <span class="pill"><span class="dot"></span> Comece grátis · sem cartão</span>
+    <h1>Seu <span class="g">estúdio de IA</span> pra criar<br>conteúdo indistinguível do real.</h1>
+    <p class="lead">Gere fotos e vídeos ultrarrealistas do seu personagem, monte uma persona
+      que conversa com seus fãs e publique — tudo num painel só.</p>
+    <div class="cta-row">
+      <a href="/signup" class="btn-primary">✨ Criar conta grátis</a>
+      <a href="#planos" class="btn-ghost2">Ver planos</a>
+    </div>
+    <span class="micro">Grátis pra testar. Sem compromisso.</span>
+
+    <div class="gallery" id="gallery"></div>
+  </section>
+
+  <section class="sec">
+    <h2>Tudo num painel só</h2>
+    <p class="sub">Ferramentas profissionais de criação com IA, feitas pra quem leva a sério.</p>
+    <div class="grid">
+      <div class="f"><div class="ic">📸</div><h3>Imagens ultrarrealistas</h3><p>Fotos indistinguíveis de reais do seu personagem, com pele, luz e detalhes naturais.</p></div>
+      <div class="f"><div class="ic">🎬</div><h3>Vídeos com vida</h3><p>Transforme qualquer foto em vídeo com movimento humano natural, sem distorções.</p></div>
+      <div class="f"><div class="ic">💬</div><h3>Persona que conversa</h3><p>Sua página de chat própria, onde os fãs falam com a sua persona de IA em tempo real.</p></div>
+      <div class="f"><div class="ic">🎭</div><h3>Personagem só seu</h3><p>Identidade consistente em todas as fotos e vídeos — sempre a mesma pessoa.</p></div>
+      <div class="f"><div class="ic">🗂️</div><h3>Biblioteca na nuvem</h3><p>Todo o seu conteúdo organizado, com pastas, favoritos e busca.</p></div>
+      <div class="f"><div class="ic">🎛️</div><h3>Controle de estilo</h3><p>Escolha modelos e estilos e ajuste cada geração com a sua cara.</p></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Como funciona</h2>
+    <p class="sub">Da conta ao conteúdo publicado, em três passos.</p>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><h4>Crie sua conta</h4><p>Grátis, em segundos. Sem cartão.</p></div>
+      <div class="step"><div class="n">2</div><h4>Gere e configure</h4><p>Crie fotos/vídeos e monte a persona da sua influenciadora virtual.</p></div>
+      <div class="step"><div class="n">3</div><h4>Conecte com fãs</h4><p>Publique sua página de chat e transforme visitantes em seguidores.</p></div>
+    </div>
+  </section>
+
+  <section class="sec" id="planos">
+    <h2>Planos</h2>
+    <p class="sub">Comece grátis. Vire Pro quando quiser mais.</p>
+    <div class="plans">
+      <div class="plan free">
+        <div class="tag">Free</div>
+        <div class="val">Grátis</div>
+        <ul id="freeList">
+          <li>Teste de imagens e vídeos</li>
+          <li>Sua persona e página de chat</li>
+          <li>Biblioteca na nuvem</li>
+        </ul>
+        <a href="/signup" class="go">Começar grátis</a>
+      </div>
+      <div class="plan pro">
+        <div class="ribbon">Mais popular</div>
+        <div class="tag">Pro</div>
+        <div class="val" id="proVal">—</div>
+        <ul>
+          <li>Gerações <b>ilimitadas</b> de imagem e vídeo</li>
+          <li>Até 10 requisições na fila ao mesmo tempo</li>
+          <li>Prioridade no processamento</li>
+        </ul>
+        <a href="/signup" class="go">Assinar Pro</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="final">
+    <h2 style="font-family:Sora;font-weight:800;font-size:clamp(24px,4vw,34px);margin:0 0 12px">Pronto pra criar?</h2>
+    <p class="lead">Crie sua conta grátis e comece agora mesmo.</p>
+    <a href="/signup" class="btn-primary">✨ Criar conta grátis</a>
+  </section>
+
+  <footer>
+    <span class="b18">🔞 Conteúdo para maiores de 18 anos</span><br>
+    <a href="/login">Entrar</a> · <a href="/signup">Criar conta</a> · <a href="/chat">Demo do chat</a><br>
+    <div style="margin-top:10px">Egglee © 2026 · Personas geradas por inteligência artificial.</div>
+  </footer>
+
+</div>
+
+<script>
+// Vitrine de demonstração (mídias curadas pelo admin)
+fetch('/api/premium/showcase').then(r=>r.json()).then(d=>{
+  const items=(d.items||[]).slice(0,8);
+  if(!items.length) return;
+  const g=document.getElementById('gallery');
+  g.innerHTML=items.map(it=> it.type==='video'
+    ? `<div class="g"><span class="vtag">▶ vídeo</span><video src="${it.full}" poster="${it.thumb}" muted loop autoplay playsinline preload="none"></video></div>`
+    : `<div class="g"><img src="${it.thumb}" loading="lazy" alt=""></div>`).join('');
+  g.classList.add('on');
+}).catch(()=>{});
+
+// Preço do Pro
+fetch('/api/public/pricing').then(r=>r.json()).then(p=>{
+  const el=document.getElementById('proVal');
+  if(p.pro_price_brl>0){
+    el.innerHTML = 'R$ '+(p.pro_price_brl).toFixed(2).replace('.',',')+' <small>/ '+(p.pro_days||30)+' dias</small>';
+  } else {
+    el.innerHTML = 'Em breve';
+  }
+}).catch(()=>{ document.getElementById('proVal').textContent='—'; });
+</script>
+</body>
+</html>
