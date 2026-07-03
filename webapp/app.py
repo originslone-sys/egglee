@@ -274,8 +274,8 @@ _USER_ALLOWED_PREFIXES = (
     "/api/caption", "/api/jobs",
     # Fase 5: pagamento/assinatura Pro
     "/api/pay",
-    "/static", "/u/", "/chat", "/premium",
-    "/api/chat", "/api/pub", "/api/premium", "/api/waitlist",
+    "/static", "/u/", "/chat", "/premium", "/home",
+    "/api/chat", "/api/pub", "/api/premium", "/api/waitlist", "/api/public",
 )
 
 
@@ -571,13 +571,28 @@ def _build_input(body: dict) -> dict:
 
 
 @app.before_request
-def public_domain_to_chat():
-    """Num domínio customizado (não o do Railway), a raiz abre o /chat público.
+def public_domain_home():
+    """Num domínio customizado (egglee.com), a raiz é a HOMEPAGE do produto.
     Pelo domínio .up.railway.app, a raiz segue sendo o admin (Dashboard)."""
     if request.path == "/":
         host = request.host.split(":")[0].lower()
         if not (host.endswith("up.railway.app") or host.startswith(("localhost", "127."))):
-            return redirect("/chat")
+            return render_template("home.html")
+
+
+@app.route("/home")
+def home_page():
+    return render_template("home.html")
+
+
+@app.route("/api/public/pricing")
+def public_pricing():
+    """Preço/planos públicos pra homepage (sem login)."""
+    return jsonify({
+        "pro_price_brl": _pro_price(), "pro_days": _pro_days(),
+        "pay_enabled": pix.enabled() and _pro_price() > 0,
+        "free_img": PLAN_RULES["free"]["img"], "free_vid": PLAN_RULES["free"]["vid"],
+    })
 
 
 @app.route("/")
