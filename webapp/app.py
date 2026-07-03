@@ -673,9 +673,43 @@ def generate():
     if not body.get("workflow_name"):
         return jsonify({"error": "workflow_name é obrigatório"}), 400
 
+    if is_admin():
+        payload = _build_input(body)
+        # dono: a personagem principal é sempre forçada (identidade), como antes.
+        payload["character_lora"] = CHARACTER_LORA
+    else:
+        # cliente: só pode usar modelos LIBERADOS; nunca herda o personagem do dono.
+        wf = body.get("workflow_name", "")
+        if wf not in ("txt2img", "img2img", "video_i2v", "upscale"):
+            return jsonify({"error": "workflow não permitido"}), 403
+        allowed_ck = set(_client_checkpoints())
+        allowed_lr = set(_client_loras())
+        if not allowed_ck:
+            return jsonify({"error": "Nenhum modelo liberado ainda. Fale com o suporte."}), 403
+        ck = body.get("checkpoint")
+        if not ck or ck not in allowed_ck:
+            ck = next(iter(allowed_ck))
+        loras = [l for l in (body.get("loras") or [])
+                 if isinstance(l, dict) and l.get("name") in allowed_lr]
+        safe = {
+            "workflow_name": wf,
+            "prompt": body.get("prompt", ""),
+            "negative_prompt": body.get("negative_prompt", ""),
+            "seed": body.get("seed", "-1"),
+            "batch_size": body.get("batch_size", 1),
+            "steps": body.get("steps"),
+            "checkpoint": ck,
+            "loras": loras,
+            "input_image_b64": body.get("input_image_b64"),
+            "resolution": body.get("resolution"),
+            "aspect_ratio": body.get("aspect_ratio"),
+            "duration": body.get("duration"),
+        }
+        payload = _build_input(safe)   # sem 'character' nem 'character_lora' → não herda o dono
+
     try:
         r = requests.post(f"{BASE_URL}/run", headers=HEADERS,
-                          json={"input": _build_input(body)}, timeout=30)
+                          json={"input": payload}, timeout=30)
     except requests.RequestException as e:
         return jsonify({"error": f"Falha de rede ao chamar o RunPod: {e}"}), 502
 
