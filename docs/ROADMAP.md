@@ -58,7 +58,12 @@ Estúdio de criação de conteúdo com IA para uma **influenciadora virtual / mo
   Responsabilidade de uso transferida via **Termos de Uso claros**.
 - **Sem moderação manual de prompt** (decisão do cliente-dono, coberta por ToU).
 
-### Requisitos inegociáveis (pra não quebrar juridicamente / manter pagamento)
+### Requisitos inegociáveis (Fase 6) — ⛔ BLOQUEIA O LANÇAMENTO PÚBLICO
+> **STATUS: ADIADA (decisão do dono, 2026-07-02).** Enquanto o produto NÃO
+> estiver aberto ao público (só uso próprio / beta fechado), esta fase fica em
+> off. **Obrigatória ANTES de abrir cadastro público e cobrar de estranhos.**
+> Sem ela: exposição criminal (CSAM/NCII) + risco de a ZettPay/host derrubarem.
+>
 > ToU cobre a maioria dos casos, **mas não** cobre CSAM e NCII (deepfake íntimo).
 > Processadores de pagamento (Stripe/Visa/MC) e hosts derrubam a conta
 > independente de ToU. Portanto, o **mínimo automático** abaixo é obrigatório:
