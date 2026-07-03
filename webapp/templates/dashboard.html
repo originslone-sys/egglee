@@ -26,13 +26,13 @@
   <a href="/" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
   <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
   <nav class="nav" id="nav">
-    <a href="/" class="active">📊 Dashboard</a>
-    <a href="/generate">✨ Gerar</a>
-    <a href="/library">🖼️ Biblioteca</a>
-    <a href="/persona">💬 Persona</a>
-    <a href="/modelos">📦 Modelos</a>
-    <a href="/leads">📋 Leads</a>
-    <a href="/usuarios">👥 Usuários</a>
+    <a href="/" class="active"><i class="ic ic-grid"></i> Dashboard</a>
+    <a href="/generate"><i class="ic ic-spark"></i> Gerar</a>
+    <a href="/library"><i class="ic ic-image"></i> Biblioteca</a>
+    <a href="/persona"><i class="ic ic-chat"></i> Persona</a>
+    <a href="/modelos"><i class="ic ic-box"></i> Modelos</a>
+    <a href="/leads"><i class="ic ic-clip"></i> Leads</a>
+    <a href="/usuarios"><i class="ic ic-users"></i> Usuários</a>
   </nav>
   <div class="sp"></div>
   <div class="right">
@@ -47,14 +47,14 @@
 
   <div class="stats" id="stats"></div>
 
-  <div class="sec-title">⚡ Ações rápidas</div>
+  <div class="sec-title"><i class="ic ic-bolt"></i> Ações rápidas</div>
   <div class="quick">
-    <a href="/generate" class="qa"><div class="qa-ico">✨</div><div><div class="qa-t">Gerar imagem</div><div class="qa-d">Crie novas fotos da personagem</div></div></a>
-    <a href="/library" class="qa"><div class="qa-ico">🖼️</div><div><div class="qa-t">Biblioteca</div><div class="qa-d">Organize, edite e baixe</div></div></a>
-    <a href="/library?animate=1" class="qa"><div class="qa-ico">🎬</div><div><div class="qa-t">Animar (vídeo)</div><div class="qa-d">Transforme stills em vídeo</div></div></a>
+    <a href="/generate" class="qa"><div class="qa-ico"><i class="ic ic-spark"></i></div><div><div class="qa-t">Gerar imagem</div><div class="qa-d">Crie novas fotos da personagem</div></div></a>
+    <a href="/library" class="qa"><div class="qa-ico"><i class="ic ic-image"></i></div><div><div class="qa-t">Biblioteca</div><div class="qa-d">Organize, edite e baixe</div></div></a>
+    <a href="/library?animate=1" class="qa"><div class="qa-ico"><i class="ic ic-film"></i></div><div><div class="qa-t">Animar (vídeo)</div><div class="qa-d">Transforme stills em vídeo</div></div></a>
   </div>
 
-  <div class="sec-title">🕑 Recentes <a href="/library" class="ghost" style="margin-left:auto;font-size:12px">ver tudo →</a></div>
+  <div class="sec-title">Recentes <a href="/library" class="ghost" style="margin-left:auto;font-size:12px">ver tudo →</a></div>
   <div class="recent" id="recent"></div>
 </div>
 
@@ -65,17 +65,17 @@ fetch('/api/config').then(r=>r.json()).then(c=>{ if(c.configured) $('statusDot')
 function fmtBytes(b){ if(!b) return '0 MB'; const mb=b/1048576; return mb>=1024 ? (mb/1024).toFixed(1)+' GB' : mb.toFixed(0)+' MB'; }
 
 const STATS = [
-  {k:'total', ico:'📦', lbl:'Total de mídias'},
-  {k:'images', ico:'🖼️', lbl:'Imagens'},
-  {k:'videos', ico:'🎬', lbl:'Vídeos'},
-  {k:'favorites', ico:'⭐', lbl:'Favoritos'},
-  {k:'folders', ico:'📁', lbl:'Pastas'},
-  {k:'bytes', ico:'💾', lbl:'Armazenamento', fmt:fmtBytes},
+  {k:'total', ico:'ic-box', lbl:'Total de mídias'},
+  {k:'images', ico:'ic-image', lbl:'Imagens'},
+  {k:'videos', ico:'ic-film', lbl:'Vídeos'},
+  {k:'favorites', ico:'ic-star', lbl:'Favoritos'},
+  {k:'folders', ico:'ic-folder', lbl:'Pastas'},
+  {k:'bytes', ico:'ic-box', lbl:'Armazenamento', fmt:fmtBytes},
 ];
 fetch('/api/stats').then(r=>r.json()).then(s=>{
   $('stats').innerHTML = STATS.map(d=>{
     const v = d.fmt ? d.fmt(s[d.k]||0) : (s[d.k]??0);
-    return `<div class="stat"><div class="ico">${d.ico}</div><div class="num">${v}</div><div class="lbl">${d.lbl}</div></div>`;
+    return `<div class="stat"><div class="ico"><i class="ic ${d.ico}"></i></div><div class="num">${v}</div><div class="lbl">${d.lbl}</div></div>`;
   }).join('');
 }).catch(()=>{ $('stats').innerHTML = '<div class="stat"><div class="lbl">Biblioteca não configurada.</div></div>'; });
 

@@ -20,7 +20,10 @@
     border-radius:var(--radius); text-decoration:none; color:var(--text); transition:.15s; }
   .qa:hover { border-color:var(--accent2); transform:translateY(-2px); }
   .qa.soon { opacity:.6; cursor:default; }
-  .qa .qa-ico { font-size:26px; }
+  .qa .qa-ico { font-size:24px; color:var(--accent); display:grid; place-items:center;
+    width:44px; height:44px; border-radius:12px; background:var(--grad-soft);
+    box-shadow:inset 0 0 0 1px var(--border-2); flex-shrink:0; }
+  .sec-title .ic { color:var(--accent); }
   .qa-t { font-weight:700; } .qa-d { font-size:12.5px; color:var(--muted); }
   .soon-tag { margin-left:auto; font-size:11px; color:var(--muted); border:1px solid var(--border);
     border-radius:999px; padding:2px 8px; }
@@ -31,12 +34,12 @@
   <a href="/studio" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
   <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
   <nav class="nav" id="nav">
-    <a href="/studio" class="active">🏠 Estúdio</a>
-    <a href="/studio/gerar">✨ Gerar</a>
-    <a href="/studio/fila">📥 Requisições</a>
-    <a href="/studio/pro">⭐ Pro</a>
-    <a href="/library">🖼️ Biblioteca</a>
-    <a href="/persona">💬 Persona</a>
+    <a href="/studio" class="active"><i class="ic ic-home"></i> Estúdio</a>
+    <a href="/studio/gerar"><i class="ic ic-spark"></i> Gerar</a>
+    <a href="/studio/fila"><i class="ic ic-inbox"></i> Requisições</a>
+    <a href="/studio/pro"><i class="ic ic-star"></i> Pro</a>
+    <a href="/library"><i class="ic ic-image"></i> Biblioteca</a>
+    <a href="/persona"><i class="ic ic-chat"></i> Persona</a>
   </nav>
   <div class="sp"></div>
   <div class="right"><a href="/logout" class="ghost">Sair</a></div>
@@ -48,7 +51,7 @@
 
   <div class="link-card" id="planBox" style="display:none; margin-bottom:6px"></div>
 
-  <div class="sec-title">🔗 Sua página de chat</div>
+  <div class="sec-title"><i class="ic ic-link"></i> Sua página de chat</div>
   <div class="link-card">
     <span class="url" id="chatUrl">…</span>
     <button class="btn-2" onclick="editHandle()">✏️ Editar nome</button>
@@ -57,14 +60,14 @@
   </div>
   <div class="hint" id="handleMsg" style="font-size:12px; color:var(--muted); margin-top:6px"></div>
 
-  <div class="sec-title" style="margin-top:22px">⚡ Ações</div>
+  <div class="sec-title" style="margin-top:22px"><i class="ic ic-bolt"></i> Ações</div>
   <div class="quick">
-    <a href="/persona" class="qa"><div class="qa-ico">💬</div><div><div class="qa-t">Minha persona</div><div class="qa-d">Personalidade, avatar e página do chat</div></div></a>
-    <a href="/library" class="qa"><div class="qa-ico">🖼️</div><div><div class="qa-t">Minha biblioteca</div><div class="qa-d">Suas fotos e vídeos</div></div></a>
-    <a href="/studio/gerar" class="qa"><div class="qa-ico">✨</div><div><div class="qa-t">Gerar conteúdo</div><div class="qa-d">Criar novas fotos e vídeos</div></div></a>
+    <a href="/persona" class="qa"><div class="qa-ico"><i class="ic ic-chat"></i></div><div><div class="qa-t">Minha persona</div><div class="qa-d">Personalidade, avatar e página do chat</div></div></a>
+    <a href="/library" class="qa"><div class="qa-ico"><i class="ic ic-image"></i></div><div><div class="qa-t">Minha biblioteca</div><div class="qa-d">Suas fotos e vídeos</div></div></a>
+    <a href="/studio/gerar" class="qa"><div class="qa-ico"><i class="ic ic-spark"></i></div><div><div class="qa-t">Gerar conteúdo</div><div class="qa-d">Criar novas fotos e vídeos</div></div></a>
   </div>
 
-  <div class="sec-title" style="margin-top:22px">📊 Seu conteúdo</div>
+  <div class="sec-title" style="margin-top:22px"><i class="ic ic-grid"></i> Seu conteúdo</div>
   <div class="stats" id="stats"></div>
 </div>
 
@@ -98,8 +101,8 @@ function editHandle(){
 }
 function fmtBytes(b){ if(!b) return '0 MB'; const mb=b/1048576; return mb>=1024?(mb/1024).toFixed(1)+' GB':mb.toFixed(0)+' MB'; }
 const STATS = [
-  {k:'total', ico:'📦', lbl:'Mídias'}, {k:'images', ico:'🖼️', lbl:'Imagens'},
-  {k:'videos', ico:'🎬', lbl:'Vídeos'}, {k:'favorites', ico:'⭐', lbl:'Favoritos'},
+  {k:'total', ico:'ic-box', lbl:'Mídias'}, {k:'images', ico:'ic-image', lbl:'Imagens'},
+  {k:'videos', ico:'ic-film', lbl:'Vídeos'}, {k:'favorites', ico:'ic-star', lbl:'Favoritos'},
 ];
 fetch('/api/pay/config').then(r=>r.json()).then(c=>{
   const box=$('planBox'); box.style.display='flex';
@@ -114,7 +117,7 @@ fetch('/api/pay/config').then(r=>r.json()).then(c=>{
 }).catch(()=>{});
 
 fetch('/api/stats').then(r=>r.json()).then(s=>{
-  $('stats').innerHTML = STATS.map(d=>`<div class="stat"><div class="ico">${d.ico}</div><div class="num">${s[d.k]??0}</div><div class="lbl">${d.lbl}</div></div>`).join('');
+  $('stats').innerHTML = STATS.map(d=>`<div class="stat"><div class="ico"><i class="ic ${d.ico}"></i></div><div class="num">${s[d.k]??0}</div><div class="lbl">${d.lbl}</div></div>`).join('');
 }).catch(()=>{});
 </script>
 </body>
