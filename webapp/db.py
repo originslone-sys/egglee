@@ -104,6 +104,29 @@ def init():
                 "user_id INTEGER NOT NULL, key TEXT NOT NULL, value TEXT, "
                 "PRIMARY KEY (user_id, key))"
             )
+            # Fila de geração (Fase 4) — cada requisição vira um job persistido.
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS jobs (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    kind TEXT DEFAULT 'image',
+                    workflow TEXT DEFAULT '',
+                    status TEXT DEFAULT 'queued',
+                    priority INTEGER DEFAULT 0,
+                    payload TEXT,
+                    runpod_id TEXT,
+                    prompt TEXT DEFAULT '',
+                    batch INTEGER DEFAULT 1,
+                    result TEXT,
+                    error TEXT,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+                """
+            )
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
         c.commit()
 
 
@@ -552,6 +575,97 @@ def backfill_owner(owner_id):
                         (owner_id, key, row[0]),
                     )
                     cur.execute("DELETE FROM settings WHERE key = %s", (key,))
+        c.commit()
+
+
+# ── Fila de jobs (Fase 4) ─────────────────────────────────────────────────────
+
+def create_job(user_id, kind, workflow, payload, prompt="", batch=1, priority=0):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "INSERT INTO jobs (user_id, kind, workflow, payload, prompt, batch, priority) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING *",
+                (user_id, kind, workflow, payload, prompt[:500], batch, priority),
+            )
+            row = cur.fetchone()
+        c.commit()
+        return row
+
+
+def get_job(job_id, user_id=None):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            if user_id is None:
+                cur.execute("SELECT * FROM jobs WHERE id = %s", (job_id,))
+            else:
+                cur.execute("SELECT * FROM jobs WHERE id = %s AND user_id = %s", (job_id, user_id))
+            return cur.fetchone()
+
+
+def list_jobs(user_id, limit=60):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM jobs WHERE user_id = %s ORDER BY id DESC LIMIT %s",
+                        (user_id, limit))
+            return cur.fetchall()
+
+
+def jobs_by_status(status, limit=100):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM jobs WHERE status = %s ORDER BY id LIMIT %s", (status, limit))
+            return cur.fetchall()
+
+
+def active_job_count(user_id):
+    """Jobs na fila ou processando (pro limite de concorrência do Pro)."""
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM jobs WHERE user_id = %s "
+                        "AND status IN ('queued','processing')", (user_id,))
+            return cur.fetchone()[0]
+
+
+def kind_used_count(user_id, kind):
+    """Total já usado de um tipo (pro limite vitalício do Free) — ignora falhas."""
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM jobs WHERE user_id = %s AND kind = %s "
+                        "AND status IN ('queued','processing','done')", (user_id, kind))
+            return cur.fetchone()[0]
+
+
+def count_processing_global():
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM jobs WHERE status = 'processing'")
+            return cur.fetchone()[0]
+
+
+def next_queued_job():
+    """Próximo job a despachar: prioridade DESC, mais antigo primeiro."""
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM jobs WHERE status = 'queued' "
+                        "ORDER BY priority DESC, id ASC LIMIT 1")
+            return cur.fetchone()
+
+
+def update_job(job_id, **fields):
+    if not fields:
+        return
+    fields["updated_at"] = None  # marca pra usar NOW()
+    sets, params = [], []
+    for k, v in fields.items():
+        if k == "updated_at":
+            sets.append("updated_at = NOW()")
+        else:
+            sets.append(f"{k} = %s"); params.append(v)
+    params.append(job_id)
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute(f"UPDATE jobs SET {', '.join(sets)} WHERE id = %s", params)
         c.commit()
 
 

@@ -17,6 +17,7 @@ import time
 import base64
 import uuid
 import random
+import threading
 from functools import wraps
 
 import requests
@@ -71,6 +72,23 @@ STACK_DEFAULT_WEIGHTS = {
     "detail_tweaker_xl.safetensors": 0.3, "mobile_photography.safetensors": 0.4,
     "hand_fix_xl.safetensors": 0.5,
 }
+
+# ── Fila de geração (Fase 4) ──────────────────────────────────────────────────
+# Regras por plano do cliente. -1 = ilimitado. 'img'/'vid' = teto VITALÍCIO
+# (trial), 'conc' = máx. de requisições na fila ao mesmo tempo, 'batch' = máx.
+# de imagens por requisição.
+PLAN_RULES = {
+    "free": {"img": 5, "vid": 3, "conc": 3, "batch": 1},
+    "pro": {"img": -1, "vid": -1, "conc": 10, "batch": 8},
+    "unlimited": {"img": -1, "vid": -1, "conc": 999, "batch": 8},
+}
+# Quantos jobs de cliente ficam "no RunPod" ao mesmo tempo. Baixo = o admin
+# (que gera direto) fura a fila com folga. Ajustável por env.
+DISPATCH_LIMIT = int(os.environ.get("DISPATCH_LIMIT", "3"))
+
+
+def plan_rules(user):
+    return PLAN_RULES.get((user or {}).get("plan") or "free", PLAN_RULES["free"])
 
 
 def _lora_stackable(name):
@@ -241,9 +259,9 @@ _USER_ALLOWED_PREFIXES = (
     "/api/folders", "/api/presets",
     "/api/admin/persona", "/api/admin/page", "/api/admin/gallery",
     "/api/admin/prompt_preview", "/api/admin/reality_phrases",
-    # Fase 3B: gerador do cliente
+    # Fase 3B/4: gerador do cliente + fila de jobs
     "/api/client/", "/api/generate", "/api/status", "/api/video",
-    "/api/caption",
+    "/api/caption", "/api/jobs",
     "/static", "/u/", "/chat", "/premium",
     "/api/chat", "/api/pub", "/api/premium", "/api/waitlist",
 )
@@ -341,6 +359,16 @@ def studio_gerar():
         return redirect(url_for("generate_page"))
     u = current_user() or {}
     return render_template("studio_gerar.html", role="user", slug=u.get("slug", ""))
+
+
+@app.route("/studio/fila")
+@login_required
+def studio_fila():
+    """Área de requisições do cliente (pendentes/processando/concluídas)."""
+    if is_admin():
+        return redirect(url_for("index"))
+    u = current_user() or {}
+    return render_template("studio_fila.html", role="user", slug=u.get("slug", ""))
 
 
 @app.route("/logout")
@@ -1531,6 +1559,220 @@ def client_models():
                     "defaults": STACK_DEFAULT_WEIGHTS})
 
 
+# ── Fila de jobs (Fase 4): dispatcher em background + API ──────────────────────
+
+def _client_safe_payload(body):
+    """Monta o payload do RunPod pro cliente: só modelos liberados, sem herdar
+    o personagem do dono. Devolve (payload, kind, batch) ou levanta ValueError."""
+    wf = body.get("workflow_name", "")
+    if wf not in ("txt2img", "img2img", "video_i2v", "upscale"):
+        raise ValueError("workflow não permitido")
+    allowed_ck = set(_client_checkpoints())
+    allowed_lr = set(_client_loras())
+    if not allowed_ck:
+        raise ValueError("Nenhum modelo liberado ainda. Fale com o suporte.")
+    ck = body.get("checkpoint")
+    if not ck or ck not in allowed_ck:
+        ck = next(iter(allowed_ck))
+    loras = [l for l in (body.get("loras") or [])
+             if isinstance(l, dict) and l.get("name") in allowed_lr]
+    kind = "video" if "video" in wf else "image"
+    safe = {
+        "workflow_name": wf, "prompt": body.get("prompt", ""),
+        "negative_prompt": body.get("negative_prompt", ""),
+        "seed": body.get("seed", "-1"), "batch_size": body.get("batch_size", 1),
+        "steps": body.get("steps"), "checkpoint": ck, "loras": loras,
+        "input_image_b64": body.get("input_image_b64"),
+        "resolution": body.get("resolution"), "aspect_ratio": body.get("aspect_ratio"),
+        "duration": body.get("duration"),
+    }
+    payload = _build_input(safe)
+    batch = payload.get("inputs", {}).get("batch_size", 1) if kind == "image" else 1
+    return payload, kind, batch
+
+
+def _job_public(j):
+    try:
+        res = json.loads(j.get("result") or "null")
+    except Exception:
+        res = None
+    return {"id": j["id"], "kind": j.get("kind"), "workflow": j.get("workflow"),
+            "status": j.get("status"), "prompt": j.get("prompt") or "",
+            "batch": j.get("batch"), "media": (res or {}).get("media") if res else [],
+            "error": j.get("error"),
+            "created_at": j["created_at"].isoformat() if j.get("created_at") else ""}
+
+
+@app.route("/api/jobs", methods=["POST"])
+@login_required
+def jobs_create():
+    if not (ENDPOINT_ID and API_KEY):
+        return jsonify({"error": "geração indisponível no momento"}), 503
+    if not db.enabled():
+        return jsonify({"error": "banco não configurado"}), 500
+    u = current_user() or {}
+    if not u.get("id"):
+        return jsonify({"error": "unauthorized"}), 401
+    b = request.get_json(force=True)
+    try:
+        payload, kind, batch = _client_safe_payload(b)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 403
+
+    rules = plan_rules(u)
+    # concorrência (Pro = 10 na fila; Free = 3)
+    if db.active_job_count(u["id"]) >= rules["conc"]:
+        return jsonify({"error": f"Você já tem {rules['conc']} requisições na fila. "
+                        "Aguarde uma terminar pra enviar outra.", "limited": "conc"}), 429
+    # teto vitalício do Free
+    limit = rules["img"] if kind == "image" else rules["vid"]
+    if limit != -1:
+        used = db.kind_used_count(u["id"], kind)
+        if used >= limit:
+            nome = "imagens" if kind == "image" else "vídeos"
+            return jsonify({"error": f"Você usou suas {limit} gerações de {nome} do plano gratuito. "
+                            "Faça upgrade pra continuar.", "limited": "quota"}), 403
+        # Free: trava o batch (1 imagem por requisição)
+        if kind == "image" and rules["batch"] == 1:
+            payload.setdefault("inputs", {})["batch_size"] = 1
+            batch = 1
+
+    priority = 10 if u.get("role") == "admin" else 0
+    job = db.create_job(u["id"], kind, b.get("workflow_name", ""), json.dumps(payload),
+                        prompt=b.get("prompt", ""), batch=batch, priority=priority)
+    return jsonify({"ok": True, "job": _job_public(job)})
+
+
+@app.route("/api/jobs", methods=["GET"])
+@login_required
+def jobs_list():
+    if not db.enabled():
+        return jsonify({"jobs": []})
+    return jsonify({"jobs": [_job_public(j) for j in db.list_jobs(uid())]})
+
+
+@app.route("/api/jobs/<int:job_id>", methods=["GET"])
+@login_required
+def jobs_get(job_id):
+    j = db.get_job(job_id, uid()) if db.enabled() else None
+    if not j:
+        return jsonify({"error": "não encontrado"}), 404
+    return jsonify(_job_public(j))
+
+
+@app.route("/api/jobs/<int:job_id>/cancel", methods=["POST"])
+@login_required
+def jobs_cancel(job_id):
+    j = db.get_job(job_id, uid()) if db.enabled() else None
+    if not j:
+        return jsonify({"error": "não encontrado"}), 404
+    if j.get("status") == "queued":     # só dá pra cancelar antes de despachar
+        db.update_job(job_id, status="canceled")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/client/quota", methods=["GET"])
+@login_required
+def client_quota():
+    u = current_user() or {}
+    if not u.get("id"):
+        return jsonify({"plan": "free", "img_used": 0, "img_limit": 5, "vid_used": 0,
+                        "vid_limit": 3, "conc_used": 0, "conc_limit": 3})
+    r = plan_rules(u)
+    return jsonify({
+        "plan": u.get("plan") or "free",
+        "img_used": db.kind_used_count(u["id"], "image") if db.enabled() else 0,
+        "img_limit": r["img"], "vid_used": db.kind_used_count(u["id"], "video") if db.enabled() else 0,
+        "vid_limit": r["vid"], "conc_used": db.active_job_count(u["id"]) if db.enabled() else 0,
+        "conc_limit": r["conc"],
+    })
+
+
+# ── Dispatcher (thread em background) ─────────────────────────────────────────
+
+def _job_finish_completed(job, output):
+    """Salva os outputs de um job concluído na biblioteca do dono."""
+    outs = (output or {}).get("outputs") or []
+    if output and output.get("error"):
+        db.update_job(job["id"], status="failed", error=str(output["error"])[:500])
+        return
+    media = []
+    for o in outs:
+        try:
+            raw = base64.b64decode(o["data"])
+            is_vid = (o.get("type") == "video")
+            ext, ctype = ("mp4", "video/mp4") if is_vid else ("png", "image/png")
+            key = f"{o.get('type','image')}/{uuid.uuid4().hex}.{ext}"
+            storage.upload_bytes(key, raw, ctype)
+            make_and_store_thumb(key, raw, is_video=is_vid)
+            row = db.insert(job["user_id"], key, type=o.get("type", "image"),
+                            prompt=job.get("prompt", ""), workflow=job.get("workflow", ""), size=len(raw))
+            media.append(row["id"])
+        except Exception as e:
+            print("JOB SAVE ERROR:", e, flush=True)
+    db.update_job(job["id"], status="done", result=json.dumps({"media": media}))
+
+
+def _advance_active_jobs():
+    for job in db.jobs_by_status("processing"):
+        rid = job.get("runpod_id")
+        if not rid:
+            continue
+        try:
+            r = requests.get(f"{BASE_URL}/status/{rid}", headers=HEADERS, timeout=30)
+            d = r.json()
+        except Exception:
+            continue
+        st = (d.get("status") or "").upper()
+        if st == "COMPLETED":
+            _job_finish_completed(job, d.get("output") or {})
+        elif st == "FAILED":
+            db.update_job(job["id"], status="failed",
+                          error=(json.dumps(d.get("output") or d.get("error") or "")[:500]))
+
+
+def _dispatch_queued_jobs():
+    guard = 0
+    while db.count_processing_global() < DISPATCH_LIMIT and guard < DISPATCH_LIMIT + 2:
+        guard += 1
+        job = db.next_queued_job()
+        if not job:
+            break
+        try:
+            r = requests.post(f"{BASE_URL}/run", headers=HEADERS,
+                              json={"input": json.loads(job["payload"])}, timeout=30)
+            rid = (r.json() or {}).get("id") if r.ok else None
+            if rid:
+                db.update_job(job["id"], status="processing", runpod_id=rid)
+            else:
+                db.update_job(job["id"], status="failed", error=f"RunPod {r.status_code}")
+        except Exception as e:
+            db.update_job(job["id"], status="failed", error=str(e)[:300])
+
+
+def _dispatch_loop():
+    while True:
+        try:
+            if db.enabled():
+                _advance_active_jobs()
+                _dispatch_queued_jobs()
+        except Exception as e:
+            print("DISPATCH LOOP ERROR:", e, flush=True)
+        time.sleep(3)
+
+
+_DISPATCH_STARTED = False
+
+
+def start_dispatcher():
+    global _DISPATCH_STARTED
+    if _DISPATCH_STARTED or not (ENDPOINT_ID and API_KEY and db.enabled()):
+        return
+    _DISPATCH_STARTED = True
+    threading.Thread(target=_dispatch_loop, daemon=True, name="job-dispatcher").start()
+    print("[dispatcher] fila de jobs iniciada", flush=True)
+
+
 @app.route("/api/admin/gallery", methods=["POST"])
 @login_required
 def admin_gallery_save():
@@ -1555,6 +1797,10 @@ def admin_showcase_save():
     ids = request.get_json(force=True).get("ids", [])
     persona.save_showcase(owner_uid(), [int(i) for i in ids])
     return jsonify({"ok": True})
+
+
+# inicia o dispatcher da fila (thread única; roda com gunicorn --workers 1)
+start_dispatcher()
 
 
 if __name__ == "__main__":
