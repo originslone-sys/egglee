@@ -93,7 +93,7 @@
   <div class="sp"></div>
   <div class="right">
     <input id="search" placeholder="Buscar por prompt ou tag…">
-    {% if role == 'admin' %}<button class="ghost hide-sm" onclick="openWatermark()" title="Marca d'água">🏷️</button>{% endif %}
+    {% if role == 'admin' %}<button class="ghost hide-sm" onclick="openWatermark()" title="Marca d'água"><i class="ic ic-tag"></i></button>{% endif %}
     <a href="/logout" class="ghost">Sair</a>
   </div>
 </div>
@@ -106,11 +106,11 @@
       <div class="spacer"></div>
       <button class="tb" id="selBtn" onclick="toggleSelectMode()">Selecionar</button>
       <button class="tb" id="allBtn" onclick="selectAll()" style="display:none">Selecionar todos</button>
-      {% if role == 'admin' %}<button class="tb" id="upBtn" onclick="bulkUpscale()" style="display:none" disabled>✨ Upscalar</button>{% endif %}
-      <button class="tb" id="zipBtn" onclick="bulkZip()" style="display:none" disabled>⬇ Baixar zip</button>
+      {% if role == 'admin' %}<button class="tb" id="upBtn" onclick="bulkUpscale()" style="display:none" disabled><i class="ic ic-spark"></i> Upscalar</button>{% endif %}
+      <button class="tb" id="zipBtn" onclick="bulkZip()" style="display:none" disabled><i class="ic ic-down"></i> Baixar zip</button>
       {% if role == 'admin' %}<label class="tb" id="zipWmLbl" style="display:none"><input type="checkbox" id="zipWm"> 🏷️ c/ marca</label>{% endif %}
-      <button class="tb" id="moveBtn" onclick="bulkMove()" style="display:none" disabled>📁 Mover</button>
-      <button class="tb danger" id="delBtn" onclick="bulkDelete()" style="display:none" disabled>🗑 Deletar</button>
+      <button class="tb" id="moveBtn" onclick="bulkMove()" style="display:none" disabled><i class="ic ic-folder"></i> Mover</button>
+      <button class="tb danger" id="delBtn" onclick="bulkDelete()" style="display:none" disabled><i class="ic ic-trash"></i> Deletar</button>
       <span id="libStatus" style="color:var(--accent);font-size:13px"></span>
     </div>
     <div class="grid" id="grid"></div>
@@ -127,14 +127,14 @@
 
 <div class="modal" id="statsModal">
   <div class="box">
-    <div class="mt">📊 Dashboard</div>
+    <div class="mt"><i class="ic ic-grid"></i> Dashboard</div>
     <div id="statsBody" style="font-size:14px;line-height:2"></div>
   </div>
 </div>
 
 <div class="modal" id="wmModal">
   <div class="box">
-    <div class="mt">🏷️ Marca d'água</div>
+    <div class="mt"><i class="ic ic-tag"></i> Marca d'água</div>
     <label style="font-size:12px;color:var(--muted)">Texto (vazio = sem marca)</label>
     <input id="wmText" placeholder="@suamodelo" style="width:100%;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px">
     <label style="font-size:12px;color:var(--muted)">Posição</label>
@@ -154,7 +154,7 @@
 
 <div class="modal" id="vidModal">
   <div class="box">
-    <div class="mt">🎬 Animar imagem (vídeo)</div>
+    <div class="mt"><i class="ic ic-film"></i> Animar imagem (vídeo)</div>
     <label style="font-size:12px;color:var(--muted)">Fonte</label>
     <select id="vidSource" onchange="onVidSource()" style="width:100%;padding:9px;margin:4px 0 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px">
       <option value="api" selected>API (OpenRouter) — 10/15s, sem GPU sua</option>
@@ -202,24 +202,24 @@
     <input id="lbTags" placeholder="tags separadas por vírgula">
     <button onclick="saveTags()">Salvar tags</button>
     {% if role == 'admin' %}
-    <button onclick="makeVariations(4)">🔁 4 variações</button>
-    <button onclick="upscaleOne()">✨ Alta definição</button>
-    <button onclick="openVideo()" id="vidBtn">🎬 Animar</button>
+    <button onclick="makeVariations(4)"><i class="ic ic-refresh"></i> 4 variações</button>
+    <button onclick="upscaleOne()"><i class="ic ic-spark"></i> Alta definição</button>
+    <button onclick="openVideo()" id="vidBtn"><i class="ic ic-film"></i> Animar</button>
     <select id="capLang" title="Idioma da legenda" style="padding:7px 8px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:7px">
       <option value="">🌐 Auto</option>
       <option value="pt">🇧🇷 PT</option>
       <option value="en">🇺🇸 EN</option>
     </select>
-    <button onclick="genCaption()" id="capBtn">✍️ Legenda IA</button>
+    <button onclick="genCaption()" id="capBtn"><i class="ic ic-edit"></i> Legenda IA</button>
     {% endif %}
   </div>
   <div id="lbCaption" style="display:none; max-width:700px; width:100%">
     <textarea id="lbCaptionText" style="width:100%; height:150px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:13px"></textarea>
-    <button onclick="copyCaption()" style="margin-top:6px; padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer">📋 Copiar</button>
+    <button onclick="copyCaption()" style="margin-top:6px; padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer"><i class="ic ic-copy"></i> Copiar</button>
   </div>
   <div class="tags">
-    <a id="dlOrig" href="#" download class="dlbtn">⬇ Original</a>
-    {% if role == 'admin' %}<a id="dlWm" href="#" download class="dlbtn">⬇ Com marca d'água</a>{% endif %}
+    <a id="dlOrig" href="#" download class="dlbtn"><i class="ic ic-down"></i> Original</a>
+    {% if role == 'admin' %}<a id="dlWm" href="#" download class="dlbtn"><i class="ic ic-down"></i> Com marca d'água</a>{% endif %}
   </div>
 </div>
 
@@ -314,7 +314,7 @@ function renderGrid() {
       `<span class="star">${it.favorite ? '⭐' : '☆'}</span>` +
       media +
       `<div class="meta"><span class="wf">${it.workflow||it.type}</span> · ${it.folder||''}<br>${date}</div>` +
-      `<div class="acts"><a href="${it.url}" download>⬇</a><button class="del">🗑</button></div>`;
+      `<div class="acts"><a href="${it.url}" download><i class="ic ic-down"></i></a><button class="del"><i class="ic ic-trash"></i></button></div>`;
     // wires
     cell.querySelector('.thumb').onclick = () => selectMode ? toggleSel(it.id, cell) : openLb(it);
     cell.querySelector('.star').onclick = (e) => { e.stopPropagation(); toggleFav(it); };

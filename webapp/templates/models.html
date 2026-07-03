@@ -49,23 +49,23 @@
 </div>
 
 <div class="page">
-  <h1 class="h-title">📦 Modelos</h1>
+  <h1 class="h-title"><i class="ic ic-box"></i> Modelos</h1>
   <p class="h-sub">Instale, liste e remova checkpoints e LoRAs direto no volume.</p>
 
   <div class="card pad" style="margin-bottom:18px">
-    <div class="sec-title">💾 Espaço em modelos <span id="diskTxt" class="hint" style="margin-left:auto"></span></div>
+    <div class="sec-title"><i class="ic ic-save"></i> Espaço em modelos <span id="diskTxt" class="hint" style="margin-left:auto"></span></div>
     <div class="hint">Total ocupado pelos checkpoints + LoRAs no volume. (A cota total do volume não é legível por aqui — esse é o uso real dos modelos.)</div>
-    <button class="btn-2" style="margin-top:10px" onclick="refresh()">🔄 Atualizar lista</button>
+    <button class="btn-2" style="margin-top:10px" onclick="refresh()"><i class="ic ic-refresh"></i> Atualizar lista</button>
     <span id="loadMsg" class="hint" style="margin-left:8px"></span>
   </div>
 
   <div class="card pad" style="margin-bottom:18px">
-    <div class="sec-title">⬇️ Instalar modelo (por URL)</div>
+    <div class="sec-title"><i class="ic ic-down"></i> Instalar modelo (por URL)</div>
     <div class="hint">Cole o link de download (Civitai/HuggingFace). Com o token salvo abaixo, no Civitai basta o link <b>sem</b> o token.</div>
     <label>Token Civitai (salvo — cole o link sem token)</label>
     <div class="row">
       <input type="text" id="civitok" placeholder="seu token do Civitai (Settings → API Keys)">
-      <button class="btn-2" style="flex:0 0 auto" onclick="saveToken()">💾 Salvar token</button>
+      <button class="btn-2" style="flex:0 0 auto" onclick="saveToken()"><i class="ic ic-save"></i> Salvar token</button>
     </div>
     <span id="tokMsg" class="hint"></span>
     <div style="height:8px"></div>
@@ -75,7 +75,7 @@
     </div>
     <label>Nome do arquivo (com .safetensors)</label>
     <input type="text" id="fname" placeholder="realvisxl.safetensors">
-    <button class="btn" id="dlBtn" style="margin-top:14px" onclick="install()">⬇️ Baixar pro volume</button>
+    <button class="btn" id="dlBtn" style="margin-top:14px" onclick="install()"><i class="ic ic-down"></i> Baixar pro volume</button>
     <div class="msg" id="dlMsg"></div>
   </div>
 
@@ -85,8 +85,8 @@
       (ex.: o LoRA da personagem principal nasce desmarcado).</div>
   </div>
   <div class="grid2">
-    <div class="card pad"><div class="sec-title">🎨 Checkpoints</div><div class="mlist" id="ckpts"></div></div>
-    <div class="card pad"><div class="sec-title">🧩 LoRAs</div><div class="mlist" id="loras"></div></div>
+    <div class="card pad"><div class="sec-title"><i class="ic ic-palette"></i> Checkpoints</div><div class="mlist" id="ckpts"></div></div>
+    <div class="card pad"><div class="sec-title"><i class="ic ic-puzzle"></i> LoRAs</div><div class="mlist" id="loras"></div></div>
   </div>
 </div>
 
@@ -131,7 +131,7 @@ function toggleClient(kind, name, on){
 
 function loraRow(m){
   return `<div class="mrow"><span class="nm">${m.name}</span>${clientChk('lora',m.name)}<span class="sz">${fmt(m.size)}</span>
-    <button class="del" onclick="del('lora','${m.name.replace(/'/g,"")}')">🗑</button></div>`;
+    <button class="del" onclick="del('lora','${m.name.replace(/'/g,"")}')"><i class="ic ic-trash"></i></button></div>`;
 }
 function ckptRow(m, active){
   const isA = m.name===active;
@@ -139,7 +139,7 @@ function ckptRow(m, active){
                     : `<button class="use" onclick="setActive('${m.name.replace(/'/g,"")}')">Usar</button>`;
   return `<div class="mrow ${isA?'act':''}"><span class="nm">${m.name}</span>${right}${clientChk('checkpoint',m.name)}
     <span class="sz">${fmt(m.size)}</span>
-    <button class="del" onclick="del('checkpoint','${m.name.replace(/'/g,"")}')">🗑</button></div>`;
+    <button class="del" onclick="del('checkpoint','${m.name.replace(/'/g,"")}')"><i class="ic ic-trash"></i></button></div>`;
 }
 
 async function refresh(){

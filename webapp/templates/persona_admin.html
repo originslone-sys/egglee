@@ -66,27 +66,27 @@
   </nav>
   <div class="sp"></div>
   <div class="right">
-    <a href="{% if role == 'admin' %}/chat{% else %}/u/{{ slug }}{% endif %}" target="_blank" class="ghost">↗ Ver página</a>
+    <a href="{% if role == 'admin' %}/chat{% else %}/u/{{ slug }}{% endif %}" target="_blank" class="ghost"><i class="ic ic-ext"></i> Ver página</a>
     <a href="/logout" class="ghost">Sair</a>
   </div>
 </div>
 
 <div class="page">
-  <h1 class="h-title">💬 Persona & Página</h1>
+  <h1 class="h-title"><i class="ic ic-chat"></i> Persona & Página</h1>
   <p class="h-sub">Personalidade da IA, fotos do perfil e a página pública do chat.</p>
 
   <div class="grid2">
     <!-- ESQUERDA: Persona -->
     <div>
       <div class="card pad">
-        <div class="sec-title">🪪 Identidade</div>
+        <div class="sec-title"><i class="ic ic-id"></i> Identidade</div>
         <label>Nome</label><input type="text" id="name">
         <label>Status (aparece no topo)</label><input type="text" id="status" placeholder="online agora 💕">
         <label>Bio curta (opcional)</label><input type="text" id="bio">
       </div>
 
       <div class="card pad">
-        <div class="sec-title">🧠 Personalidade</div>
+        <div class="sec-title"><i class="ic ic-brain"></i> Personalidade</div>
         <label>Quem ela é (descrição livre)</label>
         <textarea id="personality" style="min-height:140px"></textarea>
         <label>Tom (marque vários — ela alterna entre eles)</label>
@@ -104,7 +104,7 @@
       </div>
 
       <div class="card pad">
-        <div class="sec-title">💬 Estilo das mensagens</div>
+        <div class="sec-title"><i class="ic ic-chat"></i> Estilo das mensagens</div>
         <div class="row">
           <div><label>Idioma</label><select id="language"><option value="auto">Auto (espelha o visitante)</option><option value="pt">Português</option><option value="en">Inglês</option></select></div>
           <div><label>Tamanho</label><select id="length"><option value="short">Curtas</option><option value="medium">Médias</option></select></div>
@@ -118,20 +118,20 @@
       </div>
 
       <div class="card pad">
-        <div class="sec-title">🌙 Quando perguntarem "você é real?"</div>
+        <div class="sec-title"><i class="ic ic-moon"></i> Quando perguntarem "você é real?"</div>
         <div class="hint">Ela varia sozinha entre <b style="color:var(--accent)">provocante</b>, <b style="color:var(--accent)">filosófica</b> e <b style="color:var(--accent)">sonhadora</b> — nunca repete o mesmo tom seguidamente. As frases abaixo são só inspiração (ela improvisa, não copia).</div>
         <label>Frases de inspiração (uma por linha)</label>
         <textarea id="reality_examples" style="min-height:130px"></textarea>
-        <button class="btn-2" type="button" id="genPhrasesBtn" onclick="genPhrases()" style="margin-top:8px">✨ Gerar mais (IA)</button>
+        <button class="btn-2" type="button" id="genPhrasesBtn" onclick="genPhrases()" style="margin-top:8px"><i class="ic ic-spark"></i> Gerar mais (IA)</button>
         <span class="hint" id="genPhrasesMsg" style="margin-left:8px"></span>
       </div>
 
       <div class="card pad">
-        <div class="sec-title">🧩 Prompt completo (avançado)</div>
+        <div class="sec-title"><i class="ic ic-puzzle"></i> Prompt completo (avançado)</div>
         <div class="hint">Opcional. Se você <b style="color:var(--accent)">preencher</b>, este texto vira o prompt completo da IA e os campos acima passam a ser ignorados. Vazio = modo automático (montado pelos campos). Os <b>limites de segurança</b> são sempre aplicados por baixo.</div>
         <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-          <button class="btn-2" type="button" onclick="loadAutoPrompt()">⬇ Carregar prompt atual</button>
-          <button class="btn-2" type="button" onclick="clearCustom()">🧹 Limpar (voltar ao automático)</button>
+          <button class="btn-2" type="button" onclick="loadAutoPrompt()"><i class="ic ic-down"></i> Carregar prompt atual</button>
+          <button class="btn-2" type="button" onclick="clearCustom()"><i class="ic ic-refresh"></i> Limpar (voltar ao automático)</button>
           <span class="hint" id="cpMsg" style="align-self:center"></span>
         </div>
         <textarea id="custom_prompt" style="min-height:200px;font-family:monospace;font-size:12.5px" placeholder="(vazio = automático) — clique em 'Carregar prompt atual' pra começar a editar"></textarea>
@@ -141,7 +141,7 @@
     <!-- DIREITA: Galeria + Página -->
     <div>
       <div class="card pad">
-        <div class="sec-title">📸 Avatar & Galeria</div>
+        <div class="sec-title"><i class="ic ic-camera"></i> Avatar & Galeria</div>
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
           <div class="av-preview" id="avPrev">💕</div>
           <div class="hint" style="margin:0">Clique numa foto pra adicionar/tirar da <b style="color:var(--accent)">galeria</b>.<br>Use <b style="color:#ffd24a">★ avatar</b> pra definir a foto de perfil.</div>
@@ -151,7 +151,7 @@
       </div>
 
       <div class="card pad">
-        <div class="sec-title">💌 Banner (CTA)</div>
+        <div class="sec-title"><i class="ic ic-mail"></i> Banner (CTA)</div>
         <div class="check"><input type="checkbox" id="b_enabled"><label for="b_enabled">Mostrar banner</label></div>
         <label>Título</label><input type="text" id="b_title" placeholder="Quer mais de mim? 💌">
         <label>Link</label><input type="text" id="b_link" placeholder="https://...">
@@ -160,15 +160,15 @@
       </div>
 
       <div class="card pad">
-        <div class="sec-title">📢 Anúncios</div>
+        <div class="sec-title"><i class="ic ic-mega"></i> Anúncios</div>
         <div class="check"><input type="checkbox" id="a_enabled"><label for="a_enabled">Mostrar slot de ads</label></div>
         <label>Código (HTML/JS do anúncio)</label>
         <textarea id="a_code" style="min-height:90px;font-family:monospace;font-size:12px"></textarea>
-        <div class="hint">⚠️ Cole só código de fontes confiáveis — ele roda na página pública.</div>
+        <div class="hint"><i class="ic ic-warn"></i> Cole só código de fontes confiáveis — ele roda na página pública.</div>
       </div>
 
       <div class="card pad">
-        <div class="sec-title">⚖️ Disclaimer</div>
+        <div class="sec-title"><i class="ic ic-scale"></i> Disclaimer</div>
         <label>Aviso de IA (rodapé do chat)</label>
         <input type="text" id="disclaimer">
       </div>
@@ -177,7 +177,7 @@
 </div>
 
 <div class="savebar">
-  <button class="btn" onclick="saveAll()" id="saveBtn">💾 Salvar tudo</button>
+  <button class="btn" onclick="saveAll()" id="saveBtn"><i class="ic ic-save"></i> Salvar tudo</button>
   <span class="ok" id="okMsg"></span>
 </div>
 

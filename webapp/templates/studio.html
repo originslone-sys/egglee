@@ -54,9 +54,9 @@
   <div class="sec-title"><i class="ic ic-link"></i> Sua página de chat</div>
   <div class="link-card">
     <span class="url" id="chatUrl">…</span>
-    <button class="btn-2" onclick="editHandle()">✏️ Editar nome</button>
-    <button class="btn-2" onclick="copyUrl()" id="copyBtn">📋 Copiar</button>
-    <a class="btn-2 open" id="openLink" target="_blank">↗ Abrir</a>
+    <button class="btn-2" onclick="editHandle()"><i class="ic ic-edit"></i> Editar nome</button>
+    <button class="btn-2" onclick="copyUrl()" id="copyBtn"><i class="ic ic-copy"></i> Copiar</button>
+    <a class="btn-2 open" id="openLink" target="_blank"><i class="ic ic-ext"></i> Abrir</a>
   </div>
   <div class="hint" id="handleMsg" style="font-size:12px; color:var(--muted); margin-top:6px"></div>
 
@@ -83,7 +83,7 @@ function renderChatUrl(){
 renderChatUrl();
 
 function copyUrl(){
-  navigator.clipboard.writeText($('chatUrl').textContent.trim()).then(()=>{ $('copyBtn').textContent='✓ Copiado'; setTimeout(()=>$('copyBtn').textContent='📋 Copiar',2000); });
+  navigator.clipboard.writeText($('chatUrl').textContent.trim()).then(()=>{ $('copyBtn').textContent='✓ Copiado'; setTimeout(()=>$('copyBtn').innerHTML='<i class="ic ic-copy"></i> Copiar',2000); });
 }
 
 function editHandle(){
@@ -108,11 +108,11 @@ fetch('/api/pay/config').then(r=>r.json()).then(c=>{
   const box=$('planBox'); box.style.display='flex';
   if(c.plan==='pro'){
     const d = c.plan_expires_at ? new Date(c.plan_expires_at).toLocaleDateString('pt-BR') : '';
-    box.innerHTML = `<span class="url" style="color:var(--ok)">⭐ Plano Pro — ativo${d?' até '+d:''}</span>
+    box.innerHTML = `<span class="url" style="color:var(--ok)"><i class="ic ic-star"></i> Plano Pro — ativo${d?' até '+d:''}</span>
       <a class="btn-2" href="/studio/pro">Renovar</a>`;
   } else {
     box.innerHTML = `<span class="url">Plano <b>Free</b> — 5 imagens + 3 vídeos de teste</span>
-      <a class="btn" href="/studio/pro">⭐ Assinar Pro</a>`;
+      <a class="btn" href="/studio/pro"><i class="ic ic-star"></i> Assinar Pro</a>`;
   }
 }).catch(()=>{});
 
