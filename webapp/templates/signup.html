@@ -12,8 +12,7 @@
 <style>
   body { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
   .login { width:360px; max-width:100%; padding:34px 30px; text-align:center; }
-  .login .logo-big { width:60px; height:60px; border-radius:16px; background:var(--grad); display:grid;
-    place-items:center; font-size:30px; margin:0 auto 16px; box-shadow:0 8px 28px rgba(176,108,255,.5); }
+  .login .logo-big { width:60px; height:60px; border-radius:16px; background:url("/static/favicon.svg") center/cover no-repeat; font-size:0; margin:0 auto 16px; box-shadow:0 8px 28px rgba(176,108,255,.5); }
   .login h1 { font-size:22px; margin:0 0 4px; font-weight:700; }
   .login h1 b { background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .login p { color:var(--muted); font-size:13.5px; margin:0 0 22px; }
@@ -25,7 +24,7 @@
 </head>
 <body>
   <form class="login card" method="post">
-    <div class="logo-big">🥚</div>
+    <div class="logo-big"></div>
     <h1>Egg<b>lee</b></h1>
     <p>Criar sua conta</p>
     <label>Nome</label>
