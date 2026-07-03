@@ -498,6 +498,19 @@ def get_user_by_slug(slug):
             return cur.fetchone()
 
 
+def update_user_slug(user_id, slug):
+    """Troca o slug do usuário. Devolve True se ok, False se já está em uso."""
+    slug = (slug or "").strip().lower()
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute("SELECT 1 FROM users WHERE slug = %s AND id <> %s", (slug, user_id))
+            if cur.fetchone():
+                return False
+            cur.execute("UPDATE users SET slug = %s WHERE id = %s", (slug, user_id))
+        c.commit()
+        return True
+
+
 def backfill_slugs():
     """Dá slug pros usuários que ainda não têm (ex.: admin criado antes da Fase 3)."""
     with _conn() as c:

@@ -19,6 +19,7 @@ import uuid
 import random
 import threading
 import hashlib
+import re
 from datetime import datetime
 from functools import wraps
 
@@ -40,6 +41,11 @@ ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID", "").strip()
 API_KEY = os.environ.get("RUNPOD_API_KEY", "").strip()
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "").strip()
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").strip().lower()
+# Domínio público (pra montar as URLs da página de chat do cliente).
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://egglee.com").rstrip("/")
+_RESERVED_SLUGS = {"admin", "api", "chat", "home", "premium", "login", "signup",
+                   "studio", "logout", "u", "static", "webhook", "conta", "usuarios",
+                   "modelos", "generate", "library", "persona", "leads", "www"}
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "").strip()
 
 BASE_URL = f"https://api.runpod.ai/v2/{ENDPOINT_ID}"
@@ -360,7 +366,7 @@ def studio():
     if is_admin():
         return redirect(url_for("index"))
     u = current_user()
-    return render_template("studio.html", user=u or {})
+    return render_template("studio.html", user=u or {}, public_base=PUBLIC_BASE_URL)
 
 
 @app.route("/studio/gerar")
@@ -410,6 +416,24 @@ def api_account():
     return jsonify({"id": u["id"], "email": u["email"], "name": u.get("name") or "",
                     "role": u.get("role"), "plan": u.get("plan"), "status": u.get("status"),
                     "slug": u.get("slug") or ""})
+
+
+@app.route("/api/account/slug", methods=["POST"])
+@login_required
+def account_slug():
+    """Cliente escolhe o nome do próprio link (/u/<slug>)."""
+    u = current_user() or {}
+    if not u.get("id"):
+        return jsonify({"error": "unauthorized"}), 401
+    raw = (request.get_json(force=True).get("slug") or "").strip().lower()
+    slug = re.sub(r"[^a-z0-9-]+", "-", raw).strip("-")
+    if not (3 <= len(slug) <= 32) or not re.match(r"^[a-z0-9][a-z0-9-]*[a-z0-9]$", slug):
+        return jsonify({"error": "Use 3–32 caracteres: letras, números e hífen."}), 400
+    if slug in _RESERVED_SLUGS:
+        return jsonify({"error": "Esse nome é reservado, escolha outro."}), 400
+    if not db.enabled() or not db.update_user_slug(u["id"], slug):
+        return jsonify({"error": "Esse nome já está em uso."}), 409
+    return jsonify({"ok": True, "slug": slug, "url": f"{PUBLIC_BASE_URL}/u/{slug}"})
 
 
 # ── Admin: gestão de usuários ─────────────────────────────────────────────────
