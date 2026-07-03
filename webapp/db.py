@@ -85,6 +85,10 @@ def init():
                 )
                 """
             )
+            # slug público (endereço do chat do cliente: /u/<slug>) — Fase 3
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS slug TEXT")
+            cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_slug "
+                        "ON users(slug) WHERE slug IS NOT NULL")
             # ── Multi-tenant (Fase 2): user_id em tudo + settings por usuário ──
             cur.execute("ALTER TABLE media ADD COLUMN IF NOT EXISTS user_id INTEGER")
             cur.execute("ALTER TABLE folders ADD COLUMN IF NOT EXISTS user_id INTEGER")
@@ -400,19 +404,59 @@ def _norm_email(e):
     return (e or "").strip().lower()
 
 
+def _slugify(text):
+    import re as _re, unicodedata as _ud
+    text = _ud.normalize("NFKD", text or "").encode("ascii", "ignore").decode()
+    text = _re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return text[:32] or "user"
+
+
+def _unique_slug(cur, base):
+    slug = base
+    n = 1
+    while True:
+        cur.execute("SELECT 1 FROM users WHERE slug = %s", (slug,))
+        if not cur.fetchone():
+            return slug
+        n += 1
+        slug = f"{base}-{n}"
+
+
 def create_user(email, password_hash, name="", role="user", plan="free"):
-    """Cria um usuário. Devolve a row, ou None se o e-mail já existe."""
+    """Cria um usuário (com slug único). Devolve a row, ou None se o e-mail já existe."""
+    email = _norm_email(email)
+    base = _slugify(name) if name else _slugify(email.split("@")[0])
     with _conn() as c:
         with c.cursor(cursor_factory=RealDictCursor) as cur:
+            slug = _unique_slug(cur, base)
             cur.execute(
-                "INSERT INTO users (email, password_hash, name, role, plan) "
-                "VALUES (%s, %s, %s, %s, %s) "
+                "INSERT INTO users (email, password_hash, name, role, plan, slug) "
+                "VALUES (%s, %s, %s, %s, %s, %s) "
                 "ON CONFLICT (email) DO NOTHING RETURNING *",
-                (_norm_email(email), password_hash, (name or "").strip(), role, plan),
+                (email, password_hash, (name or "").strip(), role, plan, slug),
             )
             row = cur.fetchone()
         c.commit()
         return row
+
+
+def get_user_by_slug(slug):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM users WHERE slug = %s", (slug,))
+            return cur.fetchone()
+
+
+def backfill_slugs():
+    """Dá slug pros usuários que ainda não têm (ex.: admin criado antes da Fase 3)."""
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id, name, email FROM users WHERE slug IS NULL OR slug = ''")
+            for u in cur.fetchall():
+                base = _slugify(u["name"]) if u["name"] else _slugify((u["email"] or "").split("@")[0])
+                slug = _unique_slug(cur, base)
+                cur.execute("UPDATE users SET slug = %s WHERE id = %s", (slug, u["id"]))
+        c.commit()
 
 
 def get_user_by_email(email):

@@ -45,6 +45,7 @@
   <a href="/" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
   <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
   <nav class="nav" id="nav">
+    {% if role == 'admin' %}
     <a href="/">📊 Dashboard</a>
     <a href="/generate">✨ Gerar</a>
     <a href="/library">🖼️ Biblioteca</a>
@@ -52,10 +53,15 @@
     <a href="/modelos">📦 Modelos</a>
     <a href="/leads">📋 Leads</a>
     <a href="/usuarios">👥 Usuários</a>
+    {% else %}
+    <a href="/studio">🏠 Estúdio</a>
+    <a href="/library">🖼️ Biblioteca</a>
+    <a href="/persona" class="active">💬 Persona</a>
+    {% endif %}
   </nav>
   <div class="sp"></div>
   <div class="right">
-    <a href="/chat" target="_blank" class="ghost">↗ Ver página</a>
+    <a href="{% if role == 'admin' %}/chat{% else %}/u/{{ slug }}{% endif %}" target="_blank" class="ghost">↗ Ver página</a>
     <a href="/logout" class="ghost">Sair</a>
   </div>
 </div>
