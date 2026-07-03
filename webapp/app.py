@@ -1394,7 +1394,9 @@ def pub_media(media_id):
         print("PUB MEDIA ERROR:", e, flush=True)
         return ("erro", 502)
     resp = Response(data, mimetype=ctype)
-    resp.headers["Cache-Control"] = "public, max-age=3600"
+    # miniatura (?t=1) muda pouco → cache longo (carrega instantâneo em revisitas)
+    resp.headers["Cache-Control"] = ("public, max-age=604800, immutable"
+                                     if request.args.get("t") == "1" else "public, max-age=3600")
     return resp
 
 

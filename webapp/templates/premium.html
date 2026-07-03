@@ -67,7 +67,14 @@
   /* vitrine dinâmica (mídias escolhidas pelo admin) */
   .gallery{ display:none; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-top:44px; }
   .gallery.on{ display:grid; }
-  .gallery .g{ aspect-ratio:3/4; border-radius:16px; overflow:hidden; border:1px solid var(--line);
+  .cta-demo{ display:inline-flex; align-items:center; gap:9px; font-family:"Sora"; font-weight:700; font-size:16px;
+    color:var(--ink); text-decoration:none; padding:16px 28px; border-radius:999px; border:1px solid var(--line); background:rgba(255,255,255,.04); transition:.15s; }
+  .cta-demo:hover{ border-color:var(--lav); color:#fff; transform:translateY(-2px); }
+  .plb{ position:fixed; inset:0; background:rgba(4,5,8,.94); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:80; padding:20px; }
+  .plb.show{ display:flex; }
+  .plb img, .plb video{ max-width:92vw; max-height:88vh; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  .plb .x{ position:absolute; top:18px; right:24px; color:#fff; font-size:32px; cursor:pointer; }
+  .gallery .g{ cursor:pointer; aspect-ratio:3/4; border-radius:16px; overflow:hidden; border:1px solid var(--line);
     background:#141019; position:relative; box-shadow:0 12px 34px rgba(0,0,0,.35); }
   .gallery .g img, .gallery .g video{ width:100%; height:100%; object-fit:cover; display:block; }
   .gallery .g .vtag{ position:absolute; top:8px; left:8px; font-size:11px; font-weight:600; color:#fff;
@@ -134,6 +141,7 @@
   <div class="nav">
     <a href="#" class="brand"><span class="egg">🥚</span> Egg<b>lee</b></a>
     <div class="sp"></div>
+    <a href="/chat" target="_blank" class="cta-top" style="margin-right:8px">💬 Demo do chat</a>
     <a href="#entrar" class="cta-top">Entrar na lista →</a>
   </div>
 
@@ -143,8 +151,11 @@
     <h1>Sua própria <span class="g">modelo de IA</span>,<br>indistinguível da realidade.</h1>
     <p class="lead">Um estúdio completo pra criar uma influenciadora virtual exclusiva: fotos ultrarrealistas,
       vídeos com movimento natural e uma persona que conversa com seus fãs — tudo no seu painel.</p>
-    <a href="#entrar" class="cta">✨ Quero acesso antecipado</a>
-    <span class="micro">Entre na lista VIP e seja avisado no lançamento.</span>
+    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap">
+      <a href="#entrar" class="cta">✨ Quero acesso antecipado</a>
+      <a href="/chat" target="_blank" class="cta-demo">💬 Conversar com a demo</a>
+    </div>
+    <span class="micro">Experimente o chat agora, ou entre na lista VIP pro lançamento.</span>
 
     <div class="gallery" id="gallery"></div>
     <div class="showcase" id="showFallback">
@@ -232,6 +243,10 @@
     Egglee © 2026 · Todas as personas são geradas por inteligência artificial.
   </footer>
 
+  <div class="plb" id="plb" onclick="if(event.target.id==='plb')closeMedia()">
+    <span class="x" onclick="closeMedia()">✕</span><div id="plbc"></div>
+  </div>
+
 </div>
 
 <script>
@@ -245,14 +260,23 @@ const $ = id => document.getElementById(id);
     if(!items.length) return;                 // mantém o fallback
     const g = $('gallery');
     g.innerHTML = items.map(it => it.type === 'video'
-      ? `<div class="g"><span class="vtag">▶ vídeo</span>
-           <video src="${it.full}" poster="${it.thumb}" muted loop autoplay playsinline preload="none"></video></div>`
-      : `<div class="g"><img src="${it.thumb}" loading="lazy" alt=""></div>`
+      ? `<div class="g" onclick="openMedia('${it.full}','video')"><span class="vtag">▶ vídeo</span>
+           <img src="${it.thumb}" loading="lazy" decoding="async" alt=""></div>`
+      : `<div class="g" onclick="openMedia('${it.full}','image')"><img src="${it.thumb}" loading="lazy" decoding="async" alt=""></div>`
     ).join('');
     g.classList.add('on');
     $('showFallback').style.display = 'none';
   }catch(e){ /* silencioso: fica o fallback */ }
 })();
+
+// Lightbox: só carrega o vídeo/imagem cheio ao clicar (miniaturas ficam leves)
+function openMedia(src, type){
+  document.getElementById('plbc').innerHTML = type === 'video'
+    ? `<video src="${src}" controls autoplay loop playsinline></video>`
+    : `<img src="${src}" alt="">`;
+  document.getElementById('plb').classList.add('show');
+}
+function closeMedia(){ const p=document.getElementById('plb'); p.classList.remove('show'); document.getElementById('plbc').innerHTML=''; }
 
 async function joinWaitlist(e){
   e.preventDefault();
