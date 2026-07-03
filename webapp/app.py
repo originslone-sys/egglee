@@ -18,6 +18,8 @@ import base64
 import uuid
 import random
 import threading
+import hashlib
+from datetime import datetime
 from functools import wraps
 
 import requests
@@ -29,6 +31,7 @@ import storage
 import db
 import video
 import persona
+import pix
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "egglee-dev-secret-change-me")
@@ -216,6 +219,13 @@ def current_user():
     u = db.get_user(uid)
     if not u or u.get("status") != "active":
         return None
+    # Pro vencido → rebaixa pra free (assinatura por tempo)
+    if u.get("plan") == "pro" and u.get("plan_expires_at") and u["plan_expires_at"] < datetime.utcnow():
+        try:
+            db.expire_pro_if_needed(u["id"])
+        except Exception:
+            pass
+        u["plan"] = "free"
     return u
 
 
@@ -262,6 +272,8 @@ _USER_ALLOWED_PREFIXES = (
     # Fase 3B/4: gerador do cliente + fila de jobs
     "/api/client/", "/api/generate", "/api/status", "/api/video",
     "/api/caption", "/api/jobs",
+    # Fase 5: pagamento/assinatura Pro
+    "/api/pay",
     "/static", "/u/", "/chat", "/premium",
     "/api/chat", "/api/pub", "/api/premium", "/api/waitlist",
 )
@@ -369,6 +381,16 @@ def studio_fila():
         return redirect(url_for("index"))
     u = current_user() or {}
     return render_template("studio_fila.html", role="user", slug=u.get("slug", ""))
+
+
+@app.route("/studio/pro")
+@login_required
+def studio_pro():
+    """Página de assinatura do plano Pro (PIX)."""
+    if is_admin():
+        return redirect(url_for("index"))
+    u = current_user() or {}
+    return render_template("studio_pro.html", role="user", slug=u.get("slug", ""))
 
 
 @app.route("/logout")
@@ -1686,6 +1708,165 @@ def client_quota():
         "vid_limit": r["vid"], "conc_used": db.active_job_count(u["id"]) if db.enabled() else 0,
         "conc_limit": r["conc"],
     })
+
+
+# ── Pagamento PIX / assinatura Pro (Fase 5) ───────────────────────────────────
+
+def _pro_price():
+    try:
+        return round(float(db.get_setting("pro_price_brl") or 0), 2)
+    except Exception:
+        return 0.0
+
+
+def _pro_days():
+    try:
+        return max(1, int(db.get_setting("pro_days") or 30))
+    except Exception:
+        return 30
+
+
+def _digits(s):
+    return "".join(ch for ch in (s or "") if ch.isdigit())
+
+
+def _confirm_and_activate(external_id):
+    """Idempotente: confirma o pagamento (só a 1ª vez) e ativa/estende o Pro."""
+    row = db.confirm_payment_atomic(external_id)
+    if not row:
+        return False
+    db.activate_pro(row["user_id"], row["plan_days"])
+    print(f"[pix] Pro ativado: user {row['user_id']} +{row['plan_days']}d ({external_id})", flush=True)
+    return True
+
+
+@app.route("/api/pay/config")
+@login_required
+def pay_config():
+    u = current_user() or {}
+    return jsonify({
+        "enabled": pix.enabled() and db.enabled() and _pro_price() > 0,
+        "price_brl": _pro_price(), "days": _pro_days(),
+        "plan": u.get("plan") or "free",
+        "plan_expires_at": u["plan_expires_at"].isoformat() if u.get("plan_expires_at") else None,
+    })
+
+
+@app.route("/api/pay/pro", methods=["POST"])
+@login_required
+def pay_pro():
+    if not (pix.enabled() and db.enabled()):
+        return jsonify({"error": "pagamento indisponível no momento"}), 503
+    price = _pro_price()
+    if price <= 0:
+        return jsonify({"error": "preço do Pro não configurado"}), 503
+    u = current_user() or {}
+    if not u.get("id"):
+        return jsonify({"error": "unauthorized"}), 401
+    b = request.get_json(force=True)
+    cpf = _digits(b.get("cpf"))
+    if len(cpf) != 11:
+        return jsonify({"error": "CPF inválido (precisa de 11 dígitos)"}), 400
+    days = _pro_days()
+    external_id = f"PRO-{u['id']}-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+    try:
+        db.create_payment(u["id"], external_id, price, days)
+    except Exception as e:
+        print("PAY CREATE DB ERROR:", e, flush=True)
+        return jsonify({"error": "falha ao iniciar o pagamento"}), 500
+    res = pix.create_deposit(price, external_id, f"Egglee Pro {days} dias",
+                             payer_name=u.get("name") or u.get("email"),
+                             payer_email=u.get("email"), payer_document=cpf)
+    if not res["ok"]:
+        db.update_payment(external_id, status="failed")
+        print("ZETTPAY DEPOSIT ERROR:", res.get("status"), res.get("data"), flush=True)
+        return jsonify({"error": "não foi possível gerar o PIX. Tente de novo."}), 502
+    d = res["data"] or {}
+    qr = d.get("qr_code") or d.get("pix_copy_paste") or ""
+    db.update_payment(external_id, zettpay_id=d.get("id"), qr_code=qr)
+    return jsonify({"external_id": external_id, "amount_brl": price,
+                    "pix_copy_paste": qr, "expires_at": d.get("expires_at")})
+
+
+@app.route("/api/pay/status")
+@login_required
+def pay_status():
+    external_id = (request.args.get("external_id") or "").strip()
+    p = db.get_payment(external_id, uid()) if (db.enabled() and external_id) else None
+    if not p:
+        return jsonify({"error": "não encontrado"}), 404
+    status = p.get("status")
+    if status == "pending" and pix.enabled():
+        res = pix.lookup_deposit(external_id)     # verificação dupla
+        st = str((res.get("data") or {}).get("status", "")).upper()
+        if st in ("PAID", "COMPLETED", "APPROVED"):
+            _confirm_and_activate(external_id)
+            status = "confirmed"
+        elif st in ("EXPIRED", "FAILED", "CANCELED"):
+            db.update_payment(external_id, status="expired")
+            status = "expired"
+    u = current_user() or {}
+    return jsonify({"status": status, "plan": u.get("plan") or "free",
+                    "confirmed": status == "confirmed",
+                    "plan_expires_at": u["plan_expires_at"].isoformat() if u.get("plan_expires_at") else None})
+
+
+@app.route("/webhook/zettpay", methods=["POST"])
+def zettpay_webhook():
+    """Recebe notificações da ZettPay (público). Anti-replay + verificação dupla."""
+    raw = request.get_data() or b""
+    fp = hashlib.md5(raw).hexdigest()
+    try:
+        body = json.loads(raw.decode() or "{}")
+    except Exception:
+        body = {}
+    data = body.get("data") or {}
+    external_id = data.get("external_id") or ""
+    event = body.get("event") or ""
+    if not db.enabled():
+        return jsonify({"received": True})
+    if not db.webhook_seen(fp, external_id, event):   # replay → ignora
+        return jsonify({"received": True})
+    st = str(data.get("status", "")).upper()
+    if external_id.startswith("PRO-") and st in ("PAID", "COMPLETED", "APPROVED"):
+        # NUNCA confiar só no webhook: confirma na fonte antes de ativar.
+        if pix.enabled():
+            res = pix.lookup_deposit(external_id)
+            vst = str((res.get("data") or {}).get("status", "")).upper()
+            if vst not in ("PAID", "COMPLETED", "APPROVED"):
+                print("WEBHOOK VERIFY MISMATCH — bloqueado:", external_id, flush=True)
+                return jsonify({"received": True})
+        try:
+            db.update_payment(external_id, webhook_payload=raw.decode(errors="ignore")[:4000])
+        except Exception:
+            pass
+        _confirm_and_activate(external_id)
+    return jsonify({"received": True})
+
+
+@app.route("/api/admin/billing", methods=["GET"])
+@admin_required
+def admin_billing_get():
+    return jsonify({"price_brl": _pro_price(), "days": _pro_days(), "gateway": pix.enabled()})
+
+
+@app.route("/api/admin/billing", methods=["POST"])
+@admin_required
+def admin_billing_save():
+    if not db.enabled():
+        return jsonify({"ok": False, "reason": "banco não configurado"}), 500
+    b = request.get_json(force=True)
+    try:
+        price = max(0.0, round(float(b.get("price_brl") or 0), 2))
+    except (TypeError, ValueError):
+        price = 0.0
+    try:
+        days = max(1, int(b.get("days") or 30))
+    except (TypeError, ValueError):
+        days = 30
+    db.set_setting("pro_price_brl", str(price))
+    db.set_setting("pro_days", str(days))
+    return jsonify({"ok": True})
 
 
 # ── Dispatcher (thread em background) ─────────────────────────────────────────

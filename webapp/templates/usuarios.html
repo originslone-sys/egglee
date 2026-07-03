@@ -61,6 +61,17 @@
   </div>
 
   <div class="card pad" style="margin-bottom:18px">
+    <div class="sec-title">⭐ Plano Pro (PIX) <span class="hint" id="gwStatus" style="margin-left:auto"></span></div>
+    <div class="hint">Preço e duração do Pro. O cliente paga via PIX e o Pro ativa/renova automaticamente.</div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr auto">
+      <div><label>Preço (R$)</label><input type="number" id="proPrice" step="0.01" min="0" placeholder="49.90"></div>
+      <div><label>Duração (dias)</label><input type="number" id="proDays" min="1" placeholder="30"></div>
+      <div><button class="btn" onclick="saveBilling()">💾 Salvar</button></div>
+    </div>
+    <div class="msg" id="bMsg"></div>
+  </div>
+
+  <div class="card pad" style="margin-bottom:18px">
     <div class="sec-title">➕ Criar usuário</div>
     <div class="form-row">
       <div><label>Nome</label><input type="text" id="nName" placeholder="Nome"></div>
@@ -143,6 +154,20 @@ async function upd(body){
   if(!d.ok) alert(d.reason||'falhou');
   load();
 }
+// ── Plano Pro (PIX) ──────────────────────────────────────────────────────────
+fetch('/api/admin/billing').then(r=>r.json()).then(d=>{
+  $('proPrice').value = d.price_brl || ''; $('proDays').value = d.days || 30;
+  $('gwStatus').textContent = d.gateway ? '🟢 gateway conectado' : '🔴 gateway não configurado (env ZETTPAY_*)';
+}).catch(()=>{});
+async function saveBilling(){
+  const body = { price_brl: parseFloat($('proPrice').value)||0, days: parseInt($('proDays').value)||30 };
+  const r = await fetch('/api/admin/billing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d = await r.json();
+  $('bMsg').className = 'msg ' + (d.ok?'ok':'err');
+  $('bMsg').textContent = d.ok ? '✓ Salvo' : ('❌ '+(d.reason||'falhou'));
+  setTimeout(()=>$('bMsg').textContent='',2500);
+}
+
 function cyclePlan(id,plan){ upd({id, plan: plan==='pro'?'free':'pro'}); }
 function toggleStatus(id,st){ upd({id, status: st==='disabled'?'active':'disabled'}); }
 function toggleRole(id,role){ if(confirm('Mudar o papel deste usuário?')) upd({id, role: role==='admin'?'user':'admin'}); }

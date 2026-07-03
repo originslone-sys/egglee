@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egglee · Plano Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  .center { max-width:520px; margin:0 auto; }
+  .pro { background:linear-gradient(160deg,var(--panel),rgba(176,108,255,.06)); border:1px solid var(--border);
+    border-radius:var(--radius); padding:26px; text-align:center; }
+  .price { font-size:40px; font-weight:800; background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .price small { font-size:15px; color:var(--muted); -webkit-text-fill-color:var(--muted); }
+  .benefits { text-align:left; margin:18px auto; max-width:320px; font-size:14px; }
+  .benefits li { margin:7px 0; list-style:none; } .benefits li::before { content:'✓ '; color:var(--ok); font-weight:700; }
+  .pixbox { background:var(--bg-soft); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px; margin-top:16px; word-break:break-all; }
+  .pixcode { font-family:monospace; font-size:12px; color:var(--text); max-height:90px; overflow:auto; }
+  .waiting { color:var(--accent); font-size:14px; margin-top:12px; }
+  .spin { display:inline-block; width:10px; height:10px; border:2px solid rgba(176,108,255,.3); border-top-color:var(--accent); border-radius:50%; animation:sp .7s linear infinite; margin-right:6px; vertical-align:-1px; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+  .ok-state { display:none; text-align:center; }
+  .ok-state .big { font-size:52px; }
+  .msg { font-size:13px; margin-top:10px; min-height:18px; } .msg.err { color:var(--danger); }
+  .active-badge { display:inline-block; padding:6px 14px; border-radius:999px; background:var(--grad-soft);
+    border:1px solid var(--accent2); color:var(--accent); font-weight:600; font-size:13px; margin-bottom:12px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/studio" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
+  <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+  <nav class="nav" id="nav">
+    <a href="/studio">🏠 Estúdio</a>
+    <a href="/studio/gerar">✨ Gerar</a>
+    <a href="/studio/fila">📥 Requisições</a>
+    <a href="/studio/pro" class="active">⭐ Pro</a>
+    <a href="/library">🖼️ Biblioteca</a>
+    <a href="/persona">💬 Persona</a>
+  </nav>
+  <div class="sp"></div>
+  <div class="right"><a href="/logout" class="ghost">Sair</a></div>
+</div>
+
+<div class="page center">
+  <h1 class="h-title">⭐ Plano Pro</h1>
+  <p class="h-sub">Gere sem limites, com prioridade na fila.</p>
+
+  <div class="pro" id="card">
+    <div id="loading" class="h-sub">carregando…</div>
+
+    <div id="offer" style="display:none">
+      <div id="statusLine"></div>
+      <div class="price">R$ <span id="price">–</span> <small>/ <span id="days">30</span> dias</small></div>
+      <ul class="benefits">
+        <li>Gerações <b>ilimitadas</b> de imagem e vídeo</li>
+        <li>Até <b>10 requisições</b> na fila ao mesmo tempo</li>
+        <li>Prioridade no processamento</li>
+      </ul>
+      <label style="text-align:left">Seu CPF (para o pagamento)</label>
+      <input type="text" id="cpf" placeholder="000.000.000-00" inputmode="numeric" maxlength="14">
+      <button class="btn" id="payBtn" style="width:100%;margin-top:12px" onclick="pay()">Gerar PIX</button>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <div id="pixview" style="display:none">
+      <p style="font-size:14px">Abra o app do seu banco → <b>PIX</b> → <b>Pix Copia e Cola</b> → cole o código:</p>
+      <div class="pixbox"><div class="pixcode" id="pixcode"></div></div>
+      <button class="btn-2" style="margin-top:10px" onclick="copyPix()" id="copyBtn">📋 Copiar código PIX</button>
+      <div class="waiting" id="waiting"><span class="spin"></span> aguardando pagamento…</div>
+    </div>
+
+    <div id="okview" class="ok-state">
+      <div class="big">🎉</div>
+      <h2>Pagamento confirmado!</h2>
+      <p class="h-sub">Você agora é <b>Pro</b> até <span id="okDate">—</span>.</p>
+      <a class="btn" href="/studio/gerar" style="display:inline-block;margin-top:8px">Começar a gerar →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let CFG = {}, currentExt = null, pollTimer = null;
+
+function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return isNaN(d)?'—':d.toLocaleDateString('pt-BR'); }
+
+$('cpf').addEventListener('input', e=>{
+  let v=e.target.value.replace(/\D/g,'').slice(0,11);
+  v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  e.target.value=v;
+});
+
+fetch('/api/pay/config').then(r=>r.json()).then(c=>{
+  CFG=c; $('loading').style.display='none'; $('offer').style.display='block';
+  $('price').textContent = (c.price_brl||0).toFixed(2).replace('.',',');
+  $('days').textContent = c.days||30;
+  const isPro = c.plan==='pro';
+  if(isPro){
+    $('statusLine').innerHTML = `<div class="active-badge">✓ Pro ativo até ${fmtDate(c.plan_expires_at)}</div>`;
+    $('payBtn').textContent = 'Renovar Pro';
+  }
+  if(!c.enabled){
+    $('offer').innerHTML = '<p class="h-sub">💤 Pagamento indisponível no momento. Fale com o suporte.</p>'
+      + (isPro ? `<div class="active-badge">✓ Pro ativo até ${fmtDate(c.plan_expires_at)}</div>` : '');
+  }
+}).catch(()=>{ $('loading').textContent='erro ao carregar'; });
+
+async function pay(){
+  const cpf = $('cpf').value.replace(/\D/g,'');
+  if(cpf.length!==11){ $('msg').className='msg err'; $('msg').textContent='Informe um CPF válido (11 dígitos).'; return; }
+  $('payBtn').disabled=true; $('msg').className='msg'; $('msg').textContent='Gerando PIX…';
+  try{
+    const r=await fetch('/api/pay/pro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cpf})});
+    const d=await r.json();
+    if(!r.ok||d.error) throw new Error(d.error||'falhou');
+    currentExt=d.external_id;
+    $('offer').style.display='none'; $('pixview').style.display='block';
+    $('pixcode').textContent = d.pix_copy_paste||'(código indisponível)';
+    startPolling();
+  }catch(e){ $('msg').className='msg err'; $('msg').textContent='❌ '+e.message; $('payBtn').disabled=false; }
+}
+
+function copyPix(){
+  navigator.clipboard.writeText($('pixcode').textContent.trim()).then(()=>{
+    $('copyBtn').textContent='✓ Copiado!'; setTimeout(()=>$('copyBtn').textContent='📋 Copiar código PIX',2000);
+  });
+}
+
+function startPolling(){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer=setInterval(check, 4000); check();
+}
+async function check(){
+  if(!currentExt) return;
+  try{
+    const d=await (await fetch('/api/pay/status?external_id='+encodeURIComponent(currentExt))).json();
+    if(d.confirmed){
+      clearInterval(pollTimer);
+      $('pixview').style.display='none';
+      $('okview').style.display='block';
+      $('okDate').textContent=fmtDate(d.plan_expires_at);
+    } else if(d.status==='expired'){
+      clearInterval(pollTimer);
+      $('waiting').innerHTML='⌛ Cobrança expirada. <a href="/studio/pro" style="color:var(--accent)">Gerar outra</a>.';
+    }
+  }catch(e){}
+}
+</script>
+</body>
+</html>
