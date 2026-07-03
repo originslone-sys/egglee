@@ -280,7 +280,7 @@ _USER_ALLOWED_PREFIXES = (
     "/api/caption", "/api/jobs",
     # Fase 5: pagamento/assinatura Pro
     "/api/pay",
-    "/static", "/u/", "/chat", "/premium", "/home",
+    "/static", "/favicon", "/u/", "/chat", "/premium", "/home",
     "/api/chat", "/api/pub", "/api/premium", "/api/waitlist", "/api/public",
 )
 
@@ -303,6 +303,11 @@ def _start_session(user):
     session["uid"] = user["id"]
     session["role"] = user.get("role", "user")
     session["email"] = user.get("email", "")
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return redirect("/static/favicon.svg", code=301)
 
 
 @app.route("/login", methods=["GET", "POST"])
