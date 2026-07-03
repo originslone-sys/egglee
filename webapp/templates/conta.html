@@ -12,8 +12,7 @@
 <style>
   body { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
   .box { width:480px; max-width:100%; padding:38px 32px; text-align:center; }
-  .box .logo-big { width:60px; height:60px; border-radius:16px; background:var(--grad); display:grid;
-    place-items:center; font-size:30px; margin:0 auto 18px; box-shadow:0 8px 28px rgba(176,108,255,.5); }
+  .box .logo-big { width:60px; height:60px; border-radius:16px; background:url("/static/favicon.svg") center/cover no-repeat; font-size:0; margin:0 auto 18px; box-shadow:0 8px 28px rgba(176,108,255,.5); }
   .box h1 { font-size:22px; margin:0 0 6px; font-weight:700; }
   .box h1 b { background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .box p { color:var(--muted); font-size:14.5px; line-height:1.6; margin:0 0 18px; }
@@ -25,7 +24,7 @@
 </head>
 <body>
   <div class="box card">
-    <div class="logo-big">🥚</div>
+    <div class="logo-big"></div>
     <h1>Bem-vindo(a) à Egg<b>lee</b></h1>
     <div class="soon">🚧 Sua área está sendo preparada</div>
     <p>Sua conta foi criada com sucesso! Estamos finalizando os últimos ajustes
