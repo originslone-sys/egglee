@@ -80,7 +80,7 @@
   </div>
 
   <div class="card pad" style="margin-bottom:14px">
-    <div class="hint" style="margin:0">🌐 = <b>disponível no painel do cliente</b>. Marque os checkpoints e LoRAs
+    <div class="hint" style="margin:0"><i class="ic ic-globe"></i> = <b>disponível no painel do cliente</b>. Marque os checkpoints e LoRAs
       que os clientes podem usar no gerador deles. O que não estiver marcado fica <b>só seu</b>
       (ex.: o LoRA da personagem principal nasce desmarcado).</div>
   </div>
@@ -117,7 +117,7 @@ function clientChk(kind, name){
   const on = (kind==='lora' ? CLIENT_LORAS : CLIENT_CKPTS).has(name);
   const nm = name.replace(/'/g,"");
   return `<label class="cli" title="Disponível no painel do cliente">
-    <input type="checkbox" ${on?'checked':''} onchange="toggleClient('${kind}','${nm}',this.checked)"> 🌐</label>`;
+    <input type="checkbox" ${on?'checked':''} onchange="toggleClient('${kind}','${nm}',this.checked)"> <i class="ic ic-globe"></i></label>`;
 }
 async function saveClientModels(){
   await fetch('/api/admin/client_models',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -135,7 +135,7 @@ function loraRow(m){
 }
 function ckptRow(m, active){
   const isA = m.name===active;
-  const right = isA ? '<span class="badge">⚡ ativo</span>'
+  const right = isA ? '<span class="badge"><i class="ic ic-bolt"></i> ativo</span>'
                     : `<button class="use" onclick="setActive('${m.name.replace(/'/g,"")}')">Usar</button>`;
   return `<div class="mrow ${isA?'act':''}"><span class="nm">${m.name}</span>${right}${clientChk('checkpoint',m.name)}
     <span class="sz">${fmt(m.size)}</span>
