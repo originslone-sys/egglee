@@ -38,7 +38,7 @@
 <body>
 <div class="app">
   <div class="head">
-    <button class="bk" onclick="location.href='/chat'">‹</button>
+    <button class="bk" onclick="goBack()">‹</button>
     <div class="av" id="av">💕</div>
     <div><div class="nm" id="nm">…</div><div class="sub">galeria de fotos</div></div>
   </div>
@@ -48,7 +48,10 @@
 <div class="lb" id="lb"><span class="x" onclick="closeLb()">✕</span><img id="lbimg"></div>
 <script>
 const $ = id => document.getElementById(id);
-fetch('/api/chat/persona').then(r=>r.json()).then(p=>{
+const TENANT = "{{ tenant_slug }}";
+const Q = TENANT ? ('?u=' + encodeURIComponent(TENANT)) : '';
+function goBack(){ location.href = TENANT ? ('/u/' + TENANT) : '/chat'; }
+fetch('/api/chat/persona' + Q).then(r=>r.json()).then(p=>{
   $('nm').textContent = p.name || 'Galeria';
   if(p.avatar) $('av').innerHTML = `<img src="${p.avatar}" alt="">`;
   else $('av').textContent = (p.name||'?').charAt(0).toUpperCase();

@@ -109,8 +109,9 @@ bootstrap_admin()
 try:
     if db.enabled():
         db.backfill_owner(db.first_admin_id())
+        db.backfill_slugs()
 except Exception as e:
-    print("backfill_owner falhou:", e, flush=True)
+    print("backfill Fase 2/3 falhou:", e, flush=True)
 
 # id do dono (admin principal) — a persona/página/galeria PÚBLICA é a dele.
 _OWNER_UID = None
@@ -126,6 +127,17 @@ def owner_uid():
 def uid():
     """id do usuário logado (dono dos dados que ele acessa)."""
     return session.get("uid")
+
+
+def tenant_uid_from(slug):
+    """Resolve o dono da persona pública a partir do slug (/u/<slug>).
+    Sem slug (ou inválido) → o admin/dono (a página /chat padrão)."""
+    slug = (slug or "").strip()
+    if slug and db.enabled():
+        u = db.get_user_by_slug(slug)
+        if u and u.get("status") == "active":
+            return u["id"]
+    return owner_uid()
 
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -216,16 +228,22 @@ def admin_required(f):
         if session.get("role") != "admin":
             if request.path.startswith("/api/"):
                 return jsonify({"error": "forbidden"}), 403
-            return redirect(url_for("conta"))
+            return redirect(url_for("studio"))
         return f(*a, **k)
     return wrap
 
 
-# Enquanto o isolamento de dados (Fase 2) não existe, o painel é SÓ do admin.
-# Clientes logados são mandados pra área da conta (placeholder) — sem ver dados.
-_USER_ALLOWED_PREFIXES = ("/conta", "/logout", "/api/account", "/static",
-                          "/chat", "/premium", "/api/chat", "/api/pub",
-                          "/api/premium", "/api/waitlist")
+# Fase 3A: o cliente acessa o estúdio dele (biblioteca + persona, isolados).
+# Geração/treino/modelos/leads/premium continuam SÓ admin (fora desta lista).
+_USER_ALLOWED_PREFIXES = (
+    "/studio", "/conta", "/logout", "/library", "/persona",
+    "/api/account", "/api/library", "/api/stats", "/api/thumb", "/api/media",
+    "/api/folders", "/api/presets",
+    "/api/admin/persona", "/api/admin/page", "/api/admin/gallery",
+    "/api/admin/prompt_preview", "/api/admin/reality_phrases",
+    "/static", "/u/", "/chat", "/premium",
+    "/api/chat", "/api/pub", "/api/premium", "/api/waitlist",
+)
 
 
 @app.before_request
@@ -237,8 +255,8 @@ def _role_gate():
     path = request.path
     if path == "/" or not any(path.startswith(p) for p in _USER_ALLOWED_PREFIXES):
         if path.startswith("/api/"):
-            return jsonify({"error": "forbidden", "reason": "conta em preparação"}), 403
-        return redirect(url_for("conta"))
+            return jsonify({"error": "forbidden"}), 403
+        return redirect(url_for("studio"))
 
 
 def _start_session(user):
@@ -251,7 +269,7 @@ def _start_session(user):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if "uid" in session:
-        return redirect(url_for("index" if is_admin() else "conta"))
+        return redirect(url_for("index" if is_admin() else "studio"))
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password") or ""
@@ -266,7 +284,7 @@ def login():
         user = db.get_user_by_email(email) if (db.enabled() and email) else None
         if user and user.get("status") == "active" and check_password_hash(user["password_hash"], password):
             _start_session(user)
-            return redirect(url_for("index" if user.get("role") == "admin" else "conta"))
+            return redirect(url_for("index" if user.get("role") == "admin" else "studio"))
         return render_template("login.html", error="E-mail ou senha incorretos")
     return render_template("login.html", error=None)
 
@@ -274,7 +292,7 @@ def login():
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if "uid" in session:
-        return redirect(url_for("index" if is_admin() else "conta"))
+        return redirect(url_for("index" if is_admin() else "studio"))
     if request.method == "POST":
         if not db.enabled():
             return render_template("signup.html", error="Cadastro indisponível no momento.")
@@ -291,7 +309,7 @@ def signup():
         if not row:
             return render_template("signup.html", error="Não foi possível criar a conta.")
         _start_session(row)
-        return redirect(url_for("conta"))
+        return redirect(url_for("studio"))
     return render_template("signup.html", error=None)
 
 
@@ -300,6 +318,16 @@ def signup():
 def conta():
     u = current_user()
     return render_template("conta.html", user=u or {})
+
+
+@app.route("/studio")
+@login_required
+def studio():
+    """Home do estúdio do cliente."""
+    if is_admin():
+        return redirect(url_for("index"))
+    u = current_user()
+    return render_template("studio.html", user=u or {})
 
 
 @app.route("/logout")
@@ -317,7 +345,8 @@ def api_account():
     if not u:
         return jsonify({"error": "unauthorized"}), 401
     return jsonify({"id": u["id"], "email": u["email"], "name": u.get("name") or "",
-                    "role": u.get("role"), "plan": u.get("plan"), "status": u.get("status")})
+                    "role": u.get("role"), "plan": u.get("plan"), "status": u.get("status"),
+                    "slug": u.get("slug") or ""})
 
 
 # ── Admin: gestão de usuários ─────────────────────────────────────────────────
@@ -495,7 +524,7 @@ def index():
 
 
 @app.route("/generate")
-@login_required
+@admin_required
 def generate_page():
     return render_template("index.html")
 
@@ -503,11 +532,13 @@ def generate_page():
 @app.route("/persona")
 @login_required
 def persona_admin_page():
-    return render_template("persona_admin.html")
+    u = current_user() or {}
+    return render_template("persona_admin.html",
+                           role=session.get("role", "user"), slug=u.get("slug", ""))
 
 
 @app.route("/modelos")
-@login_required
+@admin_required
 def models_page():
     return render_template("models.html")
 
@@ -515,7 +546,9 @@ def models_page():
 @app.route("/library")
 @login_required
 def library_page():
-    return render_template("library.html")
+    u = current_user() or {}
+    return render_template("library.html",
+                           role=session.get("role", "user"), slug=u.get("slug", ""))
 
 
 @app.route("/leads")
@@ -1138,23 +1171,38 @@ def library_delete(media_id):
 
 @app.route("/chat")
 def chat_page():
-    return render_template("chat.html")
+    # /chat = persona do dono (admin). Compat: sem slug.
+    return render_template("chat.html", tenant_slug="")
+
+
+@app.route("/u/<slug>")
+def tenant_chat(slug):
+    """Página de chat pública de um cliente (persona dele)."""
+    if db.enabled():
+        u = db.get_user_by_slug(slug)
+        if not u or u.get("status") != "active":
+            return ("página não encontrada", 404)
+    return render_template("chat.html", tenant_slug=slug)
 
 
 @app.route("/chat/galeria")
 def chat_gallery_page():
-    return render_template("gallery.html")
+    return render_template("gallery.html", tenant_slug=(request.args.get("u") or "").strip())
 
 
 @app.route("/api/chat/persona")
 def chat_persona():
     """Dados públicos da persona pra montar a página /chat (sem login)."""
-    ow = owner_uid()
+    slug = (request.args.get("u") or "").strip()
+    ow = tenant_uid_from(slug)
+    q = f"&u={slug}" if slug else ""
+    qf = f"?u={slug}" if slug else ""
     p = persona.get_persona(ow)
     pg = persona.get_page(ow)
     gal = persona.get_gallery(ow)
-    avatar = f"/api/pub/media/{p['avatar_id']}?t=1" if p.get("avatar_id") else None
-    gallery = [{"id": i, "thumb": f"/api/pub/media/{i}?t=1", "full": f"/api/pub/media/{i}"} for i in gal]
+    avatar = f"/api/pub/media/{p['avatar_id']}?t=1{q}" if p.get("avatar_id") else None
+    gallery = [{"id": i, "thumb": f"/api/pub/media/{i}?t=1{q}",
+                "full": f"/api/pub/media/{i}{qf}"} for i in gal]
     return jsonify({
         "name": p.get("name"), "status": p.get("status"), "bio": p.get("bio"),
         "greeting": p.get("greeting"), "avatar": avatar,
@@ -1202,7 +1250,8 @@ def public_chat():
     rl["last"] = now
     session["rl"] = rl
     try:
-        bubbles = persona.chat_reply(owner_uid(), b.get("history") or [], msg)
+        tenant = tenant_uid_from(b.get("slug"))
+        bubbles = persona.chat_reply(tenant, b.get("history") or [], msg)
     except Exception as e:
         print("CHAT ERROR:", e, flush=True)
         bubbles = ["opa, me perdi aqui 🙈 tenta de novo?"]
@@ -1212,7 +1261,7 @@ def public_chat():
 @app.route("/api/pub/media/<int:media_id>")
 def pub_media(media_id):
     """Serve só as imagens liberadas (avatar + galeria da persona) — sem login."""
-    ow = owner_uid()
+    ow = tenant_uid_from(request.args.get("u"))
     allowed = set(persona.get_gallery(ow)) | set(persona.get_showcase(ow))
     av = persona.get_persona(ow).get("avatar_id")
     if av:

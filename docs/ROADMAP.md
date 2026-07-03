@@ -47,8 +47,13 @@ Estúdio de criação de conteúdo com IA para uma **influenciadora virtual / mo
 
 ### Decisões tomadas
 - **Formato B (personagens sintéticos):** o cliente **não** treina LoRA de
-  pessoa real. Treino de LoRA fica **só no painel admin**; o admin decide
-  quais LoRAs ficam disponíveis pra quais clientes (unicidade sob controle).
+  pessoa real. Treino de LoRA fica **só no painel admin**.
+- **Disponibilidade de LoRA (decisão 2026-07-02):** no painel admin há um
+  **toggle "disponível pro cliente"** por LoRA. LoRA marcado fica disponível
+  pra **TODOS** os clientes (pool compartilhado — NÃO é atribuição por usuário).
+  - Consequência: personagens/estilos são **compartilhados** entre clientes
+    (sem exclusividade por cliente). O LoRA pessoal do dono (egglee_character)
+    só aparece pro cliente se for **marcado** — por padrão fica privado.
 - **img2img/upload de imagem:** permanece como ferramenta do painel do cliente.
   Responsabilidade de uso transferida via **Termos de Uso claros**.
 - **Sem moderação manual de prompt** (decisão do cliente-dono, coberta por ToU).
@@ -88,6 +93,16 @@ Estúdio de criação de conteúdo com IA para uma **influenciadora virtual / mo
    >   dele (persona/página/galeria/vitrine) migram pro `user_settings`.
    > - Settings de infra (civitai_token, caches, checkpoint ativo, watermark)
    >   seguem **globais** (do dono/admin) de propósito.
+2b. **App do cliente (estúdio)** — versão restrita.
+   > **FASE 3A — CONCLUÍDA (2026-07-02):** casca do estúdio.
+   > - `slug` por usuário; chat público do cliente em **`/u/<slug>`** (persona/
+   >   galeria isoladas). `/chat` segue sendo do dono (admin).
+   > - Cliente acessa **`/studio`**, **`/library`** e **`/persona`** próprios;
+   >   nav por papel; botões admin-only e de **geração escondidos** (é 3B).
+   > - `_role_gate` libera só o estúdio; geração/treino/modelos/leads/premium
+   >   continuam `admin_required`.
+   > - **FALTA (3B):** gerador do cliente + toggle "LoRA disponível pro cliente"
+   >   (global) + parametrizar o character LoRA no worker (rebuild).
 3. **Storage:** R2 com prefixo por tenant (`u/<id>/...`) + controle de acesso.
 4. **Fila robusta** (crítico — ver seção 4).
 5. **Cotas + billing:** créditos por plano (imagem/vídeo/chat), Stripe, medição.
