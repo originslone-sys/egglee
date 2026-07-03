@@ -24,6 +24,9 @@
   .mrow .use { background:none; border:1px solid var(--border); color:var(--text); border-radius:8px;
     padding:5px 10px; cursor:pointer; font-size:12px; }
   .mrow .use:hover { border-color:var(--accent2); color:var(--accent); }
+  .mrow .cli { display:flex; align-items:center; gap:4px; font-size:12px; color:var(--muted);
+    border:1px solid var(--border); border-radius:8px; padding:4px 8px; cursor:pointer; user-select:none; }
+  .mrow .cli input { accent-color:var(--accent2); }
   .hint { font-size:12px; color:var(--muted); margin:-2px 0 10px; }
   .msg { font-size:13px; margin-top:8px; min-height:18px; }
   .msg.ok { color:var(--ok); } .msg.err { color:var(--danger); }
@@ -74,6 +77,11 @@
     <div class="msg" id="dlMsg"></div>
   </div>
 
+  <div class="card pad" style="margin-bottom:14px">
+    <div class="hint" style="margin:0">🌐 = <b>disponível no painel do cliente</b>. Marque os checkpoints e LoRAs
+      que os clientes podem usar no gerador deles. O que não estiver marcado fica <b>só seu</b>
+      (ex.: o LoRA da personagem principal nasce desmarcado).</div>
+  </div>
   <div class="grid2">
     <div class="card pad"><div class="sec-title">🎨 Checkpoints</div><div class="mlist" id="ckpts"></div></div>
     <div class="card pad"><div class="sec-title">🧩 LoRAs</div><div class="mlist" id="loras"></div></div>
@@ -101,15 +109,33 @@ async function runAction(body, onmsg){
   throw new Error('tempo esgotado');
 }
 
+// disponibilidade pro painel do cliente (Fase 3B)
+let CLIENT_LORAS = new Set(), CLIENT_CKPTS = new Set();
+function clientChk(kind, name){
+  const on = (kind==='lora' ? CLIENT_LORAS : CLIENT_CKPTS).has(name);
+  const nm = name.replace(/'/g,"");
+  return `<label class="cli" title="Disponível no painel do cliente">
+    <input type="checkbox" ${on?'checked':''} onchange="toggleClient('${kind}','${nm}',this.checked)"> 🌐</label>`;
+}
+async function saveClientModels(){
+  await fetch('/api/admin/client_models',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({loras:[...CLIENT_LORAS], checkpoints:[...CLIENT_CKPTS]})});
+}
+function toggleClient(kind, name, on){
+  const set = kind==='lora' ? CLIENT_LORAS : CLIENT_CKPTS;
+  on ? set.add(name) : set.delete(name);
+  saveClientModels();
+}
+
 function loraRow(m){
-  return `<div class="mrow"><span class="nm">${m.name}</span><span class="sz">${fmt(m.size)}</span>
+  return `<div class="mrow"><span class="nm">${m.name}</span>${clientChk('lora',m.name)}<span class="sz">${fmt(m.size)}</span>
     <button class="del" onclick="del('lora','${m.name.replace(/'/g,"")}')">🗑</button></div>`;
 }
 function ckptRow(m, active){
   const isA = m.name===active;
   const right = isA ? '<span class="badge">⚡ ativo</span>'
                     : `<button class="use" onclick="setActive('${m.name.replace(/'/g,"")}')">Usar</button>`;
-  return `<div class="mrow ${isA?'act':''}"><span class="nm">${m.name}</span>${right}
+  return `<div class="mrow ${isA?'act':''}"><span class="nm">${m.name}</span>${right}${clientChk('checkpoint',m.name)}
     <span class="sz">${fmt(m.size)}</span>
     <button class="del" onclick="del('checkpoint','${m.name.replace(/'/g,"")}')">🗑</button></div>`;
 }
@@ -126,6 +152,10 @@ async function refresh(){
     fetch('/api/loras/cache',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({loras:lrs.map(m=>m.name)})});
     const active = (await (await fetch('/api/checkpoints')).json()).active;
+    try{
+      const cm = await (await fetch('/api/admin/client_models')).json();
+      CLIENT_LORAS = new Set(cm.loras||[]); CLIENT_CKPTS = new Set(cm.checkpoints||[]);
+    }catch(e){}
     $('ckpts').innerHTML = cks.map(m=>ckptRow(m,active)).join('') || '<div class="hint">vazio</div>';
     $('loras').innerHTML = lrs.map(loraRow).join('') || '<div class="hint">vazio</div>';
     const total = [...cks,...lrs].reduce((s,m)=>s+(m.size||0),0);

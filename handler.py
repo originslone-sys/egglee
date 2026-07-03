@@ -331,12 +331,18 @@ DEFAULT_LORAS = [
 ]
 
 
-def apply_lora_stack(workflow: dict, loras) -> dict:
+def apply_lora_stack(workflow: dict, loras, character_lora=None) -> dict:
     """Preenche o nó Power Lora Loader com a lista de LoRAs ativos + pesos.
-    O LoRA da personagem é sempre garantido (identidade)."""
-    loras = list(loras) if loras else list(DEFAULT_LORAS)
-    if not any(l.get("name") == CHARACTER_LORA and l.get("on", True) for l in loras):
-        loras = [{"name": CHARACTER_LORA, "weight": 0.8, "on": True}] + loras
+    O 'character_lora' (opcional) é forçado no topo do stack — é passado pelo
+    backend: o admin manda a personagem dele; o cliente NÃO herda nada."""
+    loras = list(loras) if loras else []
+    # admin sem stack explícito (ex.: upscale da biblioteca) → default do dono.
+    # cliente (sem character_lora) sem stack → nada é aplicado (não herda o dono).
+    if not loras and character_lora:
+        loras = list(DEFAULT_LORAS)
+    if character_lora and not any(
+            l.get("name") == character_lora and l.get("on", True) for l in loras):
+        loras = [{"name": character_lora, "weight": 0.8, "on": True}] + loras
     for node in workflow.values():
         if node.get("class_type") == "Power Lora Loader (rgthree)":
             ins = node.setdefault("inputs", {})
@@ -423,7 +429,8 @@ def handler(job):
 
         if inputs:
             workflow = inject_inputs(workflow, inputs)
-        workflow = apply_lora_stack(workflow, job_input.get("loras"))
+        workflow = apply_lora_stack(workflow, job_input.get("loras"),
+                                    job_input.get("character_lora"))
 
         client_id = str(uuid.uuid4())
         prompt_id = queue_prompt(workflow, client_id)
