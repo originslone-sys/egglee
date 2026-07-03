@@ -50,7 +50,11 @@
 
   .gallery{ display:none; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-top:46px; }
   .gallery.on{ display:grid; }
-  .gallery .g{ aspect-ratio:3/4; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:#141019; position:relative; box-shadow:0 12px 34px rgba(0,0,0,.35); }
+  .gallery .g{ cursor:pointer; aspect-ratio:3/4; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:#141019; position:relative; box-shadow:0 12px 34px rgba(0,0,0,.35); }
+  .plb{ position:fixed; inset:0; background:rgba(4,5,8,.94); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:80; padding:20px; }
+  .plb.show{ display:flex; }
+  .plb img, .plb video{ max-width:92vw; max-height:88vh; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  .plb .x{ position:absolute; top:18px; right:24px; color:#fff; font-size:32px; cursor:pointer; }
   .gallery .g img,.gallery .g video{ width:100%; height:100%; object-fit:cover; display:block; }
   .gallery .g .vtag{ position:absolute; top:8px; left:8px; font-size:11px; font-weight:600; color:#fff; background:rgba(0,0,0,.55); padding:3px 9px; border-radius:999px; }
   @media(max-width:520px){ .gallery{ grid-template-columns:repeat(2,1fr); } }
@@ -183,6 +187,10 @@
 
 </div>
 
+<div class="plb" id="plb" onclick="if(event.target.id==='plb')closeMedia()">
+  <span class="x" onclick="closeMedia()">✕</span><div id="plbc"></div>
+</div>
+
 <script>
 // Vitrine de demonstração (mídias curadas pelo admin)
 fetch('/api/premium/showcase').then(r=>r.json()).then(d=>{
@@ -190,10 +198,17 @@ fetch('/api/premium/showcase').then(r=>r.json()).then(d=>{
   if(!items.length) return;
   const g=document.getElementById('gallery');
   g.innerHTML=items.map(it=> it.type==='video'
-    ? `<div class="g"><span class="vtag">▶ vídeo</span><video src="${it.full}" poster="${it.thumb}" muted loop autoplay playsinline preload="none"></video></div>`
-    : `<div class="g"><img src="${it.thumb}" loading="lazy" alt=""></div>`).join('');
+    ? `<div class="g" onclick="openMedia('${it.full}','video')"><span class="vtag">▶ vídeo</span><img src="${it.thumb}" loading="lazy" decoding="async" alt=""></div>`
+    : `<div class="g" onclick="openMedia('${it.full}','image')"><img src="${it.thumb}" loading="lazy" decoding="async" alt=""></div>`).join('');
   g.classList.add('on');
 }).catch(()=>{});
+
+function openMedia(src, type){
+  document.getElementById('plbc').innerHTML = type==='video'
+    ? `<video src="${src}" controls autoplay loop playsinline></video>` : `<img src="${src}" alt="">`;
+  document.getElementById('plb').classList.add('show');
+}
+function closeMedia(){ const p=document.getElementById('plb'); p.classList.remove('show'); document.getElementById('plbc').innerHTML=''; }
 
 // Preço do Pro
 fetch('/api/public/pricing').then(r=>r.json()).then(p=>{
