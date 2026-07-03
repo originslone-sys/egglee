@@ -101,8 +101,16 @@ Estúdio de criação de conteúdo com IA para uma **influenciadora virtual / mo
    >   nav por papel; botões admin-only e de **geração escondidos** (é 3B).
    > - `_role_gate` libera só o estúdio; geração/treino/modelos/leads/premium
    >   continuam `admin_required`.
-   > - **FALTA (3B):** gerador do cliente + toggle "LoRA disponível pro cliente"
-   >   (global) + parametrizar o character LoRA no worker (rebuild).
+   > **FASE 3B — CONCLUÍDA (2026-07-02):** gerador do cliente.
+   > - Painel Modelos: toggle **🌐 disponível pro cliente** por LoRA/checkpoint
+   >   (settings globais `client_loras`/`client_checkpoints`).
+   > - Worker parametrizado: `apply_lora_stack(..., character_lora)` — admin força
+   >   `egglee_character`; **cliente não herda nada** do dono (rebuild feito).
+   > - `/studio/gerar`: gerador do cliente (txt2img/img2img/vídeo 5B) só com os
+   >   modelos liberados; salva na biblioteca dele.
+   > - `/api/generate` **valida no servidor** (checkpoint/LoRAs ∈ pool liberado;
+   >   workflow permitido) — bloqueio real, não cosmético.
+   > - **FALTA (Fase 4+):** cotas/créditos, fila com prioridade, teto de custo.
 3. **Storage:** R2 com prefixo por tenant (`u/<id>/...`) + controle de acesso.
 4. **Fila robusta** (crítico — ver seção 4).
 5. **Cotas + billing:** créditos por plano (imagem/vídeo/chat), Stripe, medição.

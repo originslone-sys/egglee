@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Egglee · Gerar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  .wrap { display:grid; grid-template-columns:400px 1fr; gap:22px; padding:22px; max-width:1500px; margin:0 auto; align-items:start; }
+  @media (max-width:900px){ .wrap { grid-template-columns:1fr; } }
+  .controls { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+  .result { min-height:60vh; display:flex; flex-wrap:wrap; gap:14px; align-items:center; align-content:center; justify-content:center;
+            background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:22px; }
+  .result.multi img { max-height:44vh; }
+  .result img, .result video { max-width:100%; max-height:72vh; border-radius:12px; border:1px solid var(--border); }
+  .cell { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .placeholder { color:var(--muted); text-align:center; }
+  .drop { border:1.5px dashed var(--border-2); border-radius:var(--radius-sm); padding:16px; text-align:center; cursor:pointer; font-size:13px; color:var(--muted); }
+  .drop:hover { border-color:var(--accent2); color:var(--text); }
+  .drop img { max-width:100%; max-height:130px; border-radius:8px; margin-top:8px; }
+  .status { font-size:13px; color:var(--muted); margin-top:14px; min-height:18px; }
+  .status.err { color:var(--danger); }
+  .dl { margin-top:6px; font-size:13px; color:var(--accent); text-decoration:none; }
+  .lrow { display:flex; align-items:center; gap:9px; font-size:13px; margin:6px 0; }
+  .lrow .lname { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lrow input[type=range]{ width:90px; } .lrow .lwv { width:34px; text-align:right; color:var(--accent); }
+  .lrow input[type=checkbox]{ width:auto; accent-color:var(--accent2); }
+  .none { font-size:12.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/studio" class="brand"><span class="logo">🥚</span> <span>Egg<b>lee</b></span></a>
+  <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+  <nav class="nav" id="nav">
+    <a href="/studio">🏠 Estúdio</a>
+    <a href="/studio/gerar" class="active">✨ Gerar</a>
+    <a href="/library">🖼️ Biblioteca</a>
+    <a href="/persona">💬 Persona</a>
+  </nav>
+  <div class="sp"></div>
+  <div class="right"><a href="/logout" class="ghost">Sair</a></div>
+</div>
+
+<div class="wrap">
+  <div class="controls">
+    <label>O que criar</label>
+    <select id="workflow" onchange="syncUI()">
+      <option value="txt2img">Texto → Imagem</option>
+      <option value="img2img">Imagem → Imagem</option>
+      <option value="video_i2v">Imagem → Vídeo</option>
+    </select>
+
+    <div id="ckptBox">
+      <label>Modelo base</label>
+      <select id="checkpoint"><option value="">—</option></select>
+    </div>
+
+    <div id="inputBox" class="hidden">
+      <label>Imagem de entrada</label>
+      <div class="drop" id="inputDrop">Clique para enviar a imagem
+        <input type="file" id="inputFile" accept="image/*" class="hidden">
+      </div>
+    </div>
+
+    <label id="promptLbl">Prompt (cena, roupa, pose, lugar…)</label>
+    <textarea id="prompt" placeholder="ex.: sitting on a beach, white dress, golden hour"></textarea>
+
+    <label>Prompt negativo (opcional)</label>
+    <textarea id="negative" placeholder="(deixe vazio para o padrão)"></textarea>
+
+    <div id="loraBox">
+      <label>🧩 Estilos (LoRAs)</label>
+      <div id="loraStack"></div>
+    </div>
+
+    <div class="row" id="imgOpts">
+      <div>
+        <label>Qualidade</label>
+        <select id="quality"><option value="draft">Rápido</option><option value="standard" selected>Padrão</option></select>
+      </div>
+      <div>
+        <label>Quantidade</label>
+        <select id="batch"><option>1</option><option>2</option><option selected>4</option></select>
+      </div>
+      <div>
+        <label>Seed (-1 = aleatória)</label>
+        <input type="number" id="seed" placeholder="-1">
+      </div>
+    </div>
+
+    <button class="go" id="goBtn" onclick="run()">Gerar</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="result" id="result"><div class="placeholder">O resultado aparece aqui.</div></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let inputB64 = null, pollToken = 0, lastBody = null, busy = false;
+let LORAS = [], DEFAULTS = {};
+
+// carrega modelos liberados pra este cliente
+fetch('/api/client/models').then(r=>r.json()).then(d=>{
+  const cks = d.checkpoints || [];
+  $('checkpoint').innerHTML = cks.length
+    ? cks.map(c=>`<option value="${c}">${c.replace('.safetensors','')}</option>`).join('')
+    : '<option value="">(nenhum liberado)</option>';
+  LORAS = d.loras || []; DEFAULTS = d.defaults || {};
+  renderLoras();
+}).catch(()=>{});
+
+function renderLoras(){
+  if(!LORAS.length){ $('loraStack').innerHTML='<div class="none">Nenhum estilo disponível ainda.</div>'; return; }
+  $('loraStack').innerHTML = LORAS.map((n,i)=>{
+    const w = DEFAULTS[n] ?? 0.6;
+    return `<div class="lrow">
+      <input type="checkbox" id="lc${i}"><span class="lname" title="${n}">${n.replace('.safetensors','')}</span>
+      <input type="range" id="lw${i}" min="0" max="1" step="0.05" value="${w}" oninput="$('lv${i}').textContent=(+this.value).toFixed(2)">
+      <span class="lwv" id="lv${i}">${(+w).toFixed(2)}</span></div>`;
+  }).join('');
+}
+function buildLoras(){
+  return LORAS.map((n,i)=>({name:n, on:$('lc'+i).checked, weight:parseFloat($('lw'+i).value)}))
+              .filter(l=>l.on);
+}
+
+function syncUI(){
+  const wf = $('workflow').value;
+  const isVid = wf==='video_i2v';
+  $('inputBox').classList.toggle('hidden', wf==='txt2img');
+  $('ckptBox').classList.toggle('hidden', isVid);
+  $('loraBox').classList.toggle('hidden', isVid);
+  $('imgOpts').style.display = isVid ? 'none' : '';
+  $('promptLbl').textContent = isVid ? 'Movimento (opcional)' : 'Prompt (cena, roupa, pose, lugar…)';
+}
+syncUI();
+
+// upload de imagem
+$('inputDrop').onclick = ()=> $('inputFile').click();
+$('inputFile').onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => { inputB64 = rd.result.split(',')[1];
+    $('inputDrop').innerHTML = 'Trocar imagem<img src="'+rd.result+'">'; };
+  rd.readAsDataURL(f);
+};
+
+function setStatus(t,err){ const s=$('status'); s.textContent=t; s.classList.toggle('err',!!err); }
+
+function run(){
+  if(busy) return;
+  const wf = $('workflow').value;
+  if((wf==='img2img'||wf==='video_i2v') && !inputB64) return setStatus('Envie a imagem de entrada.', true);
+  if(wf!=='video_i2v' && !$('checkpoint').value) return setStatus('Nenhum modelo liberado ainda.', true);
+  const body = { workflow_name: wf, prompt: $('prompt').value.trim(),
+    negative_prompt: $('negative').value.trim(), seed: $('seed').value.trim()||'-1' };
+  if(wf==='video_i2v'){ body.input_image_b64 = inputB64; body.resolution='720p'; body.aspect_ratio='9:16'; body.duration=5; }
+  else {
+    body.checkpoint = $('checkpoint').value;
+    body.loras = buildLoras();
+    body.batch_size = $('batch').value;
+    body.steps = $('quality').value==='draft' ? 20 : 30;
+    if(wf==='img2img') body.input_image_b64 = inputB64;
+  }
+  lastBody = body; busy = true; $('goBtn').disabled = true;
+  $('result').innerHTML = '<div class="placeholder">Enviando para a fila…</div>';
+  fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(r=>r.json()).then(data=>{
+      if(data.error) throw new Error(data.error);
+      if(data.status==='COMPLETED') return done(data);
+      pollStatus(data.id);
+    }).catch(e=>{ busy=false; $('goBtn').disabled=false; setStatus(e.message,true); });
+}
+
+function pollStatus(id){
+  const tok = ++pollToken; let n=0;
+  setStatus('Na fila… (o worker pode levar ~1 min pra ligar)');
+  const tick = async () => {
+    if(tok!==pollToken) return;
+    n++;
+    try{
+      const d = await (await fetch('/api/status/'+id)).json();
+      if(tok!==pollToken) return;
+      if(d.status==='COMPLETED') return done(d);
+      if(d.status==='FAILED'){ busy=false; $('goBtn').disabled=false; setStatus('Falhou: '+JSON.stringify(d.output||d.error||''),true); return; }
+      setStatus((d.status==='IN_PROGRESS'?'Gerando… (':'Na fila… (')+n*2+'s)');
+    }catch(e){}
+    setTimeout(tick, 2000);
+  };
+  tick();
+}
+
+async function saveLib(data, type){
+  try{ await fetch('/api/library/save',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({data, type, prompt:lastBody?lastBody.prompt:'', workflow:lastBody?lastBody.workflow_name:''})}); }catch(e){}
+}
+
+function done(d){
+  busy=false; $('goBtn').disabled=false;
+  const out = (d.output && d.output.outputs) || [];
+  if(d.output && d.output.error) return setStatus(d.output.error, true);
+  if(!out.length) return setStatus('Sem saída.', true);
+  setStatus('Pronto ✓ ('+out.length+') — salvo na sua biblioteca');
+  const r=$('result'); r.innerHTML=''; r.classList.toggle('multi', out.length>1);
+  out.forEach(o=>{
+    const cell=document.createElement('div'); cell.className='cell';
+    if(o.type==='video'){
+      const v=document.createElement('video'); v.src='data:video/mp4;base64,'+o.data; v.controls=v.autoplay=v.loop=true; cell.appendChild(v);
+      const a=document.createElement('a'); a.href=v.src; a.download=o.filename||'video.mp4'; a.className='dl'; a.textContent='⬇ Baixar'; cell.appendChild(a);
+    } else {
+      const src='data:image/png;base64,'+o.data;
+      const img=document.createElement('img'); img.src=src; cell.appendChild(img);
+      const a=document.createElement('a'); a.href=src; a.download=o.filename||'img.png'; a.className='dl'; a.textContent='⬇ Baixar'; cell.appendChild(a);
+    }
+    saveLib(o.data, o.type);
+    r.appendChild(cell);
+  });
+}
+</script>
+</body>
+</html>

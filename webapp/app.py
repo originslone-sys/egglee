@@ -333,6 +333,16 @@ def studio():
     return render_template("studio.html", user=u or {})
 
 
+@app.route("/studio/gerar")
+@login_required
+def studio_gerar():
+    """Gerador do cliente (só modelos liberados)."""
+    if is_admin():
+        return redirect(url_for("generate_page"))
+    u = current_user() or {}
+    return render_template("studio_gerar.html", role="user", slug=u.get("slug", ""))
+
+
 @app.route("/logout")
 def logout():
     session.clear()
