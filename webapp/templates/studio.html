@@ -46,14 +46,14 @@
 
   <div class="link-card" id="planBox" style="display:none; margin-bottom:6px"></div>
 
-  {% if user.slug %}
   <div class="sec-title">🔗 Sua página de chat</div>
   <div class="link-card">
-    <span class="url" id="chatUrl">{{ request.host_url|replace('http://','https://') }}u/{{ user.slug }}</span>
+    <span class="url" id="chatUrl">…</span>
+    <button class="btn-2" onclick="editHandle()">✏️ Editar nome</button>
     <button class="btn-2" onclick="copyUrl()" id="copyBtn">📋 Copiar</button>
-    <a class="btn-2 open" href="/u/{{ user.slug }}" target="_blank">↗ Abrir</a>
+    <a class="btn-2 open" id="openLink" target="_blank">↗ Abrir</a>
   </div>
-  {% endif %}
+  <div class="hint" id="handleMsg" style="font-size:12px; color:var(--muted); margin-top:6px"></div>
 
   <div class="sec-title" style="margin-top:22px">⚡ Ações</div>
   <div class="quick">
@@ -68,9 +68,31 @@
 
 <script>
 const $ = id => document.getElementById(id);
+const PUBLIC_BASE = "{{ public_base }}";
+let SLUG = "{{ user.slug or '' }}";
+
+function renderChatUrl(){
+  $('chatUrl').textContent = PUBLIC_BASE + '/u/' + SLUG;
+  $('openLink').href = '/u/' + SLUG;
+}
+renderChatUrl();
+
 function copyUrl(){
-  const t = $('chatUrl').textContent.trim();
-  navigator.clipboard.writeText(t).then(()=>{ $('copyBtn').textContent='✓ Copiado'; setTimeout(()=>$('copyBtn').textContent='📋 Copiar',2000); });
+  navigator.clipboard.writeText($('chatUrl').textContent.trim()).then(()=>{ $('copyBtn').textContent='✓ Copiado'; setTimeout(()=>$('copyBtn').textContent='📋 Copiar',2000); });
+}
+
+function editHandle(){
+  const v = prompt('Escolha o nome do seu link (3–32 letras, números ou hífen):', SLUG);
+  if(v===null) return;
+  const want = v.trim().toLowerCase();
+  if(!want || want===SLUG) return;
+  fetch('/api/account/slug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:want})})
+    .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+      const m=$('handleMsg');
+      if(!ok||d.error){ m.style.color='var(--danger)'; m.textContent='❌ '+(d.error||'não deu'); return; }
+      SLUG=d.slug; renderChatUrl(); m.style.color='var(--ok)'; m.textContent='✓ Link atualizado!';
+      setTimeout(()=>m.textContent='',3000);
+    }).catch(()=>{});
 }
 function fmtBytes(b){ if(!b) return '0 MB'; const mb=b/1048576; return mb>=1024?(mb/1024).toFixed(1)+' GB':mb.toFixed(0)+' MB'; }
 const STATS = [
