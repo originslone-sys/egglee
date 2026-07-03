@@ -32,6 +32,7 @@
     <a href="/studio" class="active">🏠 Estúdio</a>
     <a href="/studio/gerar">✨ Gerar</a>
     <a href="/studio/fila">📥 Requisições</a>
+    <a href="/studio/pro">⭐ Pro</a>
     <a href="/library">🖼️ Biblioteca</a>
     <a href="/persona">💬 Persona</a>
   </nav>
@@ -42,6 +43,8 @@
 <div class="page">
   <h1 class="h-title">Olá{% if user.name %}, {{ user.name }}{% endif %} 👋</h1>
   <p class="h-sub">Bem-vindo(a) ao seu estúdio. Configure sua persona e monte sua página de chat.</p>
+
+  <div class="link-card" id="planBox" style="display:none; margin-bottom:6px"></div>
 
   {% if user.slug %}
   <div class="sec-title">🔗 Sua página de chat</div>
@@ -74,6 +77,18 @@ const STATS = [
   {k:'total', ico:'📦', lbl:'Mídias'}, {k:'images', ico:'🖼️', lbl:'Imagens'},
   {k:'videos', ico:'🎬', lbl:'Vídeos'}, {k:'favorites', ico:'⭐', lbl:'Favoritos'},
 ];
+fetch('/api/pay/config').then(r=>r.json()).then(c=>{
+  const box=$('planBox'); box.style.display='flex';
+  if(c.plan==='pro'){
+    const d = c.plan_expires_at ? new Date(c.plan_expires_at).toLocaleDateString('pt-BR') : '';
+    box.innerHTML = `<span class="url" style="color:var(--ok)">⭐ Plano Pro — ativo${d?' até '+d:''}</span>
+      <a class="btn-2" href="/studio/pro">Renovar</a>`;
+  } else {
+    box.innerHTML = `<span class="url">Plano <b>Free</b> — 5 imagens + 3 vídeos de teste</span>
+      <a class="btn" href="/studio/pro">⭐ Assinar Pro</a>`;
+  }
+}).catch(()=>{});
+
 fetch('/api/stats').then(r=>r.json()).then(s=>{
   $('stats').innerHTML = STATS.map(d=>`<div class="stat"><div class="ico">${d.ico}</div><div class="num">${s[d.k]??0}</div><div class="lbl">${d.lbl}</div></div>`).join('');
 }).catch(()=>{});

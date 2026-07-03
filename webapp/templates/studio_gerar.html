@@ -48,6 +48,7 @@
     <a href="/studio">🏠 Estúdio</a>
     <a href="/studio/gerar" class="active">✨ Gerar</a>
     <a href="/studio/fila">📥 Requisições</a>
+    <a href="/studio/pro">⭐ Pro</a>
     <a href="/library">🖼️ Biblioteca</a>
     <a href="/persona">💬 Persona</a>
   </nav>
@@ -151,7 +152,8 @@ function loadQuota(){
     if(q.img_limit===-1 && q.vid_limit===-1){
       $('quota').innerHTML = `Plano <b>${q.plan}</b> · ilimitado · <b>${q.conc_used}/${q.conc_limit}</b> na fila`;
     } else {
-      $('quota').innerHTML = `Plano <b>${q.plan}</b> · imagens <b>${q.img_used}/${lim(q.img_limit)}</b> · vídeos <b>${q.vid_used}/${lim(q.vid_limit)}</b> · ${q.conc_used}/${q.conc_limit} na fila`;
+      $('quota').innerHTML = `Plano <b>${q.plan}</b> · imagens <b>${q.img_used}/${lim(q.img_limit)}</b> · vídeos <b>${q.vid_used}/${lim(q.vid_limit)}</b> `
+        + `<a href="/studio/pro" style="color:var(--accent);font-weight:600;text-decoration:none">⭐ virar Pro</a>`;
     }
   }).catch(()=>{});
 }

@@ -127,6 +127,34 @@ def init():
             )
             cur.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(user_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
+            # Pagamentos PIX (Fase 5) — só cash-in (ativa o plano Pro)
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS payments (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    external_id TEXT NOT NULL UNIQUE,
+                    zettpay_id TEXT,
+                    amount_brl NUMERIC(10,2) NOT NULL,
+                    plan_days INTEGER DEFAULT 30,
+                    status TEXT DEFAULT 'pending',
+                    qr_code TEXT,
+                    expires_at TIMESTAMP,
+                    webhook_payload TEXT,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    confirmed_at TIMESTAMP
+                )
+                """
+            )
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id)")
+            # Anti-replay de webhooks (fingerprint do corpo)
+            cur.execute(
+                "CREATE TABLE IF NOT EXISTS webhook_log ("
+                "fingerprint TEXT PRIMARY KEY, external_id TEXT, event TEXT, "
+                "created_at TIMESTAMP DEFAULT NOW())"
+            )
+            # validade do plano Pro (assinatura por tempo)
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMP")
         c.commit()
 
 
@@ -667,6 +695,110 @@ def update_job(job_id, **fields):
         with c.cursor() as cur:
             cur.execute(f"UPDATE jobs SET {', '.join(sets)} WHERE id = %s", params)
         c.commit()
+
+
+# ── Pagamentos PIX / plano Pro (Fase 5) ───────────────────────────────────────
+
+def create_payment(user_id, external_id, amount_brl, plan_days):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "INSERT INTO payments (user_id, external_id, amount_brl, plan_days) "
+                "VALUES (%s, %s, %s, %s) RETURNING *",
+                (user_id, external_id, amount_brl, plan_days),
+            )
+            row = cur.fetchone()
+        c.commit()
+        return row
+
+
+def update_payment(external_id, **fields):
+    if not fields:
+        return
+    sets, params = [], []
+    for k, v in fields.items():
+        sets.append(f"{k} = %s"); params.append(v)
+    params.append(external_id)
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute(f"UPDATE payments SET {', '.join(sets)} WHERE external_id = %s", params)
+        c.commit()
+
+
+def get_payment(external_id, user_id=None):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            if user_id is None:
+                cur.execute("SELECT * FROM payments WHERE external_id = %s", (external_id,))
+            else:
+                cur.execute("SELECT * FROM payments WHERE external_id = %s AND user_id = %s",
+                            (external_id, user_id))
+            return cur.fetchone()
+
+
+def confirm_payment_atomic(external_id):
+    """Confirma o pagamento de forma ATÔMICA (só a primeira vez). Devolve a row
+    (user_id, plan_days) se confirmou agora, ou None se já estava confirmado."""
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "UPDATE payments SET status = 'confirmed', confirmed_at = NOW() "
+                "WHERE external_id = %s AND status = 'pending' "
+                "RETURNING user_id, plan_days",
+                (external_id,),
+            )
+            row = cur.fetchone()
+        c.commit()
+        return row
+
+
+def activate_pro(user_id, plan_days):
+    """Ativa/estende o Pro. Se ainda estiver Pro válido, ESTENDE a partir do fim."""
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET plan = 'pro', plan_expires_at = "
+                "GREATEST(COALESCE(plan_expires_at, NOW()), NOW()) + (%s || ' days')::interval "
+                "WHERE id = %s RETURNING plan_expires_at",
+                (int(plan_days), user_id),
+            )
+            row = cur.fetchone()
+        c.commit()
+        return row[0] if row else None
+
+
+def expire_pro_if_needed(user_id):
+    """Rebaixa pra free se o Pro venceu. Devolve o plano efetivo."""
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET plan = 'free' WHERE id = %s AND plan = 'pro' "
+                "AND plan_expires_at IS NOT NULL AND plan_expires_at < NOW()",
+                (user_id,),
+            )
+        c.commit()
+
+
+def webhook_seen(fingerprint, external_id, event):
+    """True se é NOVO (registrou), False se já foi processado (replay)."""
+    with _conn() as c:
+        with c.cursor() as cur:
+            cur.execute(
+                "INSERT INTO webhook_log (fingerprint, external_id, event) VALUES (%s, %s, %s) "
+                "ON CONFLICT (fingerprint) DO NOTHING",
+                (fingerprint, external_id, event),
+            )
+            new = cur.rowcount > 0
+        c.commit()
+        return new
+
+
+def list_payments(user_id, limit=30):
+    with _conn() as c:
+        with c.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM payments WHERE user_id = %s ORDER BY id DESC LIMIT %s",
+                        (user_id, limit))
+            return cur.fetchall()
 
 
 def stats(user_id):

@@ -126,7 +126,21 @@ Estúdio de criação de conteúdo com IA para uma **influenciadora virtual / mo
    >   pendentes/processando/concluídas/falhas, auto-refresh, cancelar da fila).
    > - Admin define plano free/pro por usuário em `/usuarios`.
    > - Regras em `PLAN_RULES` (ajustáveis). Admin permanece no fluxo direto atual.
-5. **Billing:** assinatura (Stripe/processador) ligada ao plano.
+5. **Billing:** assinatura via PIX ligada ao plano.
+   > **FASE 5 — CONCLUÍDA (2026-07-02):** pagamento PIX (ZettPay, só cash-in).
+   > - Pro = **assinatura por tempo** (paga → N dias; renova estendendo). Preço e
+   >   dias definidos no admin (`/usuarios` → card Plano Pro).
+   > - `pix.py` (OAuth2 + create_deposit + lookup). Tabelas `payments` +
+   >   `webhook_log`; `users.plan_expires_at`; expiração lazy no `current_user`.
+   > - `/api/pay/pro` (gera PIX com CPF), `/api/pay/status` (polling+confirma),
+   >   `/webhook/zettpay` (público): **anti-replay** (fingerprint) + **verificação
+   >   dupla** (consulta a ZettPay antes de ativar) + confirmação **idempotente**.
+   > - Cliente: `/studio/pro` (copia-e-cola PIX + polling → Pro ativo). CTA no
+   >   estúdio e na barra de cota.
+   > - **Env necessárias:** `ZETTPAY_CLIENT_ID`, `ZETTPAY_CLIENT_SECRET` (e opc.
+   >   `ZETTPAY_BASE_URL`/`ZETTPAY_AUTH_URL`). Webhook a apontar no painel ZettPay:
+   >   `https://<dominio>/webhook/zettpay`.
+   > - **FALTA:** Fase 6 (gate 18+/CSAM) antes de abrir ao público.
 7. **Chat por tenant:** subdomínio/slug (`fulana.egglee.com`), rate-limit,
    proteção contra prompt-injection do visitante.
 
