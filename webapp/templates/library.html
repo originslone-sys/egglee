@@ -74,20 +74,20 @@
   <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
   <nav class="nav" id="nav">
     {% if role == 'admin' %}
-    <a href="/">📊 Dashboard</a>
-    <a href="/generate">✨ Gerar</a>
-    <a href="/library" class="active">🖼️ Biblioteca</a>
-    <a href="/persona">💬 Persona</a>
-    <a href="/modelos">📦 Modelos</a>
-    <a href="/leads">📋 Leads</a>
-    <a href="/usuarios">👥 Usuários</a>
+    <a href="/"><i class="ic ic-grid"></i> Dashboard</a>
+    <a href="/generate"><i class="ic ic-spark"></i> Gerar</a>
+    <a href="/library" class="active"><i class="ic ic-image"></i> Biblioteca</a>
+    <a href="/persona"><i class="ic ic-chat"></i> Persona</a>
+    <a href="/modelos"><i class="ic ic-box"></i> Modelos</a>
+    <a href="/leads"><i class="ic ic-clip"></i> Leads</a>
+    <a href="/usuarios"><i class="ic ic-users"></i> Usuários</a>
     {% else %}
-    <a href="/studio">🏠 Estúdio</a>
-    <a href="/studio/gerar">✨ Gerar</a>
-    <a href="/studio/fila">📥 Requisições</a>
-    <a href="/studio/pro">⭐ Pro</a>
-    <a href="/library" class="active">🖼️ Biblioteca</a>
-    <a href="/persona">💬 Persona</a>
+    <a href="/studio"><i class="ic ic-home"></i> Estúdio</a>
+    <a href="/studio/gerar"><i class="ic ic-spark"></i> Gerar</a>
+    <a href="/studio/fila"><i class="ic ic-inbox"></i> Requisições</a>
+    <a href="/studio/pro"><i class="ic ic-star"></i> Pro</a>
+    <a href="/library" class="active"><i class="ic ic-image"></i> Biblioteca</a>
+    <a href="/persona"><i class="ic ic-chat"></i> Persona</a>
     {% endif %}
   </nav>
   <div class="sp"></div>
