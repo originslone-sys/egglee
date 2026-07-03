@@ -80,15 +80,15 @@
     <textarea id="prompt" placeholder="sitting on a beach, white bikini, golden hour"></textarea>
     <div class="row" style="margin-top:8px">
       <select id="presetSel"><option value="">— presets de prompt —</option></select>
-      <button type="button" class="mini" id="savePresetBtn" title="Salvar o prompt atual como preset">💾 Salvar</button>
-      <button type="button" class="mini" id="delPresetBtn" title="Excluir o preset selecionado">🗑</button>
+      <button type="button" class="mini" id="savePresetBtn" title="Salvar o prompt atual como preset"><i class="ic ic-save"></i> Salvar</button>
+      <button type="button" class="mini" id="delPresetBtn" title="Excluir o preset selecionado"><i class="ic ic-trash"></i></button>
     </div>
 
     <label>Prompt negativo (opcional)</label>
     <textarea id="negative" placeholder="(deixe vazio para usar o padrão)"></textarea>
 
-    <label style="display:flex;align-items:center">🧩 LoRAs ativos
-      <button type="button" class="mini" onclick="saveLoraConfig()" style="margin-left:auto;padding:3px 9px" title="Salvar como padrão">💾 padrão</button>
+    <label style="display:flex;align-items:center"><i class="ic ic-puzzle"></i> LoRAs ativos
+      <button type="button" class="mini" onclick="saveLoraConfig()" style="margin-left:auto;padding:3px 9px" title="Salvar como padrão"><i class="ic ic-save"></i> padrão</button>
     </label>
     <div id="loraStack" style="display:flex;flex-direction:column;gap:9px;margin-top:4px"></div>
 
@@ -551,7 +551,7 @@ function showLoading(msg) {
 }
 function showError(msg) {
   setStatus(msg, true);
-  $('result').innerHTML = '<div class="placeholder">⚠️ ' + msg + '</div>';
+  $('result').innerHTML = '<div class="placeholder"><i class="ic ic-warn"></i> ' + msg + '</div>';
 }
 </script>
 </body>

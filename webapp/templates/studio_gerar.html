@@ -88,7 +88,7 @@
     <textarea id="negative" placeholder="(deixe vazio para o padrão)"></textarea>
 
     <div id="loraBox">
-      <label>🧩 Estilos (LoRAs)</label>
+      <label><i class="ic ic-puzzle"></i> Estilos (LoRAs)</label>
       <div id="loraStack"></div>
     </div>
 
@@ -103,7 +103,7 @@
   </div>
 
   <div class="rq">
-    <div class="h"><div class="sec-title" style="margin:0">📥 Suas requisições</div><a href="/studio/fila">ver todas →</a></div>
+    <div class="h"><div class="sec-title" style="margin:0"><i class="ic ic-inbox"></i> Suas requisições</div><a href="/studio/fila">ver todas →</a></div>
     <div id="jobs"><div class="none">nenhuma ainda</div></div>
   </div>
 </div>
@@ -155,7 +155,7 @@ function loadQuota(){
       $('quota').innerHTML = `Plano <b>${q.plan}</b> · ilimitado · <b>${q.conc_used}/${q.conc_limit}</b> na fila`;
     } else {
       $('quota').innerHTML = `Plano <b>${q.plan}</b> · imagens <b>${q.img_used}/${lim(q.img_limit)}</b> · vídeos <b>${q.vid_used}/${lim(q.vid_limit)}</b> `
-        + `<a href="/studio/pro" style="color:var(--accent);font-weight:600;text-decoration:none">⭐ virar Pro</a>`;
+        + `<a href="/studio/pro" style="color:var(--accent);font-weight:600;text-decoration:none"><i class="ic ic-star"></i> virar Pro</a>`;
     }
   }).catch(()=>{});
 }

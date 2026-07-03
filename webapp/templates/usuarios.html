@@ -53,7 +53,7 @@
 </div>
 
 <div class="page">
-  <h1 class="h-title">👥 Usuários</h1>
+  <h1 class="h-title"><i class="ic ic-users"></i> Usuários</h1>
   <p class="h-sub">Contas do SaaS. <b>Admin</b> tem acesso total; <b>cliente</b> terá o estúdio próprio (em construção).</p>
 
   <div class="stats">
@@ -63,18 +63,18 @@
   </div>
 
   <div class="card pad" style="margin-bottom:18px">
-    <div class="sec-title">⭐ Plano Pro (PIX) <span class="hint" id="gwStatus" style="margin-left:auto"></span></div>
+    <div class="sec-title"><i class="ic ic-star"></i> Plano Pro (PIX) <span class="hint" id="gwStatus" style="margin-left:auto"></span></div>
     <div class="hint">Preço e duração do Pro. O cliente paga via PIX e o Pro ativa/renova automaticamente.</div>
     <div class="form-row" style="grid-template-columns:1fr 1fr auto">
       <div><label>Preço (R$)</label><input type="number" id="proPrice" step="0.01" min="0" placeholder="49.90"></div>
       <div><label>Duração (dias)</label><input type="number" id="proDays" min="1" placeholder="30"></div>
-      <div><button class="btn" onclick="saveBilling()">💾 Salvar</button></div>
+      <div><button class="btn" onclick="saveBilling()"><i class="ic ic-save"></i> Salvar</button></div>
     </div>
     <div class="msg" id="bMsg"></div>
   </div>
 
   <div class="card pad" style="margin-bottom:18px">
-    <div class="sec-title">➕ Criar usuário</div>
+    <div class="sec-title"><i class="ic ic-plus"></i> Criar usuário</div>
     <div class="form-row">
       <div><label>Nome</label><input type="text" id="nName" placeholder="Nome"></div>
       <div><label>E-mail</label><input type="email" id="nEmail" placeholder="cliente@email.com"></div>
@@ -132,7 +132,7 @@ function render(){
         <button onclick="toggleStatus(${u.id},'${u.status}')">${u.status==='disabled'?'Ativar':'Desativar'}</button>
         <button onclick="toggleRole(${u.id},'${u.role}')">${u.role==='admin'?'→ cliente':'→ admin'}</button>
         <button onclick="resetPass(${u.id})">Senha</button>
-        <button class="del" onclick="delUser(${u.id})">🗑</button>
+        <button class="del" onclick="delUser(${u.id})"><i class="ic ic-trash"></i></button>
       </div></td>
     </tr>`;
   }).join('');

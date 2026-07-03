@@ -65,7 +65,7 @@
 </div>
 
 <div class="page">
-  <h1 class="h-title">📋 Lista de espera</h1>
+  <h1 class="h-title"><i class="ic ic-copy"></i> Lista de espera</h1>
   <p class="h-sub">Contatos captados na página premium (<a href="/premium" target="_blank" style="color:var(--accent)">ver página →</a>).</p>
 
   <div class="stats">
@@ -75,18 +75,18 @@
   </div>
 
   <div class="card pad" style="margin-bottom:18px">
-    <div class="sec-title">🎬 Vitrine da página premium <span class="hint" id="scInfo" style="margin-left:auto"></span></div>
+    <div class="sec-title"><i class="ic ic-film"></i> Vitrine da página premium <span class="hint" id="scInfo" style="margin-left:auto"></span></div>
     <div class="hint">Escolha fotos e vídeos pra aparecer como demonstração na página premium. Clique pra marcar/desmarcar.</div>
     <div class="pick" id="scPick"><div class="hint">carregando…</div></div>
-    <button class="btn" id="scSave" style="margin-top:12px" onclick="saveShowcase()">💾 Salvar vitrine</button>
+    <button class="btn" id="scSave" style="margin-top:12px" onclick="saveShowcase()"><i class="ic ic-save"></i> Salvar vitrine</button>
     <span class="hint" id="scMsg" style="margin-left:8px"></span>
   </div>
 
-  <h2 class="sec-title" style="margin-top:6px">✉️ Contatos</h2>
+  <h2 class="sec-title" style="margin-top:6px"><i class="ic ic-mail"></i> Contatos</h2>
   <div class="toolbar">
     <input type="text" id="search" placeholder="🔎 Buscar por nome, e-mail ou WhatsApp…" oninput="render()">
-    <button class="btn-2" onclick="load()">🔄 Atualizar</button>
-    <a class="btn-2" href="/api/admin/leads.csv">⬇️ Exportar CSV</a>
+    <button class="btn-2" onclick="load()"><i class="ic ic-refresh"></i> Atualizar</button>
+    <a class="btn-2" href="/api/admin/leads.csv"><i class="ic ic-down"></i> Exportar CSV</a>
   </div>
 
   <div class="table-wrap">
@@ -138,7 +138,7 @@ function render(){
       <td>${l.whatsapp?(wa?`<a class="wa" href="${wa}" target="_blank">${esc(l.whatsapp)}</a>`:esc(l.whatsapp)):'—'}</td>
       <td class="hide-sm">${esc(l.source)||'—'}</td>
       <td class="hide-sm when">${fmtDate(l.created_at)}</td>
-      <td><button class="del" onclick="del(${l.id})">🗑</button></td>
+      <td><button class="del" onclick="del(${l.id})"><i class="ic ic-trash"></i></button></td>
     </tr>`;
   }).join('');
 }
