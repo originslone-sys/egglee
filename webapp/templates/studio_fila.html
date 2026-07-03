@@ -73,7 +73,7 @@ function card(j){
   if(j.status==='done' && j.media && j.media.length){
     media = `<img class="media" src="/api/thumb/${j.media[0]}" loading="lazy" onclick="openLb(${JSON.stringify(j.media)},'${j.kind}')">`;
   } else if(j.status==='failed'){
-    media = `<div class="ph">⚠️<br>${esc(j.error||'falhou')}</div>`;
+    media = `<div class="ph"><i class="ic ic-warn"></i><br>${esc(j.error||'falhou')}</div>`;
   } else if(j.status==='processing'){
     media = `<div class="ph"><span class="spin"></span> gerando…</div>`;
   } else if(j.status==='canceled'){
@@ -84,7 +84,7 @@ function card(j){
   const cancel = j.status==='queued' ? `<button class="x" onclick="cancelJob(${j.id})">cancelar</button>` : '';
   return `<div class="card2"><span class="st ${j.status}">${j.status==='processing'?'<span class="spin"></span>':''}${STLBL[j.status]||j.status}</span>${cancel}
     ${media}
-    <div class="meta"><div class="pp" title="${esc(j.prompt)}">${(j.kind==='video'?'🎬 ':'🖼️ ')}${esc(j.prompt)||'(sem prompt)'}</div></div></div>`;
+    <div class="meta"><div class="pp" title="${esc(j.prompt)}">${(j.kind==='video'?'<i class="ic ic-film"></i> ':'<i class="ic ic-image"></i> ')}${esc(j.prompt)||'(sem prompt)'}</div></div></div>`;
 }
 
 let MEDIA_LOOKUP = {};

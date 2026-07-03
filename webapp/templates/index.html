@@ -377,7 +377,7 @@ function loraLabel(n){ return n.replace(/\.(safetensors|ckpt|pt)$/i,'').replace(
 function loraRow(name, on, weight, locked){
   return `<div class="lrow" data-name="${name}">
     <input type="checkbox" class="lon" ${on?'checked':''} ${locked?'disabled':''}>
-    <span class="lname">${loraLabel(name)}${locked?' 🔒':''}</span>
+    <span class="lname">${loraLabel(name)}${locked?' <i class="ic ic-lock"></i>':''}</span>
     <input type="range" class="lw" min="0" max="100" value="${Math.round(weight*100)}">
     <span class="lwv">${weight.toFixed(2)}</span></div>`;
 }
@@ -522,7 +522,7 @@ function done(data) {
       img.src = src;
       cell.appendChild(img);
       const btn = document.createElement('button');
-      btn.className = 'hd'; btn.textContent = '✨ Alta definição';
+      btn.className = 'hd'; btn.innerHTML = '<i class="ic ic-spark"></i> Alta definição';
       btn.onclick = () => upscaleImage(o.data);
       cell.appendChild(btn);
       cell.appendChild(dl(src, o.filename));

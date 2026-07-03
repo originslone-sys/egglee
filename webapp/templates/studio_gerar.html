@@ -188,7 +188,7 @@ function jobRow(j){
   const spin = j.status==='processing' ? '<span class="spin"></span>' : '';
   return `<div class="jrow">${thumb}
     <div class="mid"><div class="pp">${esc(j.prompt)||'(sem prompt)'}</div>
-      <div class="sub">${j.kind==='video'?'🎬 vídeo':'🖼️ imagem'} · #${j.id}</div></div>
+      <div class="sub">${j.kind==='video'?'<i class="ic ic-film"></i> vídeo':'<i class="ic ic-image"></i> imagem'} · #${j.id}</div></div>
     <span class="st ${j.status}">${spin}${STLBL[j.status]||j.status}</span></div>`;
 }
 function loadJobs(){
