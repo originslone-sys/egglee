@@ -20,7 +20,7 @@ import random
 import threading
 import hashlib
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 
 import requests
@@ -83,21 +83,48 @@ STACK_DEFAULT_WEIGHTS = {
 }
 
 # ── Fila de geração (Fase 4) ──────────────────────────────────────────────────
-# Regras por plano do cliente. -1 = ilimitado. 'img'/'vid' = teto VITALÍCIO
-# (trial), 'conc' = máx. de requisições na fila ao mesmo tempo, 'batch' = máx.
-# de imagens por requisição.
+# Regras por plano do cliente. -1 = ilimitado. 'conc' = máx. de requisições na
+# fila ao mesmo tempo, 'batch' = máx. de imagens por requisição, 'period' define
+# como a cota de img/vid é contada: Free = VITALÍCIO (trial), Pro = por DIA.
+# Os tetos de img/vid são editáveis no admin (settings) — ver _plan_limits().
 PLAN_RULES = {
-    "free": {"img": 20, "vid": 3, "conc": 3, "batch": 1},
-    "pro": {"img": -1, "vid": -1, "conc": 10, "batch": 8},
-    "unlimited": {"img": -1, "vid": -1, "conc": 999, "batch": 8},
+    "free":      {"img": 20,  "vid": 3,  "conc": 3,   "batch": 1, "period": "lifetime"},
+    "pro":       {"img": 100, "vid": 10, "conc": 10,  "batch": 8, "period": "daily"},
+    "unlimited": {"img": -1,  "vid": -1, "conc": 999, "batch": 8, "period": "lifetime"},
 }
+# Defaults dos tetos (usados quando o admin ainda não definiu nada nas settings).
+_LIMIT_DEFAULTS = {"free_img": 20, "free_vid": 3, "pro_img": 100, "pro_vid": 10}
 # Quantos jobs de cliente ficam "no RunPod" ao mesmo tempo. Baixo = o admin
 # (que gera direto) fura a fila com folga. Ajustável por env.
 DISPATCH_LIMIT = int(os.environ.get("DISPATCH_LIMIT", "3"))
 
 
+def _plan_limits():
+    """Tetos de img/vid configuráveis no admin (settings), com fallback nos defaults."""
+    def _int(key, dflt):
+        try:
+            v = db.get_setting("limit_" + key)
+            return int(v) if v is not None and str(v).strip() != "" else dflt
+        except Exception:
+            return dflt
+    return {k: _int(k, d) for k, d in _LIMIT_DEFAULTS.items()}
+
+
 def plan_rules(user):
-    return PLAN_RULES.get((user or {}).get("plan") or "free", PLAN_RULES["free"])
+    plan = (user or {}).get("plan") or "free"
+    base = dict(PLAN_RULES.get(plan, PLAN_RULES["free"]))
+    if plan in ("free", "pro"):
+        lims = _plan_limits()
+        base["img"] = lims[f"{plan}_img"]
+        base["vid"] = lims[f"{plan}_vid"]
+    return base
+
+
+def _day_start_utc():
+    """Meia-noite no horário de Brasília (UTC-3), em UTC — reset diário da cota Pro."""
+    now_br = datetime.utcnow() - timedelta(hours=3)
+    start_br = now_br.replace(hour=0, minute=0, second=0, microsecond=0)
+    return start_br + timedelta(hours=3)
 
 
 def _lora_stackable(name):
@@ -610,10 +637,12 @@ def home_page():
 @app.route("/api/public/pricing")
 def public_pricing():
     """Preço/planos públicos pra homepage (sem login)."""
+    lims = _plan_limits()
     return jsonify({
         "pro_price_brl": _pro_price(), "pro_days": _pro_days(),
         "pay_enabled": pix.enabled() and _pro_price() > 0,
-        "free_img": PLAN_RULES["free"]["img"], "free_vid": PLAN_RULES["free"]["vid"],
+        "free_img": lims["free_img"], "free_vid": lims["free_vid"],
+        "pro_img": lims["pro_img"], "pro_vid": lims["pro_vid"],
     })
 
 
@@ -1683,18 +1712,24 @@ def jobs_create():
     if db.active_job_count(u["id"]) >= rules["conc"]:
         return jsonify({"error": f"Você já tem {rules['conc']} requisições na fila. "
                         "Aguarde uma terminar pra enviar outra.", "limited": "conc"}), 429
-    # teto vitalício do Free
+    # batch por plano (Free = 1 imagem por requisição)
+    if kind == "image" and rules["batch"] == 1:
+        payload.setdefault("inputs", {})["batch_size"] = 1
+        batch = 1
+    # cota de gerações: Free = vitalícia (trial); Pro = por dia.
+    daily = rules.get("period") == "daily"
     limit = rules["img"] if kind == "image" else rules["vid"]
     if limit != -1:
-        used = db.kind_used_count(u["id"], kind)
+        used = db.kind_used_count(u["id"], kind, since=_day_start_utc() if daily else None)
         if used >= limit:
             nome = "imagens" if kind == "image" else "vídeos"
-            return jsonify({"error": f"Você usou suas {limit} gerações de {nome} do plano gratuito. "
-                            "Faça upgrade pra continuar.", "limited": "quota"}), 403
-        # Free: trava o batch (1 imagem por requisição)
-        if kind == "image" and rules["batch"] == 1:
-            payload.setdefault("inputs", {})["batch_size"] = 1
-            batch = 1
+            if daily:
+                msg = (f"Você atingiu o limite diário de {limit} {nome} do Pro. "
+                       "A cota renova amanhã.")
+            else:
+                msg = (f"Você usou suas {limit} gerações de {nome} do plano gratuito. "
+                       "Faça upgrade pra continuar.")
+            return jsonify({"error": msg, "limited": "quota"}), 403
 
     priority = 10 if u.get("role") == "admin" else 0
     job = db.create_job(u["id"], kind, b.get("workflow_name", ""), json.dumps(payload),
@@ -1735,16 +1770,20 @@ def jobs_cancel(job_id):
 def client_quota():
     u = current_user() or {}
     if not u.get("id"):
-        return jsonify({"plan": "free", "img_used": 0,
-                        "img_limit": PLAN_RULES["free"]["img"], "vid_used": 0,
-                        "vid_limit": PLAN_RULES["free"]["vid"], "conc_used": 0,
-                        "conc_limit": PLAN_RULES["free"]["conc"]})
+        lims = _plan_limits()
+        return jsonify({"plan": "free", "img_used": 0, "img_limit": lims["free_img"],
+                        "vid_used": 0, "vid_limit": lims["free_vid"], "conc_used": 0,
+                        "conc_limit": PLAN_RULES["free"]["conc"], "period": "lifetime"})
     r = plan_rules(u)
+    since = _day_start_utc() if r.get("period") == "daily" else None
     return jsonify({
         "plan": u.get("plan") or "free",
-        "img_used": db.kind_used_count(u["id"], "image") if db.enabled() else 0,
-        "img_limit": r["img"], "vid_used": db.kind_used_count(u["id"], "video") if db.enabled() else 0,
-        "vid_limit": r["vid"], "conc_used": db.active_job_count(u["id"]) if db.enabled() else 0,
+        "period": r.get("period", "lifetime"),
+        "img_used": db.kind_used_count(u["id"], "image", since=since) if db.enabled() else 0,
+        "img_limit": r["img"],
+        "vid_used": db.kind_used_count(u["id"], "video", since=since) if db.enabled() else 0,
+        "vid_limit": r["vid"],
+        "conc_used": db.active_job_count(u["id"]) if db.enabled() else 0,
         "conc_limit": r["conc"],
     })
 
@@ -1902,7 +1941,9 @@ def zettpay_webhook():
 @app.route("/api/admin/billing", methods=["GET"])
 @admin_required
 def admin_billing_get():
-    return jsonify({"price_brl": _pro_price(), "days": _pro_days(), "gateway": pix.enabled()})
+    lims = _plan_limits()
+    return jsonify({"price_brl": _pro_price(), "days": _pro_days(), "gateway": pix.enabled(),
+                    "limits": lims})
 
 
 @app.route("/api/admin/billing", methods=["POST"])
@@ -1921,6 +1962,14 @@ def admin_billing_save():
         days = 30
     db.set_setting("pro_price_brl", str(price))
     db.set_setting("pro_days", str(days))
+    # Tetos de geração por plano (img/vid). -1 = ilimitado.
+    for key in _LIMIT_DEFAULTS:
+        if key in (b.get("limits") or {}):
+            try:
+                v = int(b["limits"][key])
+                db.set_setting("limit_" + key, str(v if v >= 0 else -1))
+            except (TypeError, ValueError):
+                pass
     return jsonify({"ok": True})
 
 

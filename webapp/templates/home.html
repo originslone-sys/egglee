@@ -165,7 +165,7 @@
         <div class="tag">Pro</div>
         <div class="val" id="proVal">—</div>
         <ul>
-          <li>Gerações <b>ilimitadas</b> de imagem e vídeo</li>
+          <li id="proGen"><b>Muitas</b> gerações por dia</li>
           <li>Até 10 requisições na fila ao mesmo tempo</li>
           <li>Prioridade no processamento</li>
         </ul>
@@ -213,6 +213,12 @@ function closeMedia(){ const p=document.getElementById('plb'); p.classList.remov
 
 // Preço do Pro
 fetch('/api/public/pricing').then(r=>r.json()).then(p=>{
+  const gen=document.getElementById('proGen');
+  if(gen && p.pro_img!=null){
+    const im = p.pro_img===-1 ? 'imagens ilimitadas' : `<b>${p.pro_img}</b> imagens`;
+    const vd = p.pro_vid===-1 ? 'vídeos ilimitados' : `<b>${p.pro_vid}</b> vídeos`;
+    gen.innerHTML = `${im} e ${vd} por dia`;
+  }
   const el=document.getElementById('proVal');
   if(p.pro_price_brl>0){
     el.innerHTML = 'R$ '+(p.pro_price_brl).toFixed(2).replace('.',',')+' <small>/ '+(p.pro_days||30)+' dias</small>';

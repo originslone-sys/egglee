@@ -56,7 +56,7 @@
       <div id="statusLine"></div>
       <div class="price">R$ <span id="price">–</span> <small>/ <span id="days">30</span> dias</small></div>
       <ul class="benefits">
-        <li>Gerações <b>ilimitadas</b> de imagem e vídeo</li>
+        <li id="proGen"><b>Muitas</b> gerações por dia</li>
         <li>Até <b>10 requisições</b> na fila ao mesmo tempo</li>
         <li>Prioridade no processamento</li>
       </ul>
@@ -94,6 +94,13 @@ $('cpf').addEventListener('input', e=>{
   v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
   e.target.value=v;
 });
+
+fetch('/api/public/pricing').then(r=>r.json()).then(p=>{
+  const gen=$('proGen'); if(!gen||p.pro_img==null) return;
+  const im = p.pro_img===-1 ? 'imagens ilimitadas' : `<b>${p.pro_img}</b> imagens`;
+  const vd = p.pro_vid===-1 ? 'vídeos ilimitados' : `<b>${p.pro_vid}</b> vídeos`;
+  gen.innerHTML = `${im} e ${vd} por dia`;
+}).catch(()=>{});
 
 fetch('/api/pay/config').then(r=>r.json()).then(c=>{
   CFG=c; $('loading').style.display='none'; $('offer').style.display='block';

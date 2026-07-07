@@ -169,7 +169,7 @@ function loadQuota(){
   fetch('/api/client/quota').then(r=>r.json()).then(q=>{
     const lim = v => v===-1 ? '∞' : v;
     // Free: 1 imagem por requisição (batch é benefício do Pro).
-    const isFree = q.img_limit !== -1;
+    const isFree = q.plan === 'free';
     const b=$('batch'), tag=$('batchPro'), hint=$('batchHint');
     if(isFree){ b.value='1'; b.disabled=true; b.style.opacity=.55;
       if(tag) tag.style.display='inline'; if(hint) hint.style.display='block'; }
@@ -178,8 +178,10 @@ function loadQuota(){
     if(q.img_limit===-1 && q.vid_limit===-1){
       $('quota').innerHTML = `Plano <b>${q.plan}</b> · ilimitado · <b>${q.conc_used}/${q.conc_limit}</b> na fila`;
     } else {
-      $('quota').innerHTML = `Plano <b>${q.plan}</b> · imagens <b>${q.img_used}/${lim(q.img_limit)}</b> · vídeos <b>${q.vid_used}/${lim(q.vid_limit)}</b> `
-        + `<a href="/studio/pro" style="color:var(--accent);font-weight:600;text-decoration:none"><i class="ic ic-star"></i> virar Pro</a>`;
+      const sfx = q.period==='daily' ? ' <span style="opacity:.7">hoje</span>' : '';
+      let html = `Plano <b>${q.plan}</b> · imagens <b>${q.img_used}/${lim(q.img_limit)}</b> · vídeos <b>${q.vid_used}/${lim(q.vid_limit)}</b>${sfx}`;
+      if(isFree) html += ` <a href="/studio/pro" style="color:var(--accent);font-weight:600;text-decoration:none"><i class="ic ic-star"></i> virar Pro</a>`;
+      $('quota').innerHTML = html;
     }
   }).catch(()=>{});
 }
