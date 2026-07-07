@@ -575,16 +575,9 @@ def _build_input(body: dict) -> dict:
         inputs["frame_rate"] = 24
         inputs["steps"] = 30                  # 5B é single-pass; 30 passos (ajustável)
 
-        # Trava fixa: LER a imagem e só animar (movimento humano realista),
-        # somada ao prompt do usuário. Idem no negativo (anti-morphing).
-        user_motion = (body.get("prompt") or "").strip()
-        inputs["positive_prompt"] = (
-            VIDEO_MOTION_LOCK if not user_motion else f"{VIDEO_MOTION_LOCK}, {user_motion}"
-        )
-        user_neg = (body.get("negative_prompt") or "").strip()
-        inputs["negative_prompt"] = (
-            VIDEO_MOTION_NEG if not user_neg else f"{VIDEO_MOTION_NEG}, {user_neg}"
-        )
+        # Prompt livre: usa o prompt/negativo do usuário direto (sem trava fixa).
+        inputs["positive_prompt"] = (body.get("prompt") or "").strip()
+        inputs["negative_prompt"] = (body.get("negative_prompt") or "").strip()
 
     payload = {"workflow_name": body["workflow_name"], "inputs": inputs}
     if body.get("character"):
@@ -881,10 +874,8 @@ def video_generate():
         first_url = _image_data_url(media_id=b.get("media_id"), image_b64=b.get("image_b64"))
     except Exception as e:
         return jsonify({"error": f"Imagem de origem inválida: {e}"}), 400
-    # Trava fixa: LER a imagem e só animar com movimento humano realista,
-    # somada ao prompt do usuário (a API não tem campo de negativo — vai no lock).
-    motion = b.get("prompt", "").strip()
-    full_prompt = VIDEO_MOTION_LOCK if not motion else f"{VIDEO_MOTION_LOCK}, {motion}"
+    # Prompt livre: usa o prompt do usuário direto (sem trava fixa).
+    full_prompt = b.get("prompt", "").strip()
     try:
         job = video.create(
             model=model,
