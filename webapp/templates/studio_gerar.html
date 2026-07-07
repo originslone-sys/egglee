@@ -142,9 +142,26 @@ function syncUI(){
 }
 syncUI();
 
+// Redimensiona no navegador (borda máx ~1280px, JPEG) antes de enviar — foto
+// crua em base64 estoura o limite de payload do RunPod e o img2img/vídeo falha.
+function resizeImage(file, maxEdge, quality){
+  return new Promise((resolve,reject)=>{
+    const rd=new FileReader();
+    rd.onload=()=>{ const img=new Image();
+      img.onload=()=>{ let w=img.width,h=img.height;
+        const s=Math.min(1,maxEdge/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s);
+        const c=document.createElement('canvas'); c.width=w; c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',quality||0.9)); };
+      img.onerror=reject; img.src=rd.result; };
+    rd.onerror=reject; rd.readAsDataURL(file);
+  });
+}
 $('inputDrop').onclick = ()=> $('inputFile').click();
-$('inputFile').onchange = e => { const f=e.target.files[0]; if(!f) return;
-  const rd=new FileReader(); rd.onload=()=>{ inputB64=rd.result.split(',')[1]; $('inputDrop').innerHTML='Trocar imagem<img src="'+rd.result+'">'; }; rd.readAsDataURL(f); };
+$('inputFile').onchange = async e => { const f=e.target.files[0]; if(!f) return;
+  try{ const url=await resizeImage(f,1280,0.9); inputB64=url.split(',')[1];
+    $('inputDrop').innerHTML='Trocar imagem<img src="'+url+'">'; }
+  catch(err){ setStatus('Não consegui ler essa imagem. Tente outra (JPG/PNG).',true); } };
 
 function setStatus(t,err){ const s=$('status'); s.textContent=t; s.classList.toggle('err',!!err); }
 
