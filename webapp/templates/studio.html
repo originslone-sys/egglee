@@ -111,8 +111,12 @@ fetch('/api/pay/config').then(r=>r.json()).then(c=>{
     box.innerHTML = `<span class="url" style="color:var(--ok)"><i class="ic ic-star"></i> Plano Pro — ativo${d?' até '+d:''}</span>
       <a class="btn-2" href="/studio/pro">Renovar</a>`;
   } else {
-    box.innerHTML = `<span class="url">Plano <b>Free</b> — 20 imagens + 3 vídeos de teste</span>
+    box.innerHTML = `<span class="url">Plano <b>Free</b> — teste de imagens e vídeos</span>
       <a class="btn" href="/studio/pro"><i class="ic ic-star"></i> Assinar Pro</a>`;
+    fetch('/api/public/pricing').then(r=>r.json()).then(p=>{
+      if(p.free_img!=null) box.querySelector('.url').innerHTML =
+        `Plano <b>Free</b> — ${p.free_img} imagens + ${p.free_vid} vídeos de teste`;
+    }).catch(()=>{});
   }
 }).catch(()=>{});
 

@@ -668,12 +668,18 @@ def active_job_count(user_id):
             return cur.fetchone()[0]
 
 
-def kind_used_count(user_id, kind):
-    """Total já usado de um tipo (pro limite vitalício do Free) — ignora falhas."""
+def kind_used_count(user_id, kind, since=None):
+    """Já usado de um tipo — ignora falhas. Se 'since' (datetime) for passado,
+    conta só a partir dele (cota diária do Pro); senão é o total (vitalício Free)."""
+    q = ("SELECT COUNT(*) FROM jobs WHERE user_id = %s AND kind = %s "
+         "AND status IN ('queued','processing','done')")
+    params = [user_id, kind]
+    if since is not None:
+        q += " AND created_at >= %s"
+        params.append(since)
     with _conn() as c:
         with c.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM jobs WHERE user_id = %s AND kind = %s "
-                        "AND status IN ('queued','processing','done')", (user_id, kind))
+            cur.execute(q, params)
             return cur.fetchone()[0]
 
 

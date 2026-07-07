@@ -65,11 +65,18 @@
   <div class="card pad" style="margin-bottom:18px">
     <div class="sec-title"><i class="ic ic-star"></i> Plano Pro (PIX) <span class="hint" id="gwStatus" style="margin-left:auto"></span></div>
     <div class="hint">Preço e duração do Pro. O cliente paga via PIX e o Pro ativa/renova automaticamente.</div>
-    <div class="form-row" style="grid-template-columns:1fr 1fr auto">
+    <div class="form-row" style="grid-template-columns:1fr 1fr">
       <div><label>Preço (R$)</label><input type="number" id="proPrice" step="0.01" min="0" placeholder="49.90"></div>
       <div><label>Duração (dias)</label><input type="number" id="proDays" min="1" placeholder="30"></div>
-      <div><button class="btn" onclick="saveBilling()"><i class="ic ic-save"></i> Salvar</button></div>
     </div>
+    <div class="hint" style="margin-top:14px">Limites de geração por plano (-1 = ilimitado). Free = teto <b>vitalício</b> (trial); Pro = <b>por dia</b>.</div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+      <div><label>Free · imagens</label><input type="number" id="limFreeImg" min="-1" placeholder="20"></div>
+      <div><label>Free · vídeos</label><input type="number" id="limFreeVid" min="-1" placeholder="3"></div>
+      <div><label>Pro · imagens/dia</label><input type="number" id="limProImg" min="-1" placeholder="100"></div>
+      <div><label>Pro · vídeos/dia</label><input type="number" id="limProVid" min="-1" placeholder="10"></div>
+    </div>
+    <div style="margin-top:14px"><button class="btn" onclick="saveBilling()"><i class="ic ic-save"></i> Salvar</button></div>
     <div class="msg" id="bMsg"></div>
   </div>
 
@@ -159,10 +166,16 @@ async function upd(body){
 // ── Plano Pro (PIX) ──────────────────────────────────────────────────────────
 fetch('/api/admin/billing').then(r=>r.json()).then(d=>{
   $('proPrice').value = d.price_brl || ''; $('proDays').value = d.days || 30;
+  const L = d.limits || {};
+  $('limFreeImg').value = L.free_img; $('limFreeVid').value = L.free_vid;
+  $('limProImg').value = L.pro_img;   $('limProVid').value = L.pro_vid;
   $('gwStatus').textContent = d.gateway ? '🟢 gateway conectado' : '🔴 gateway não configurado (env ZETTPAY_*)';
 }).catch(()=>{});
 async function saveBilling(){
-  const body = { price_brl: parseFloat($('proPrice').value)||0, days: parseInt($('proDays').value)||30 };
+  const gi = id => { const v = parseInt($(id).value); return Number.isFinite(v) ? v : undefined; };
+  const body = { price_brl: parseFloat($('proPrice').value)||0, days: parseInt($('proDays').value)||30,
+    limits: { free_img: gi('limFreeImg'), free_vid: gi('limFreeVid'),
+              pro_img: gi('limProImg'), pro_vid: gi('limProVid') } };
   const r = await fetch('/api/admin/billing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d = await r.json();
   $('bMsg').className = 'msg ' + (d.ok?'ok':'err');
