@@ -87,7 +87,7 @@ STACK_DEFAULT_WEIGHTS = {
 # (trial), 'conc' = máx. de requisições na fila ao mesmo tempo, 'batch' = máx.
 # de imagens por requisição.
 PLAN_RULES = {
-    "free": {"img": 5, "vid": 3, "conc": 3, "batch": 1},
+    "free": {"img": 20, "vid": 3, "conc": 3, "batch": 1},
     "pro": {"img": -1, "vid": -1, "conc": 10, "batch": 8},
     "unlimited": {"img": -1, "vid": -1, "conc": 999, "batch": 8},
 }
@@ -1744,8 +1744,10 @@ def jobs_cancel(job_id):
 def client_quota():
     u = current_user() or {}
     if not u.get("id"):
-        return jsonify({"plan": "free", "img_used": 0, "img_limit": 5, "vid_used": 0,
-                        "vid_limit": 3, "conc_used": 0, "conc_limit": 3})
+        return jsonify({"plan": "free", "img_used": 0,
+                        "img_limit": PLAN_RULES["free"]["img"], "vid_used": 0,
+                        "vid_limit": PLAN_RULES["free"]["vid"], "conc_used": 0,
+                        "conc_limit": PLAN_RULES["free"]["conc"]})
     r = plan_rules(u)
     return jsonify({
         "plan": u.get("plan") or "free",
