@@ -70,6 +70,15 @@
     .topbar .right { flex:1; min-width:0; }
     #search { flex:1; width:auto; min-width:0; }
   }
+  .storage { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:11px 13px; margin-bottom:14px; }
+  .storage-top { display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); margin-bottom:8px; }
+  .storage-top b { color:var(--text); }
+  .storage-track { height:8px; border-radius:999px; background:var(--bg-soft); overflow:hidden; box-shadow:inset 0 0 0 1px var(--border); }
+  .storage-fill { height:100%; width:0; border-radius:999px; background:linear-gradient(90deg,#2fd07a,#8b5cff); transition:width .4s ease; }
+  .storage-fill.warn { background:linear-gradient(90deg,#f7b955,#fb5a6e); }
+  .storage-warn { display:none; font-size:12px; color:var(--danger); margin-top:8px; align-items:center; gap:5px; }
+  .storage.full .storage-warn { display:flex; }
 </style>
 </head>
 <body>
@@ -117,6 +126,13 @@
       <button class="tb danger" id="delBtn" onclick="bulkDelete()" style="display:none" disabled><i class="ic ic-trash"></i> Deletar</button>
       <span id="libStatus" style="color:var(--accent);font-size:13px"></span>
     </div>
+    {% if role != 'admin' %}
+    <div class="storage" id="storageBar">
+      <div class="storage-top"><span>Armazenamento</span><span id="storageTxt">…</span></div>
+      <div class="storage-track"><div class="storage-fill" id="storageFill"></div></div>
+      <div class="storage-warn" id="storageWarn"></div>
+    </div>
+    {% endif %}
     <div class="grid" id="grid"></div>
     <div class="empty" id="empty" style="display:none"></div>
   </div>
@@ -244,6 +260,23 @@ async function load() {
   items = data.items || [];
   renderSide(data.folders || []);
   renderGrid();
+  loadStorage();
+}
+
+// ── Uso de armazenamento (cliente: teto de 1 GB) ─────────────────────────────
+const STORAGE_LIMIT = 1073741824; // 1 GB
+function fmtSpace(b){ const mb=b/1048576; return mb>=1024 ? (mb/1024).toFixed(2)+' GB' : mb.toFixed(0)+' MB'; }
+function loadStorage(){
+  const bar=$('storageBar'); if(!bar) return;   // admin não tem teto
+  fetch('/api/stats').then(r=>r.json()).then(s=>{
+    const used=s.bytes||0, pct=Math.min(100, used/STORAGE_LIMIT*100), near=pct>=85;
+    $('storageFill').style.width=pct.toFixed(1)+'%';
+    $('storageFill').classList.toggle('warn', near);
+    $('storageTxt').innerHTML=`<b>${fmtSpace(used)}</b> de 1 GB`;
+    bar.classList.toggle('full', near);
+    if(pct>=100) $('storageWarn').innerHTML='<i class="ic ic-warn"></i> Espaço cheio! Exclua arquivos para liberar espaço.';
+    else if(near) $('storageWarn').innerHTML='<i class="ic ic-warn"></i> Espaço quase cheio — exclua arquivos para recuperar espaço.';
+  }).catch(()=>{});
 }
 
 let allFolders = [];

@@ -94,7 +94,7 @@
 
     <div class="row" id="imgOpts">
       <div><label>Qualidade</label><select id="quality"><option value="draft">Rápido</option><option value="standard" selected>Padrão</option></select></div>
-      <div><label>Quantidade</label><select id="batch"><option>1</option><option>2</option><option selected>4</option></select></div>
+      <div><label>Quantidade <span id="batchPro" style="display:none;font-size:10px;font-weight:700;color:var(--accent);border:1px solid var(--border-2);border-radius:999px;padding:1px 7px;vertical-align:middle">PRO</span></label><select id="batch"><option selected>1</option><option>2</option><option>4</option></select><div id="batchHint" style="display:none;font-size:11px;color:var(--muted);margin-top:4px">Gerar várias de uma vez é do Pro</div></div>
       <div><label>Seed (-1 = aleatória)</label><input type="number" id="seed" placeholder="-1"></div>
     </div>
 
@@ -168,6 +168,13 @@ function setStatus(t,err){ const s=$('status'); s.textContent=t; s.classList.tog
 function loadQuota(){
   fetch('/api/client/quota').then(r=>r.json()).then(q=>{
     const lim = v => v===-1 ? '∞' : v;
+    // Free: 1 imagem por requisição (batch é benefício do Pro).
+    const isFree = q.img_limit !== -1;
+    const b=$('batch'), tag=$('batchPro'), hint=$('batchHint');
+    if(isFree){ b.value='1'; b.disabled=true; b.style.opacity=.55;
+      if(tag) tag.style.display='inline'; if(hint) hint.style.display='block'; }
+    else { b.disabled=false; b.style.opacity=1;
+      if(tag) tag.style.display='none'; if(hint) hint.style.display='none'; }
     if(q.img_limit===-1 && q.vid_limit===-1){
       $('quota').innerHTML = `Plano <b>${q.plan}</b> · ilimitado · <b>${q.conc_used}/${q.conc_limit}</b> na fila`;
     } else {
