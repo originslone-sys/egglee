@@ -187,18 +187,45 @@ function syncUI() {
 $('workflow').addEventListener('change', syncUI);
 syncUI();
 
+// Redimensiona a imagem no navegador antes de enviar. Fotos de celular têm
+// vários MB; cru em base64 estoura o limite de payload do RunPod (~10 MB) e o
+// img2img/vídeo falha. Reduz p/ borda máx ~1280px e reencoda em JPEG.
+function resizeImage(file, maxEdge, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width: w, height: h } = img;
+        const scale = Math.min(1, maxEdge / Math.max(w, h));
+        w = Math.round(w * scale); h = Math.round(h * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality || 0.9);
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // Uploads
 function wireDrop(dropId, fileId, setter, previewLabel) {
   $(dropId).addEventListener('click', () => $(fileId).click());
-  $(fileId).addEventListener('change', e => {
+  $(fileId).addEventListener('change', async e => {
     const f = e.target.files[0]; if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setter(reader.result.split(',')[1]);
-      $(dropId).innerHTML = previewLabel + '<img src="' + reader.result + '">';
+    try {
+      const dataUrl = await resizeImage(f, 1280, 0.9);
+      setter(dataUrl.split(',')[1]);
+      $(dropId).innerHTML = previewLabel + '<img src="' + dataUrl + '">';
       $(dropId).appendChild($(fileId));
-    };
-    reader.readAsDataURL(f);
+    } catch (err) {
+      setStatus('Não consegui ler essa imagem. Tente outra (JPG/PNG).', true);
+    }
   });
 }
 wireDrop('faceDrop', 'faceFile', v => faceB64 = v, 'Trocar foto');
