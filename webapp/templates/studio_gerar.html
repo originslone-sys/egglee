@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/app.css">
 <style>
-  .wrap { display:grid; grid-template-columns:400px 1fr; gap:22px; padding:22px; max-width:1400px; margin:0 auto; align-items:start; }
+  .wrap { display:grid; grid-template-columns:400px minmax(0,1fr); gap:22px; padding:22px; max-width:1400px; margin:0 auto; align-items:start; }
   @media (max-width:900px){ .wrap { grid-template-columns:1fr; } }
   .controls { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
   .drop { border:1.5px dashed var(--border-2); border-radius:var(--radius-sm); padding:16px; text-align:center; cursor:pointer; font-size:13px; color:var(--muted); }
