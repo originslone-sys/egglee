@@ -230,12 +230,13 @@ function resizeImage(file, maxEdge, quality) {
 function wireDrop(dropId, fileId, setter, previewLabel) {
   $(dropId).addEventListener('click', () => $(fileId).click());
   $(fileId).addEventListener('change', async e => {
-    const f = e.target.files[0]; if (!f) return;
+    const input = e.target;                 // referência do <input> (sobrevive ao innerHTML)
+    const f = input.files[0]; if (!f) return;
     try {
       const dataUrl = await resizeImage(f, 1280, 0.9);
       setter(dataUrl.split(',')[1]);
       $(dropId).innerHTML = previewLabel + '<img src="' + dataUrl + '">';
-      $(dropId).appendChild($(fileId));
+      $(dropId).appendChild(input);         // recoloca o mesmo input (pra trocar de novo)
     } catch (err) {
       setStatus('Não consegui ler essa imagem. Tente outra (JPG/PNG).', true);
     }
@@ -248,13 +249,14 @@ wireDrop('inputDrop', 'inputFile', v => inputB64 = v, 'Trocar imagem');
 let guideB64 = null;
 $('danceDrop').addEventListener('click', () => $('danceFile').click());
 $('danceFile').addEventListener('change', e => {
-  const f = e.target.files[0]; if (!f) return;
+  const input = e.target;
+  const f = input.files[0]; if (!f) return;
   if (f.size > 60 * 1024 * 1024) return setStatus('Vídeo muito grande (máx 60MB). Use um clipe menor.', true);
   const reader = new FileReader();
   reader.onload = () => {
     guideB64 = reader.result.split(',')[1];
     $('danceDrop').innerHTML = 'Trocar vídeo ✓ <span style="color:var(--muted)">' + f.name + '</span>';
-    $('danceDrop').appendChild($('danceFile'));
+    $('danceDrop').appendChild(input);
   };
   reader.readAsDataURL(f);
 });
