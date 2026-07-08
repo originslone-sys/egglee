@@ -1,7 +1,30 @@
 # Feature: "Dancinha do TikTok" na animação de vídeo (painel ADMIN)
 
-> Status: **PLANEJADO / não implementado.** Registro de decisão para retomar depois.
-> Data da análise: 2026-07-03. Modelo local de vídeo atual: **Wan 2.2 TI2V-5B**.
+> Status: **IMPLEMENTADO (MVP com Canny) — FALTA 1 RENDER DE VALIDAÇÃO no pod.**
+> Data da análise: 2026-07-03. Implementação: 2026-07-08. Modelo: **Wan 2.2 Fun-Control 5B**.
+
+## ✅ O que já foi implementado (2026-07-08)
+- **Modo "Dança (TikTok)"** no gerador admin (`index.html`): sobe imagem de referência
+  (a modelo) + vídeo-guia da dança. Só admin.
+- **Fluxo do vídeo-guia:** navegador → base64 → `app.py::_upload_control_video` sobe no
+  **R2** → URL presigned no payload (evita limite do RunPod). Worker baixa por ela.
+- **`handler.py::prepare_control_video`:** baixa o guia, `ffmpeg` corta os **primeiros 5s**,
+  ajusta fps e casa dimensões (cover+crop) → salva no input do ComfyUI.
+- **`workflows/video_dance.json`:** Fun-Control 5B + `VHS_LoadVideo` → **Canny** →
+  `WanFunControlToVideo` → KSampler → mp4. Roda pelo caminho de vídeo single-pass (5s).
+- **`setup/download_models.sh`:** baixa `wan2.2_fun_control_5B_bf16.safetensors` (mesmo
+  repo; reaproveita VAE + text encoder que já temos).
+
+## ⚠️ FALTA para ativar (checklist de ativação)
+1. **Baixar o modelo no volume:** rodar `setup/download_models.sh` num pod (só o
+   Fun-Control é novo, ~alguns GB).
+2. **Rebuild do worker:** o push já dispara o GitHub Actions (handler + workflow entram na
+   imagem). Confirmar que o endpoint pegou a `:latest`.
+3. **1 render de teste** com uma foto + um clipe de dança curto → ver se a coreografia
+   transfere. **Não pude testar o grafo do ComfyUI daqui** (nós `WanFunControlToVideo`/
+   `Canny`/`VHS_LoadVideo` dependem da versão instalada) — é o passo que valida.
+4. Se o Canny decepcionar → **upgrade pra DWPose** (troca só o nó de preprocess no
+   `video_dance.json` + instalar `comfyui_controlnet_aux` e seus modelos de pose).
 
 ## Objetivo
 Um **toggle no gerador admin** (ativar/desativar) que, quando ligado, faz a modelo da
@@ -61,8 +84,35 @@ Fontes:
 - **Custo real escala com a DURAÇÃO** (linear): 15s ≈ 3x de 5s. Manter clipes curtos (~5s)
   mantém o custo perto do atual.
 - Insumos extras necessários:
-  - modelos no volume (VACE/Fun-Control 5B + detector de pose DWPose) → **rebuild do worker (~8min)**
+  - modelos no volume (Fun-Control 5B + detector de pose DWPose) → **rebuild do worker (~8min)**
   - **biblioteca de vídeos-guia de dança** (clipes de referência p/ copiar a pose) — DECISÃO PENDENTE
+
+### 🔎 Pesquisa técnica confirmada (2026-07-07) — Wan 2.2 Fun-Control 5B
+Ótima notícia: a variante escolhida **reaproveita quase tudo que já temos**. Só há **1 modelo
+novo** a baixar.
+
+- **Modelo de controle (ÚNICO novo):** `wan2.2_fun_control_5B_bf16.safetensors`
+  → repo **`Comfy-Org/Wan_2.2_ComfyUI_Repackaged`**, pasta `split_files/diffusion_models/`
+  → vai em `ComfyUI/models/diffusion_models/` (é o **MESMO repo** de onde já baixamos o
+  `wan2.2_ti2v_5B_fp16` — dá pra adicionar no `download_models.sh` com uma linha).
+- **VAE:** **o mesmo** `wan2.2_vae.safetensors` que já temos. ✅ (não re-baixar)
+- **Text encoder:** **o mesmo** `umt5_xxl_fp8_e4m3fn_scaled.safetensors` que já temos. ✅
+- **Custom nodes:** o **Kijai `ComfyUI-WanVideoWrapper`** (que **já instalamos**) traz os
+  workflows de exemplo do Fun-Control. Único node novo: **`comfyui_controlnet_aux`**
+  (DWPose) p/ extrair a pose do vídeo-guia. (Alternativa sem node extra: usar Canny em vez
+  de pose — mais simples, porém menos fiel a dança.)
+- **Como alimenta:** entra **1 imagem de referência** (a modelo) + **1 vídeo-guia** de dança.
+  O preprocessador (DWPose/Canny) extrai o controle quadro a quadro; o sampler aplica a
+  modelo por cima da pose. Tipos suportados: **Pose** (ideal p/ dança), Depth, Canny, MLSD.
+- **VRAM/limites:** roda em 10 GB (512px, 3-4s) e **12 GB já faz 720p 5-8s**. Nossa **A4500
+  20 GB folga** → 720p 5s tranquilo. Confirma a estimativa: custo ~igual ao vídeo atual.
+- **Footprint real da implementação:** 1 modelo (~alguns GB) + 1 custom node (DWPose) +
+  1 workflow novo (`video_dance.json`) + branch no `handler.py` p/ receber o vídeo-guia.
+
+Fontes: [Comfy-Org repackaged (diffusion_models)](https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/tree/main/split_files/diffusion_models),
+[arquivo do modelo](https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/blob/main/split_files/diffusion_models/wan2.2_fun_control_5B_bf16.safetensors),
+[Fun-Control workflow (Civitai)](https://civitai.com/models/1912627/wan22-5b-fun-control-fast-video-controlnet),
+[VACE pose-driven (RunComfy)](https://www.runcomfy.com/comfyui-workflows/wan-2-2-vace-in-comfyui-pose-driven-motion-video-workflow).
 
 ## Decisão / plano combinado
 **Sequência recomendada (a confirmar na retomada):**
@@ -78,8 +128,11 @@ Fontes:
 - [ ] Definir duração-alvo do clipe de dança (5s p/ manter custo; ou aceitar mais tempo).
 - [ ] Rota A: redigir o `DANCE_MOTION_LOCK` + `DANCE_MOTION_NEG` + perfil de KSampler
       (steps/cfg/shift) e validar com render.
-- [ ] Rota B: escolher VACE vs Fun-Control 5B, montar `workflows/video_dance.json`, baixar
-      modelos no volume, ajustar `handler.py`, rebuild do worker.
+- [x] Rota B: escolhido **Fun-Control 5B** (ver pesquisa 2026-07-07). Falta: montar
+      `workflows/video_dance.json`, adicionar 1 linha no `download_models.sh`
+      (`wan2.2_fun_control_5B_bf16.safetensors`), instalar node `comfyui_controlnet_aux`
+      (DWPose) no `install_comfyui.sh`+`Dockerfile`, branch no `handler.py`, rebuild do worker.
+- [ ] Decidir preprocessador: **DWPose** (fiel a dança, +1 node) vs **Canny** (mais simples).
 
 ## Arquivos que serão tocados
 - `webapp/app.py` — novo toggle (`dance`) nos ramos de vídeo (API ~L871 e local ~L580);

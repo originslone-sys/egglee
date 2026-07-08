@@ -63,6 +63,7 @@
       <option value="txt2img">Texto → Imagem</option>
       <option value="img2img">Imagem → Imagem</option>
       <option value="video_i2v">Imagem → Vídeo</option>
+      <option value="video_dance">Dança (TikTok) — vídeo-guia</option>
     </select>
 
     <label>Modelo base (checkpoint)</label>
@@ -100,9 +101,16 @@
     </div>
 
     <div id="inputBox" class="hidden">
-      <label>Imagem de entrada</label>
+      <label id="inputLbl">Imagem de entrada</label>
       <div class="drop" id="inputDrop">Clique para enviar a imagem
         <input type="file" id="inputFile" accept="image/*" class="hidden">
+      </div>
+    </div>
+
+    <div id="danceBox" class="hidden">
+      <label>Vídeo-guia da dança <span style="color:var(--muted);font-weight:400">(usa só os primeiros 5s)</span></label>
+      <div class="drop" id="danceDrop">Clique para enviar o vídeo da dança
+        <input type="file" id="danceFile" accept="video/*" class="hidden">
       </div>
     </div>
 
@@ -182,7 +190,10 @@ async function saveToLibrary(data, type, body, attempt = 1) {
 function syncUI() {
   const wf = $('workflow').value;
   $('faceBox').classList.toggle('hidden', wf !== 'txt2img_faceid');
-  $('inputBox').classList.toggle('hidden', !(wf === 'img2img' || wf === 'video_i2v'));
+  // img2img/i2v = imagem de entrada; dança = imagem de referência (a modelo) + vídeo-guia
+  $('inputBox').classList.toggle('hidden', !(wf === 'img2img' || wf === 'video_i2v' || wf === 'video_dance'));
+  $('danceBox').classList.toggle('hidden', wf !== 'video_dance');
+  $('inputLbl').textContent = wf === 'video_dance' ? 'Imagem de referência (a modelo)' : 'Imagem de entrada';
 }
 $('workflow').addEventListener('change', syncUI);
 syncUI();
@@ -230,6 +241,21 @@ function wireDrop(dropId, fileId, setter, previewLabel) {
 }
 wireDrop('faceDrop', 'faceFile', v => faceB64 = v, 'Trocar foto');
 wireDrop('inputDrop', 'inputFile', v => inputB64 = v, 'Trocar imagem');
+
+// Vídeo-guia da dança: lê cru (sem canvas). O worker corta os primeiros 5s.
+let guideB64 = null;
+$('danceDrop').addEventListener('click', () => $('danceFile').click());
+$('danceFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  if (f.size > 60 * 1024 * 1024) return setStatus('Vídeo muito grande (máx 60MB). Use um clipe menor.', true);
+  const reader = new FileReader();
+  reader.onload = () => {
+    guideB64 = reader.result.split(',')[1];
+    $('danceDrop').innerHTML = 'Trocar vídeo ✓ <span style="color:var(--muted)">' + f.name + '</span>';
+    $('danceDrop').appendChild($('danceFile'));
+  };
+  reader.readAsDataURL(f);
+});
 
 
 // Prompts variados para o dataset (foco em variedade de ângulo/expressão/cena).
@@ -449,6 +475,8 @@ $('goBtn').addEventListener('click', () => {
   const wf = $('workflow').value;
   if (wf === 'txt2img_faceid' && !faceB64) return setStatus('Envie a foto de referência do rosto.', true);
   if ((wf === 'img2img' || wf === 'video_i2v') && !inputB64) return setStatus('Envie a imagem de entrada.', true);
+  if (wf === 'video_dance' && !inputB64) return setStatus('Envie a imagem de referência (a modelo).', true);
+  if (wf === 'video_dance' && !guideB64) return setStatus('Envie o vídeo-guia da dança.', true);
 
   const q = $('quality').value;
   const steps = q === 'draft' ? 20 : 30;
@@ -466,9 +494,14 @@ $('goBtn').addEventListener('click', () => {
   };
   if ($('useCharacter').checked) body.character = 'model';
   if (faceB64 && wf === 'txt2img_faceid') body.face_image_b64 = faceB64;
-  if (inputB64 && (wf === 'img2img' || wf === 'video_i2v')) body.input_image_b64 = inputB64;
+  if (inputB64 && (wf === 'img2img' || wf === 'video_i2v' || wf === 'video_dance')) body.input_image_b64 = inputB64;
+  if (wf === 'video_dance') {
+    body.control_video_b64 = guideB64;
+    body.resolution = '720p'; body.aspect_ratio = '9:16'; body.duration = 5;
+  }
 
-  runJob(body, autoUpscale ? 'Gerando + alta definição…' : 'Enviando para a fila…');
+  runJob(body, wf === 'video_dance' ? 'Gerando dança (pode levar alguns minutos)…'
+                                    : (autoUpscale ? 'Gerando + alta definição…' : 'Enviando para a fila…'));
 });
 
 // Envia a imagem escolhida para o workflow de upscale (alta definição)

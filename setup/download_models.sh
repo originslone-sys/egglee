@@ -169,6 +169,16 @@ hf_download "$MODELS/text_encoders" \
     "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
     "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
 
+# ── Wan 2.2 Fun-Control 5B (dança pose/edge-driven) ───────────────────────────
+# Mesmo repo do TI2V; reaproveita o MESMO VAE (wan2.2_vae) e text encoder (umt5).
+# Só este arquivo é novo. Usado pelo workflow video_dance (control-net de vídeo).
+echo ""
+echo "=== Wan 2.2 Fun-Control 5B (control p/ dança) ==="
+hf_download "$MODELS/diffusion_models" \
+    "Comfy-Org/Wan_2.2_ComfyUI_Repackaged" \
+    "split_files/diffusion_models/wan2.2_fun_control_5B_bf16.safetensors" \
+    "wan2.2_fun_control_5B_bf16.safetensors"
+
 # ── IPAdapter FaceID (SDXL) ───────────────────────────────────────────────────
 
 echo ""

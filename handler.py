@@ -245,6 +245,31 @@ def save_input_image(b64_data: str) -> str:
     return filename
 
 
+def prepare_control_video(url: str, width: int, height: int,
+                          fps: int = 24, seconds: int = 5) -> str:
+    """Baixa o vídeo-guia (URL presigned do R2), corta os PRIMEIROS `seconds`s,
+    ajusta fps e casa as dimensões do output (cover+crop). Salva no input do
+    ComfyUI e devolve o nome do arquivo (usado pelo VHS_LoadVideo)."""
+    INPUT_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = INPUT_DIR / f"guide_src_{uuid.uuid4().hex[:8]}.mp4"
+    out = INPUT_DIR / f"control_{uuid.uuid4().hex[:8]}.mp4"
+    r = requests.get(url, timeout=180)
+    r.raise_for_status()
+    tmp.write_bytes(r.content)
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(tmp), "-t", str(seconds), "-r", str(fps),
+         "-vf", f"scale={width}:{height}:force_original_aspect_ratio=increase,"
+                f"crop={width}:{height}",
+         "-an", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(out)],
+        check=True, capture_output=True,
+    )
+    try:
+        tmp.unlink()
+    except OSError:
+        pass
+    return out.name
+
+
 # ── Gerenciador de modelos (ações admin sobre o volume) ─────────────────────────
 
 CKPT_DIR = COMFYUI_DIR / "models" / "checkpoints"
@@ -416,6 +441,19 @@ def handler(job):
         # → save to ComfyUI input dir and expose the filename under the base key.
         for key in [k for k in list(inputs) if k.endswith("_b64")]:
             inputs[key[:-4]] = save_input_image(inputs.pop(key))
+
+        # Dança (Fun-Control): baixa o vídeo-guia, corta os primeiros 5s e casa
+        # as dimensões do output. O VHS_LoadVideo usa o filename resultante.
+        if inputs.get("control_video_url"):
+            try:
+                inputs["control_video"] = prepare_control_video(
+                    inputs.pop("control_video_url"),
+                    int(inputs.get("width", 704)),
+                    int(inputs.get("height", 1280)),
+                    int(inputs.get("frame_rate", 24)),
+                )
+            except Exception as e:
+                return {"error": f"Falha ao preparar o vídeo-guia: {e}"}
 
         # Vídeo: caminho encadeado (1+ trechos de 5s) + suavização via ffmpeg.
         wf_name = job_input.get("workflow_name", "")

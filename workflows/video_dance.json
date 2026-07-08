@@ -1,0 +1,104 @@
+{
+  "1": {
+    "inputs": { "unet_name": "wan2.2_fun_control_5B_bf16.safetensors", "weight_dtype": "default" },
+    "class_type": "UNETLoader",
+    "_meta": { "title": "Wan 2.2 Fun-Control 5B" }
+  },
+  "3": {
+    "inputs": { "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "type": "wan" },
+    "class_type": "CLIPLoader",
+    "_meta": { "title": "Text Encoder (umt5)" }
+  },
+  "4": {
+    "inputs": { "vae_name": "wan2.2_vae.safetensors" },
+    "class_type": "VAELoader",
+    "_meta": { "title": "VAE (wan 2.2)" }
+  },
+  "5": {
+    "inputs": { "text": "{{positive_prompt}}", "clip": ["3", 0] },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Positive" }
+  },
+  "6": {
+    "inputs": { "text": "{{negative_prompt}}", "clip": ["3", 0] },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Negative" }
+  },
+  "7": {
+    "inputs": { "image": "{{input_image}}", "upload": "image" },
+    "class_type": "LoadImage",
+    "_meta": { "title": "Imagem de referência (a modelo)" }
+  },
+  "8": {
+    "inputs": {
+      "video": "{{control_video}}",
+      "force_rate": "{{frame_rate}}",
+      "custom_width": 0,
+      "custom_height": 0,
+      "frame_load_cap": "{{length}}",
+      "skip_first_frames": 0,
+      "select_every_nth": 1
+    },
+    "class_type": "VHS_LoadVideo",
+    "_meta": { "title": "Vídeo-guia (dança)" }
+  },
+  "9": {
+    "inputs": { "low_threshold": 0.4, "high_threshold": 0.8, "image": ["8", 0] },
+    "class_type": "Canny",
+    "_meta": { "title": "Control (Canny edges)" }
+  },
+  "10": {
+    "inputs": {
+      "width": "{{width}}",
+      "height": "{{height}}",
+      "length": "{{length}}",
+      "batch_size": 1,
+      "positive": ["5", 0],
+      "negative": ["6", 0],
+      "vae": ["4", 0],
+      "start_image": ["7", 0],
+      "control_video": ["9", 0]
+    },
+    "class_type": "WanFunControlToVideo",
+    "_meta": { "title": "Wan Fun Control → Video" }
+  },
+  "11": {
+    "inputs": { "shift": 8.0, "model": ["1", 0] },
+    "class_type": "ModelSamplingSD3",
+    "_meta": { "title": "Sampling shift" }
+  },
+  "12": {
+    "inputs": {
+      "seed": "{{seed}}",
+      "steps": "{{steps}}",
+      "cfg": 6.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": ["11", 0],
+      "positive": ["10", 0],
+      "negative": ["10", 1],
+      "latent_image": ["10", 2]
+    },
+    "class_type": "KSampler",
+    "_meta": { "title": "KSampler (Fun-Control)" }
+  },
+  "13": {
+    "inputs": { "samples": ["12", 0], "vae": ["4", 0] },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAE Decode" }
+  },
+  "14": {
+    "inputs": {
+      "frame_rate": "{{frame_rate}}",
+      "loop_count": 0,
+      "filename_prefix": "wan_dance",
+      "format": "video/h264-mp4",
+      "pingpong": false,
+      "save_output": true,
+      "images": ["13", 0]
+    },
+    "class_type": "VHS_VideoCombine",
+    "_meta": { "title": "Combine → MP4" }
+  }
+}
