@@ -59,8 +59,8 @@
       "start_image": ["7", 0],
       "control_video": ["9", 0]
     },
-    "class_type": "WanFunControlToVideo",
-    "_meta": { "title": "Wan Fun Control → Video" }
+    "class_type": "Wan22FunControlToVideo",
+    "_meta": { "title": "Wan 2.2 Fun Control → Video" }
   },
   "11": {
     "inputs": { "shift": 8.0, "model": ["1", 0] },
