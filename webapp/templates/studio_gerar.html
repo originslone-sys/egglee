@@ -187,6 +187,12 @@ function loadQuota(){
 }
 loadQuota();
 
+// Campo de prompt "infinito": cresce com o texto; ao atingir o teto (CSS 55vh) rola por dentro.
+function autoGrow(el){ if(!el) return; el.style.height='auto';
+  el.style.height = Math.min(el.scrollHeight + 2, window.innerHeight*0.55) + 'px'; }
+['prompt','negative'].forEach(id=>{ const el=$(id);
+  if(el){ el.addEventListener('input', ()=>autoGrow(el)); autoGrow(el); } });
+
 async function run(){
   const wf=$('workflow').value;
   if((wf==='img2img'||wf==='video_i2v')&&!inputB64) return setStatus('Envie a imagem de entrada.',true);
