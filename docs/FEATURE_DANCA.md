@@ -1,7 +1,30 @@
 # Feature: "Dancinha do TikTok" na animação de vídeo (painel ADMIN)
 
-> Status: **PLANEJADO / não implementado.** Registro de decisão para retomar depois.
-> Data da análise: 2026-07-03. Modelo local de vídeo atual: **Wan 2.2 TI2V-5B**.
+> Status: **IMPLEMENTADO (MVP com Canny) — FALTA 1 RENDER DE VALIDAÇÃO no pod.**
+> Data da análise: 2026-07-03. Implementação: 2026-07-08. Modelo: **Wan 2.2 Fun-Control 5B**.
+
+## ✅ O que já foi implementado (2026-07-08)
+- **Modo "Dança (TikTok)"** no gerador admin (`index.html`): sobe imagem de referência
+  (a modelo) + vídeo-guia da dança. Só admin.
+- **Fluxo do vídeo-guia:** navegador → base64 → `app.py::_upload_control_video` sobe no
+  **R2** → URL presigned no payload (evita limite do RunPod). Worker baixa por ela.
+- **`handler.py::prepare_control_video`:** baixa o guia, `ffmpeg` corta os **primeiros 5s**,
+  ajusta fps e casa dimensões (cover+crop) → salva no input do ComfyUI.
+- **`workflows/video_dance.json`:** Fun-Control 5B + `VHS_LoadVideo` → **Canny** →
+  `WanFunControlToVideo` → KSampler → mp4. Roda pelo caminho de vídeo single-pass (5s).
+- **`setup/download_models.sh`:** baixa `wan2.2_fun_control_5B_bf16.safetensors` (mesmo
+  repo; reaproveita VAE + text encoder que já temos).
+
+## ⚠️ FALTA para ativar (checklist de ativação)
+1. **Baixar o modelo no volume:** rodar `setup/download_models.sh` num pod (só o
+   Fun-Control é novo, ~alguns GB).
+2. **Rebuild do worker:** o push já dispara o GitHub Actions (handler + workflow entram na
+   imagem). Confirmar que o endpoint pegou a `:latest`.
+3. **1 render de teste** com uma foto + um clipe de dança curto → ver se a coreografia
+   transfere. **Não pude testar o grafo do ComfyUI daqui** (nós `WanFunControlToVideo`/
+   `Canny`/`VHS_LoadVideo` dependem da versão instalada) — é o passo que valida.
+4. Se o Canny decepcionar → **upgrade pra DWPose** (troca só o nó de preprocess no
+   `video_dance.json` + instalar `comfyui_controlnet_aux` e seus modelos de pose).
 
 ## Objetivo
 Um **toggle no gerador admin** (ativar/desativar) que, quando ligado, faz a modelo da

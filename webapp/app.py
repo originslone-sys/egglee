@@ -580,6 +580,9 @@ def _build_input(body: dict) -> dict:
         inputs["face_image_b64"] = body["face_image_b64"]
     if body.get("input_image_b64"):
         inputs["input_image_b64"] = body["input_image_b64"]
+    # Dança (Fun-Control): URL presigned do vídeo-guia (o worker baixa e corta 5s).
+    if body.get("control_video_url"):
+        inputs["control_video_url"] = body["control_video_url"]
 
     # Vídeo self-host (Wan 2.2 TI2V-5B): traduz resolução/proporção em dimensões.
     # O 5B é nativo 720p @ 24fps; dimensões múltiplas de 32 (exigência do node).
@@ -789,6 +792,21 @@ def config():
     })
 
 
+def _upload_control_video(b64: str) -> str:
+    """Sobe o vídeo-guia da dança no R2 e devolve uma URL presigned (o worker
+    baixa por ela — evita o limite de payload do RunPod)."""
+    raw = base64.b64decode((b64 or "").split(",", 1)[-1])
+    if not raw:
+        raise ValueError("vídeo vazio")
+    if len(raw) > 60 * 1024 * 1024:
+        raise ValueError("vídeo-guia muito grande (máx 60MB)")
+    if not storage.enabled():
+        raise ValueError("armazenamento (R2) não configurado")
+    key = f"_control/{uuid.uuid4().hex}.mp4"
+    storage.upload_bytes(key, raw, "video/mp4")
+    return storage.presigned_url(key, expires=3600)
+
+
 @app.route("/api/generate", methods=["POST"])
 @login_required
 def generate():
@@ -798,6 +816,15 @@ def generate():
     body = request.get_json(force=True)
     if not body.get("workflow_name"):
         return jsonify({"error": "workflow_name é obrigatório"}), 400
+
+    # Dança: o vídeo-guia vai pro R2 e só a URL segue pro worker (admin-only).
+    if body.get("workflow_name") == "video_dance" and body.get("control_video_b64"):
+        if not is_admin():
+            return jsonify({"error": "recurso disponível só no painel admin"}), 403
+        try:
+            body["control_video_url"] = _upload_control_video(body.pop("control_video_b64"))
+        except Exception as e:
+            return jsonify({"error": f"vídeo-guia inválido: {e}"}), 400
 
     if is_admin():
         payload = _build_input(body)
