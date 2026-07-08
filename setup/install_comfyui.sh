@@ -40,6 +40,7 @@ install_node "ComfyUI-VideoHelperSuite" "https://github.com/Kosinkadink/ComfyUI-
 install_node "ComfyUI_IPAdapter_plus"   "https://github.com/cubiq/ComfyUI_IPAdapter_plus.git"
 install_node "ComfyUI-Impact-Pack"      "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git"
 install_node "ComfyUI-Impact-Subpack"   "https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git"
+install_node "comfyui_controlnet_aux"   "https://github.com/Fannovel16/comfyui_controlnet_aux.git"
 
 echo ""
 echo "=== Copying workflows to volume ==="

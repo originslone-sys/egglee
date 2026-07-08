@@ -23,7 +23,8 @@ RUN pip install --no-cache-dir insightface onnxruntime ultralytics dill gguf \
         https://github.com/cubiq/ComfyUI_IPAdapter_plus.git \
         https://github.com/ltdrdata/ComfyUI-Impact-Pack.git \
         https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git \
-        https://github.com/rgthree/rgthree-comfy.git ; do \
+        https://github.com/rgthree/rgthree-comfy.git \
+        https://github.com/Fannovel16/comfyui_controlnet_aux.git ; do \
         name=$(basename "$repo" .git); \
         git clone --depth 1 "$repo" "/tmp/$name" || continue; \
         if [ -f "/tmp/$name/requirements.txt" ]; then \
