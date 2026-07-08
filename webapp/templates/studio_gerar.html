@@ -147,13 +147,13 @@ syncUI();
 function resizeImage(file, maxEdge, quality){
   return new Promise((resolve,reject)=>{
     const rd=new FileReader();
-    rd.onload=()=>{ const img=new Image();
-      img.onload=()=>{ let w=img.width,h=img.height;
+    rd.onload=()=>{ const raw=rd.result; const img=new Image();
+      img.onload=()=>{ try{ let w=img.width,h=img.height;
         const s=Math.min(1,maxEdge/Math.max(w,h)); w=Math.round(w*s); h=Math.round(h*s);
         const c=document.createElement('canvas'); c.width=w; c.height=h;
         c.getContext('2d').drawImage(img,0,0,w,h);
-        resolve(c.toDataURL('image/jpeg',quality||0.9)); };
-      img.onerror=reject; img.src=rd.result; };
+        resolve(c.toDataURL('image/jpeg',quality||0.9)); }catch(e){ resolve(raw); } };
+      img.onerror=()=>resolve(raw); img.src=raw; };
     rd.onerror=reject; rd.readAsDataURL(file);
   });
 }
