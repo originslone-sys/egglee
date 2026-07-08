@@ -198,6 +198,13 @@ function syncUI() {
 $('workflow').addEventListener('change', syncUI);
 syncUI();
 
+// Campo de prompt "infinito": cresce conforme o texto e, ao atingir o teto (CSS
+// max-height 55vh), rola por dentro — nunca empurra/quebra a página.
+function autoGrow(el){ if(!el) return; el.style.height='auto';
+  el.style.height = Math.min(el.scrollHeight + 2, window.innerHeight*0.55) + 'px'; }
+['prompt','negative'].forEach(id=>{ const el=$(id);
+  if(el){ el.addEventListener('input', ()=>autoGrow(el)); autoGrow(el); } });
+
 // Redimensiona a imagem no navegador antes de enviar. Fotos de celular têm
 // vários MB; cru em base64 estoura o limite de payload do RunPod (~10 MB) e o
 // img2img/vídeo falha. Reduz p/ borda máx ~1280px e reencoda em JPEG.
@@ -397,7 +404,7 @@ async function loadPresets() {
 }
 $('presetSel').addEventListener('change', e => {
   const p = presets.find(x => String(x.id) === e.target.value);
-  if (p) $('prompt').value = p.prompt;
+  if (p) { $('prompt').value = p.prompt; autoGrow($('prompt')); }
 });
 $('savePresetBtn').addEventListener('click', async () => {
   const prompt = $('prompt').value.trim();
