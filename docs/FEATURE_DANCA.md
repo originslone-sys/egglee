@@ -1,7 +1,12 @@
 # Feature: "Dancinha do TikTok" na animação de vídeo (painel ADMIN)
 
-> Status: **IMPLEMENTADO (MVP com Canny) — FALTA 1 RENDER DE VALIDAÇÃO no pod.**
+> Status: **DWPose implementado — FALTA rebuild + baixar modelos DWPose + render.**
 > Data da análise: 2026-07-03. Implementação: 2026-07-08. Modelo: **Wan 2.2 Fun-Control 5B**.
+>
+> HISTÓRICO: começou com Canny (MVP) → rodou o pipeline mas resultado ruim (Canny segue
+> bordas, não pose). Trocado para **DWPose** (esqueleto), que é o caminho correto p/ dança.
+> Também corrigido no caminho: nó `WanFunControlToVideo`(2.1) → **`Wan22FunControlToVideo`**(2.2),
+> e o deploy que não atualizava o RunPod (trailing newline no `RUNPOD_API_KEY`).
 
 ## ✅ O que já foi implementado (2026-07-08)
 - **Modo "Dança (TikTok)"** no gerador admin (`index.html`): sobe imagem de referência

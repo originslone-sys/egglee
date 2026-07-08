@@ -179,6 +179,15 @@ hf_download "$MODELS/diffusion_models" \
     "split_files/diffusion_models/wan2.2_fun_control_5B_bf16.safetensors" \
     "wan2.2_fun_control_5B_bf16.safetensors"
 
+# DWPose (esqueleto p/ a dança) — usados pelo comfyui_controlnet_aux (DWPreprocessor).
+# Pré-baixados no ckpts do nó pra o 1º render não travar baixando em runtime.
+echo ""
+echo "=== DWPose (pose p/ dança) ==="
+DWDIR="$WORKSPACE/ComfyUI/custom_nodes/comfyui_controlnet_aux/ckpts/yzd-v/DWPose"
+mkdir -p "$DWDIR"
+hf_download "$DWDIR" "yzd-v/DWPose" "yolox_l.onnx"
+hf_download "$DWDIR" "yzd-v/DWPose" "dw-ll_ucoco_384.onnx"
+
 # ── IPAdapter FaceID (SDXL) ───────────────────────────────────────────────────
 
 echo ""

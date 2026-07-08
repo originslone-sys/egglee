@@ -43,9 +43,18 @@
     "_meta": { "title": "Vídeo-guia (dança)" }
   },
   "9": {
-    "inputs": { "low_threshold": 0.4, "high_threshold": 0.8, "image": ["8", 0] },
-    "class_type": "Canny",
-    "_meta": { "title": "Control (Canny edges)" }
+    "inputs": {
+      "detect_hand": "enable",
+      "detect_body": "enable",
+      "detect_face": "enable",
+      "resolution": 512,
+      "bbox_detector": "yolox_l.onnx",
+      "pose_estimator": "dw-ll_ucoco_384.onnx",
+      "scale_stick_for_xinsr_cn": "disable",
+      "image": ["8", 0]
+    },
+    "class_type": "DWPreprocessor",
+    "_meta": { "title": "Control (DWPose — esqueleto)" }
   },
   "10": {
     "inputs": {
