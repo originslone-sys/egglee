@@ -49,18 +49,27 @@ jobs:
     if: vars.RUNPOD_ENDPOINT_ID != ''
 
     steps:
+      # Best-effort: nunca marca o build como falho. Se não rolar, é só atualizar
+      # o endpoint manualmente no console do RunPod (Serverless → salvar/release).
       - name: Update RunPod endpoint image
+        continue-on-error: true
         env:
           RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
           ENDPOINT_ID: ${{ vars.RUNPOD_ENDPOINT_ID }}
           IMAGE: ghcr.io/${{ github.repository }}:latest
         run: |
-          # Remove qualquer espaço/quebra de linha do secret (um \n no fim quebrava a URL → curl exit 3).
+          # REST API atual do RunPod: atualiza o TEMPLATE (imageName) do endpoint,
+          # o que dispara um rolling release. Auth via Bearer token (sem \n no secret).
           KEY="$(printf '%s' "$RUNPOD_API_KEY" | tr -d '[:space:]')"
-          resp="$(curl -s -X POST \
-            "https://api.runpod.io/graphql?api_key=${KEY}" \
-            -H "Content-Type: application/json" \
-            -d "{\"query\": \"mutation { updateEndpoint(input: { id: \\\"${ENDPOINT_ID}\\\", imageName: \\\"${IMAGE}\\\" }) { id imageName } }\"}")"
-          echo "RunPod response: $resp"
-          echo "$resp" | grep -q '"imageName"' || { echo "::error::RunPod endpoint update falhou (ver resposta acima)"; exit 1; }
-          echo "Endpoint atualizado: ${ENDPOINT_ID}"
+          TID="$(curl -s -H "Authorization: Bearer ${KEY}" \
+            "https://rest.runpod.io/v1/endpoints/${ENDPOINT_ID}" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin).get('templateId',''))" 2>/dev/null)"
+          echo "templateId: ${TID:-<vazio>}"
+          if [ -n "$TID" ]; then
+            resp="$(curl -s -X PATCH "https://rest.runpod.io/v1/templates/${TID}" \
+              -H "Authorization: Bearer ${KEY}" -H "Content-Type: application/json" \
+              -d "{\"imageName\": \"${IMAGE}\"}")"
+            echo "RunPod template update: $resp"
+          else
+            echo "Não consegui o templateId — atualize o endpoint manualmente no console do RunPod."
+          fi
