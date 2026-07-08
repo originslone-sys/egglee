@@ -50,11 +50,17 @@ jobs:
 
     steps:
       - name: Update RunPod endpoint image
+        env:
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+          ENDPOINT_ID: ${{ vars.RUNPOD_ENDPOINT_ID }}
+          IMAGE: ghcr.io/${{ github.repository }}:latest
         run: |
-          curl -s -X PATCH \
-            "https://api.runpod.io/graphql?api_key=${{ secrets.RUNPOD_API_KEY }}" \
+          # Remove qualquer espaço/quebra de linha do secret (um \n no fim quebrava a URL → curl exit 3).
+          KEY="$(printf '%s' "$RUNPOD_API_KEY" | tr -d '[:space:]')"
+          resp="$(curl -s -X POST \
+            "https://api.runpod.io/graphql?api_key=${KEY}" \
             -H "Content-Type: application/json" \
-            -d '{
-              "query": "mutation { updateEndpoint(input: { id: \"${{ vars.RUNPOD_ENDPOINT_ID }}\", imageName: \"ghcr.io/${{ github.repository }}:latest\" }) { id imageName } }"
-            }'
-          echo "Endpoint updated: ${{ vars.RUNPOD_ENDPOINT_ID }}"
+            -d "{\"query\": \"mutation { updateEndpoint(input: { id: \\\"${ENDPOINT_ID}\\\", imageName: \\\"${IMAGE}\\\" }) { id imageName } }\"}")"
+          echo "RunPod response: $resp"
+          echo "$resp" | grep -q '"imageName"' || { echo "::error::RunPod endpoint update falhou (ver resposta acima)"; exit 1; }
+          echo "Endpoint atualizado: ${ENDPOINT_ID}"
